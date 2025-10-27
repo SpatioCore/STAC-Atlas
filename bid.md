@@ -1,18 +1,25 @@
 # Pflichtenheft STAC Atlas
 
 ## 1. Zielbestimmung (ALLE)
+- Verwaltung von Metadaten von Geodaten
 - DATENBANK: Die Datenbankkomponente dient der persistenten Speicherung und effizienten Abfrage von STAC-Collection-Metadaten, die vom Crawler gesammelt werden und über die STAC API verfügbar gemacht werden. Ziel ist es, eine leistungsfähige, erweiterbare und standardkonforme Datenhaltung zu entwickeln, die sowohl strukturierte Suchabfragen (CQL2) als auch Volltextsuche unterstützt.
 - Zentrailisierte Plattform
 - Automatisches Crawlen und Indexieren von STAC collections
   - von unterschiedlichen Quellen
 - Soll ermöglichen:
   - Auffindbar machen von Collections
-  - Suche nach Collection auf Basis von zeitlicher/räumlicher Ausdehnung oder Thema
+  - Suche und Filterung von Collection auf Basis von zeitlicher/räumlicher Ausdehnung oder Thema
   - Einen vergleich zwischen collections verschiedener Anbieter
   - Einen Zugriff auf die Metadaten der Collections ermöglichen
 
 - API-Schnittstelle für Entwickler
 - Nutzerfreundliche Web-UI
+Das Projekt besteht aus vier Hauptkomponenten:
+
+- Crawler – erfasst Daten aus STAC-Katalogen
+- Datenbank – speichert Metadaten
+- STAC API – ermöglicht standardisierten Zugriff
+- UI – bietet visuelle Suche und Kartenansicht
 
 ## 2. Anwendungsbereiche und Zielgruppen (ALLE)
 
@@ -28,6 +35,7 @@
 - STAC API konforme API-Schnittstelle
 - Backend vermutlich Python übersetzung von CQL2 (https://pypi.org/project/pycql2/)
 - Backend-Server der für das Backend inkl. Crawlen verantwortlich ist
+- Backend:Python, Node.js, JavaScript
 - Crawler in Python
 - Frontend in VueJS v3
 - Datenbankmanagementsystem: PostgreSQL
@@ -129,6 +137,12 @@ Querybare Attribute sind: (TO:DO)
   -
   -
 
+- Datenbank	Lesezugriff auf indizierte Felder	< 100 ms pro Query
+- System	Parallel verarbeitbare Anfragen	≥ 100 gleichzeitig
+- STAC API	GET-Abfrage /collections	≤ 1 Sekunde
+- STAC API	Komplexe Filterabfrage /search	≤ 5 Sekunden
+- STAC API	Maximale Anfragezeit	≤ 1 Minute
+
 ### Frontend
 - Kompatibel mit Browsern, die 80% der User repräsentieren
 - Geeignet für farbenblinde Personen
@@ -152,6 +166,7 @@ Querybare Attribute sind: (TO:DO)
 
 ## 7. Qualitätsanforderungen (ALLE)
 - Backend Unit-Test mit jest
+- Weiterführende Integrationstests
 - Verwendung von GitHub-Pipeline
 - STAC Validator
 - STAC API Validator
@@ -214,6 +229,19 @@ Querybare Attribute sind: (TO:DO)
     => führt zu persistenter Speicherung der Daten und schnellen Abfragemöglichkeiten
 
 ### 9.3 STAC API-Komponente
+- implementiert die STAC API Specification und die Collection Search Extension
+#### Bereitstellung von Collections
+- GET /collections -> Gibt eine Liste aller gespeicherten Collections aus der    Datenbank zurück
+#### Abruf einer bestimmten Collection
+- GET /collections/{id} -> Liefert die vollständigen Metadaten einer einzelnen Collection
+#### Collection Search
+GET /search -> Ermöglicht Filterung nach:
+
+- Schlüsselwörtern
+- räumlicher Ausdehnung (Bounding Box)
+- Zeitraum (temporal extent)
+- Provider oder Lizenz
+- Unterstützt CQL2-Filterung für erweiterte Abfragen
 
 ### 9.4 UI-Komponente
 
