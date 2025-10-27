@@ -1,161 +1,92 @@
 # Pflichtenheft STAC Atlas
 
 ## 1. Zielbestimmung (ALLE)
-- Zentrailisierte Plattform
-- Automatisches Crawlen und Indexieren von STAC collections
-  - von unterschiedlichen Quellen
-- Soll ermöglichen:
-  - Auffindbar machen von Collections
-  - Suche nach Collection auf Basis von zeitlicher/räumlicher Ausdehnung oder Thema
-  - Einen vergleich zwischen collections verschiedener Anbieter
-  - Einen Zugriff auf die Metadaten der Collections ermöglichen
+- Verwaltungvon Metadaten zu Geodaten
+- Ermöglicht Suche und Filterung
+- Verlinkt auf die echte Daten
+- Anwendung soll Geodaten verschiedener Anbieter automatisiert erfassen
+- werden in einer DB gespeichert 
+- sollen über eine standardisierte API sowie eine benutzerfreundliche Weboberfläche zugänglich sein
 
-- API-Schnittstelle für Entwickler
-- Nutzerfreundliche Web-UI
+Das Projekt besteht aus vier Hauptkomponenten:
 
+- Crawler – erfasst Daten aus STAC-Katalogen
+- Datenbank – speichert Metadaten
+- STAC API – ermöglicht standardisierten Zugriff
+- UI – bietet visuelle Suche und Kartenansicht
 
 ## 2. Anwendungsbereiche und Zielgruppen (ALLE)
-
-### 2.1 Zielgruppe
-- Data scientists and researchers
-- GIS professionals
-- Application developers
-- Data providers
-
-**Userstorys noch hinzufügen**
+STAC-Index website
+GIS-Fachleute
+Datenanbieter
+Entwickler
+Datenwissenschaftler
 
 ## 3. Produkt-Umgebung (ALLE)
-- STAC API konforme API-Schnittstelle
-- Backend vermutlich Python übersetzung von CQL2 (https://pypi.org/project/pycql2/)
-- Backend-Server der für das Backend inkl. Crawlen verantwortlich ist
-- Starten per Docker einzeiler
+Server-Umgebung: Docker-Container
+Datenbank:  CQL2
+Backend:Python, Node.js, JavaScript
+Frontend: Vue.js, css, Disign ählich mit STAC websites
+Kommunikation:GitHub, Discord,WhattsApp
 
 ## 4. Produktfunktionen (UNTERTEILT)
-- Soll ermöglichen:
-  - Auffindbar machen von Collections
-  - Suche nach Collection auf Basis von zeitlicher/räumlicher Ausdehnung oder Thema
-  - Einen vergleich zwischen collections verschiedener Anbieter
-  - Einen Zugriff auf die Metadaten der Collections ermöglichen
-Möglich als:
-  - Programmatischer Ansatz (API)
-  - Webanwendung (Frontend)
 
-Querybare Attribute sind: (TO:DO)
--
--
--
--
--
 
 ## 5. Produktdaten (Crawler & Datenbank)
 
 
 ## 6. Leistungsanforderungen (ALLE)
-- System Startbar per einzeiler (Docker)
+- Jede Benutzerinteraktion (außer Suchanfragen) soll innerhalb von 1 Sekunde eine sichtbare Reaktion in der Benutzeroberfläche auslösen
+- Komplexe Inhalte (z. B. Kartenansichten oder umfangreiche Ergebnislisten) dürfen asynchron nachgeladen werden, um die Reaktionszeit gering zu halten
+- Suchanfragen sollen innerhalb von 5 Sekunden abgeschlossen sein, typische Filterabfragen (z. B. zeitlich oder räumlich eingeschränkt) innerhalb von 1–3 Sekunden
+- Eine maximale Ausführungszeit von 1 Minute pro Anfrage darf nicht überschritten werden.
 
-- Datenspeicherung Konform zu STAC
-- Datenschnittstelle Konform zur STAC API
-- Datenschnittstelle Konform zur STAC API Collection Search Extension
-- Implementierung der STAC API Collection Search Extension (Free-text search, Filter, Sort)
-- Implementierung der CQL2 Filterung für Attribute der Collections
+- Die API muss mehrere gleichzeitige Anfragen (Concurrent Requests) verarbeiten können, ohne dass die durchschnittliche Antwortzeit signifikant steigt
 
-- BONUS:
-  - Erweiterte CQL2 Filterung
-  - CQL2 Filterung als eigenständige Library
-  - Integrations unserer Lösung ins bisherige STAC Index API
-
-- API ist Querybar nach folgenden Attributen: (TO:DO)
-  -
-  -
-  -
-  -
-
-### Frontend
-- Kompatibel mit Browsern, die 80% der User repräsentieren
-- Geeignet für farbenblinde Personen
-- Ausführliches Errorhandling
-- API in Englisch
-- Frontend in Englisch und Deutsch
-- Reaktionszeit (außer Query in weniger als einer Sekunde)
-- Asynchrones Laden komplexer Anfragen
-- Einfache textuelle Queries nach Keywords etc. < 5s
-- Komplexe geometrische Queries < 1min
-- Unterteilung von Suchergebnissen auf mehrere Seiten
-
-### Crawler
-- Full Crawl < one week
-
-### API
-- Unterstützung gleichzeitiger Anfragen
-
-### Datenbank
-- Effiziente Datenhaushaltung
+Web UI	Reaktion auf Benutzerinteraktion	≤ 1 Sekunde
+Web UI	Vollständige Suchabfrage	≤ 5 Sekunden
+STAC API	GET-Abfrage /collections	≤ 1 Sekunde
+STAC API	Komplexe Filterabfrage /search	≤ 5 Sekunden
+STAC API	Maximale Anfragezeit	≤ 1 Minute
+Crawler	Vollständiger Crawl-Zyklus	≤ 7 Tage
+Datenbank	Lesezugriff auf indizierte Felder	< 100 ms pro Query
+System	Parallel verarbeitbare Anfragen	≥ 100 gleichzeitig
 
 ## 7. Qualitätsanforderungen (ALLE)
-- Backend Unit-Test mit jest
-- Verwendung von GitHub-Pipeline
-- STAC Validator
-- STAC API Validator
-
-
+Benutzerfreundlich: einfache, klare Bedienoberfläche
+Robust: Fehlerbehandlung bei Crawling & API-Anfragen
+Open Source: Apache 2.0 Lizenz
+Testabdeckung: grundlegende Unit- und Integrationstests
 ## 8. Sonstige nichtfunktionale Anforderungen (ALLE)
-- Ausführliche Dokumentation
-  - Im Code
-  - Im Repository
-  - Verwendung von JSDoc
-  - Verwendung von OpenAPI als Dokumentation
-
-- Live Präsentation des finalen Produkts
-
-- Projektbericht
-  - als PDF
-  - mit Bedienungsanleitung
-  - Beschreibung, wie die verschiedenen Anwendungsfälle durch unser Produkt gelöst werden
-  - Beschreibung des Zusammenspiels aus den drei Komponenten Crawler, API und UI
-
-- Open Source unter Apache 2.0
-- Verwendung von Lintern
-
-- Agiles Projektmanagement über GitHub-Projekte
-  - Kunde erhält Zugriff
 
 
 ## 9. Gliederung in Teilprodukte (Unterteilt)
-- Jede Komponente als eigenständiger Docker-Container
 ### 9.1 Crawler-Komponente
 
 ### 9.2 Datenbank-Komponente
 
 ### 9.3 STAC API-Komponente
+- implementiert die STAC API Specification und die Collection Search Extension
+
+# Bereitstellung von Collections
+- GET /collections -> Gibt eine Liste aller gespeicherten Collections aus der    Datenbank zurück
+
+# Abruf einer bestimmten Collection
+- GET /collections/{id} -> Liefert die vollständigen Metadaten einer einzelnen Collection
+
+# Collection Search
+GET /search -> Ermöglicht Filterung nach:
+
+- Schlüsselwörtern
+- räumlicher Ausdehnung (Bounding Box)
+- Zeitraum (temporal extent)
+- Provider oder Lizenz
+- Unterstützt CQL2-Filterung für erweiterte Abfragen
 
 ### 9.4 UI-Komponente
-
+- Weboberfläche (Vue.js ) mit Suchfeld, Filteroptionen, Zeit- und Raum-Auswahl sowie Kartendarstellung der Ergebnisse
 
 ## 10. Entwicklungsumgebung (ALLE)
-- Git
-- Python
-- JavaScript
-
-## 11. Zeitplan (ALLE)
 
 
-## 12. Zuständigkeiten (ALLE)
-### 12.1 Crawler-Komponente
-- Humam (Teamleiter)
-- Jakob
-- Lenn
-
-### 12.2 Datenbank
-- Sönke (Teamleiter)
-
-### 12.3 STAC API-Komponente
-- Robin (Projektleiter, Teamleiter)
-- Jonas
-- George
-- Vincent
-
-### 12.4 UI
-- Justin (Teamleiter)
-- Simon
-
-## 13. Glossar (ALLE)
+## 11. Glossar (ALLE)
