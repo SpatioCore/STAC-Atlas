@@ -1,6 +1,7 @@
 # Pflichtenheft STAC Atlas
 
 ## 1. Zielbestimmung (ALLE)
+- DATENBANK: Die Datenbankkomponente dient der persistenten Speicherung und effizienten Abfrage von STAC-Collection-Metadaten, die vom Crawler gesammelt werden und über die STAC API verfügbar gemacht werden. Ziel ist es, eine leistungsfähige, erweiterbare und standardkonforme Datenhaltung zu entwickeln, die sowohl strukturierte Suchabfragen (CQL2) als auch Volltextsuche unterstützt.
 - Zentrailisierte Plattform
 - Automatisches Crawlen und Indexieren von STAC collections
   - von unterschiedlichen Quellen
@@ -27,9 +28,12 @@
 - STAC API konforme API-Schnittstelle
 - Backend vermutlich Python übersetzung von CQL2 (https://pypi.org/project/pycql2/)
 - Backend-Server der für das Backend inkl. Crawlen verantwortlich ist
-- Starten per Docker einzeiler
 - Crawler in Python
 - Frontend in VueJS v3
+- Datenbankmanagementsystem: PostgreSQL
+- Containerisierung: Docker
+- Starten per Docker Einzeiler
+- Entwicklungsumgebung: Node.js 20
 
 ## 4. Produktfunktionen (UNTERTEILT)
 - Soll ermöglichen:
@@ -49,6 +53,45 @@ Querybare Attribute sind: (TO:DO)
 -
 
 ## 5. Produktdaten (Crawler & Datenbank)
+
+### collection
+- title
+- description
+- spatial extent
+- temporal extent (start-end)
+- provider names
+- license 
+- DOIs
+- created_timestamp
+- last_crawled
+- extracted collection metadata
+
+- STAC extensions 
+- active boolean
+
+### catalog
+- title
+(- description)
+- catalog_parent 
+
+### keywords
+
+- keyword
+
+### source 
+- source_url
+- title
+- type
+- status
+- last_crawled
+
+### summaries
+- collection_id	
+- platform	TEXT	(z. B. „Sentinel-2“)
+- constellation	TEXT	(z. B. „Sentinel“)
+- gsd
+- processing_level
+- summary_json
 
 ## 6. Leistungsanforderungen (ALLE)
 
@@ -138,20 +181,37 @@ Querybare Attribute sind: (TO:DO)
 ## 9. Gliederung in Teilprodukte (Unterteilt)
 - Jede Komponente als eigenständiger Docker-Container
 ### 9.1 Crawler-Komponente
-        - crawlen der STAC Kataloge und STAC API von STAC Index
-        - mehr als 95% der Collections von STAC Index werden erfolgreich gecrawlt
-        - vollständiges Crawlen der vorgebenen Kategorien (Keywords) (6.1.1.3)
-        - wöchentliches crawlen des Indexes für die STAC API
-        - crawlen der Collections und nicht der Items (siehe 6.1.1.7)
-        - erstellen einer konfigurierbaren Crawling schedule
-        - nutzung von Pystac and asyncio
-        - Speicherung durch PypgSTAC 
-        - rekursive Navigation
-        - Error-Handling mit Retry-, Backoff-Logic und Failure Threshold oder Blacklisting
-        - Protokollierung der Crawl-Aktivitäten
-        - Frage: sollen gelöschte Collections beim Überschreiben auch gelöscht werden?
+- crawlen der STAC Kataloge und STAC API von STAC Index
+- mehr als 95% der Collections von STAC Index werden erfolgreich gecrawlt
+- vollständiges Crawlen der vorgebenen Kategorien (Keywords) (6.1.1.3)
+- wöchentliches crawlen des Indexes für die STAC API
+- crawlen der Collections und nicht der Items (siehe 6.1.1.7)
+- erstellen einer konfigurierbaren Crawling schedule
+- nutzung von Pystac and asyncio
+- Speicherung durch PypgSTAC 
+- rekursive Navigation
+- Error-Handling mit Retry-, Backoff-Logic und Failure Threshold oder Blacklisting
+- Protokollierung der Crawl-Aktivitäten
+- Frage: sollen gelöschte Collections beim Überschreiben auch gelöscht werden?
 
 ### 9.2 Datenbank-Komponente
+- Bereitstellung effizienter Indizes für Such- und Filteroperationen
+- Vollständige Speicherung der vom Crawler gelieferten Metadaten (inkl. STAC JSON).
+- Ermöglicht Freitextsuche über Titel, Beschreibung, Keywords.
+- Nutzung von PostGIS-Geometrien zur Filterung nach Bounding Box.
+- Indexierung und Abfrage nach Start- und Endzeitpunkten.
+- Übersetzung von CQL2-Ausdrücken in SQL WHERE-Bedingungen.
+- Unterstützung inkrementeller Updates durch den Crawler.
+- gelöschte Datensätze bleiben erhalten und bekommen ein active=false
+
+- Unterteilung der Datenbank in verschiedene Tabellen
+    - collection
+    - catalog
+    - keywords
+    - source
+    - summaries
+    - last_crawled
+    => führt zu persistenter Speicherung der Daten und schnellen Abfragemöglichkeiten
 
 ### 9.3 STAC API-Komponente
 
@@ -165,6 +225,7 @@ Querybare Attribute sind: (TO:DO)
 - Git
 - Python
 - JavaScript
+- NodeJS
 
 ### UI/UX Tech Stack
 - VueJS
