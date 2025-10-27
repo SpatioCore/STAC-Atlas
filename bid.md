@@ -1,6 +1,6 @@
 # Pflichtenheft STAC Atlas
 
-## 1. Zielbestimmung (ALLE)
+## 1. Zielbestimmung (ALLE) <!-- Jakob -->
 - Verwaltung von Metadaten von Geodaten
 - DATENBANK: Die Datenbankkomponente dient der persistenten Speicherung und effizienten Abfrage von STAC-Collection-Metadaten, die vom Crawler gesammelt werden und über die STAC API verfügbar gemacht werden. Ziel ist es, eine leistungsfähige, erweiterbare und standardkonforme Datenhaltung zu entwickeln, die sowohl strukturierte Suchabfragen (CQL2) als auch Volltextsuche unterstützt.
 - Zentrailisierte Plattform
@@ -23,7 +23,7 @@ Das Projekt besteht aus vier Hauptkomponenten:
 
 ## 2. Anwendungsbereiche und Zielgruppen (ALLE)
 
-### 2.1 Zielgruppe
+### 2.1 Zielgruppe <!-- Jakob -->
 - Data scientists and researchers
 - GIS professionals
 - Application developers
@@ -31,7 +31,7 @@ Das Projekt besteht aus vier Hauptkomponenten:
 
 **Userstorys noch hinzufügen**
 
-## 3. Produkt-Umgebung (ALLE)
+## 3. Produkt-Umgebung (ALLE) <!-- Jonas -->
 - STAC API konforme API-Schnittstelle
 - Backend vermutlich Python übersetzung von CQL2 (https://pypi.org/project/pycql2/)
 - Backend-Server der für das Backend inkl. Crawlen verantwortlich ist
@@ -43,7 +43,7 @@ Das Projekt besteht aus vier Hauptkomponenten:
 - Starten per Docker Einzeiler
 - Entwicklungsumgebung: Node.js 20
 
-## 4. Produktfunktionen (UNTERTEILT)
+## 4. Produktfunktionen (UNTERTEILT) <!-- Robin -->
 - Soll ermöglichen:
   - Auffindbar machen von Collections
   - Suche nach Collection auf Basis von zeitlicher/räumlicher Ausdehnung oder Thema
@@ -60,7 +60,7 @@ Querybare Attribute sind: (TO:DO)
 -
 -
 
-## 5. Produktdaten (Crawler & Datenbank)
+## 5. Produktdaten (Crawler & Datenbank) <!-- Humam & Sönke -->
 
 ### collection
 - title
@@ -103,6 +103,13 @@ Querybare Attribute sind: (TO:DO)
 
 ## 6. Leistungsanforderungen (ALLE)
 
+### 6.1 Crawler <!-- Humam -->
+
+### 6.2 Datenbank <!-- Sönke -->
+
+### 6.3 STAC API <!-- George -->
+
+### 6.4 UI <!-- Justin -->
 ### UI-Komponente
 - Design orientiert am STAC Index und Komponenten
 - VueJS v3
@@ -164,14 +171,14 @@ Querybare Attribute sind: (TO:DO)
 ### Datenbank
 - Effiziente Datenhaushaltung
 
-## 7. Qualitätsanforderungen (ALLE)
+## 7. Qualitätsanforderungen (ALLE) <!-- Vincent -->
 - Backend Unit-Test mit jest
 - Weiterführende Integrationstests
 - Verwendung von GitHub-Pipeline
 - STAC Validator
 - STAC API Validator
 
-## 8. Sonstige nichtfunktionale Anforderungen (ALLE)
+## 8. Sonstige nichtfunktionale Anforderungen (ALLE) <!-- Jakob -->
 - Ausführliche Dokumentation
   - Im Code
   - Im Repository
@@ -194,8 +201,9 @@ Querybare Attribute sind: (TO:DO)
 
 
 ## 9. Gliederung in Teilprodukte (Unterteilt)
+<!-- Was kann jedes Teilprodukt, wo sind die Grenzen. Welche Aufgaben erfüllt es -->
 - Jede Komponente als eigenständiger Docker-Container
-### 9.1 Crawler-Komponente
+### 9.1 Crawler-Komponente <!-- Lenn -->
 - crawlen der STAC Kataloge und STAC API von STAC Index
 - mehr als 95% der Collections von STAC Index werden erfolgreich gecrawlt
 - vollständiges Crawlen der vorgebenen Kategorien (Keywords) (6.1.1.3)
@@ -209,7 +217,7 @@ Querybare Attribute sind: (TO:DO)
 - Protokollierung der Crawl-Aktivitäten
 - Frage: sollen gelöschte Collections beim Überschreiben auch gelöscht werden?
 
-### 9.2 Datenbank-Komponente
+### 9.2 Datenbank-Komponente <!-- Sönke -->
 - Bereitstellung effizienter Indizes für Such- und Filteroperationen
 - Vollständige Speicherung der vom Crawler gelieferten Metadaten (inkl. STAC JSON).
 - Ermöglicht Freitextsuche über Titel, Beschreibung, Keywords.
@@ -228,7 +236,7 @@ Querybare Attribute sind: (TO:DO)
     - last_crawled
     => führt zu persistenter Speicherung der Daten und schnellen Abfragemöglichkeiten
 
-### 9.3 STAC API-Komponente
+### 9.3 STAC API-Komponente <!-- Vincent -->
 - implementiert die STAC API Specification und die Collection Search Extension
 #### Bereitstellung von Collections
 - GET /collections -> Gibt eine Liste aller gespeicherten Collections aus der    Datenbank zurück
@@ -243,13 +251,22 @@ GET /search -> Ermöglicht Filterung nach:
 - Provider oder Lizenz
 - Unterstützt CQL2-Filterung für erweiterte Abfragen
 
-### 9.4 UI-Komponente
+### 9.4 UI-Komponente <!-- Simon -->
 
 ### 9.4.1 UI
 
 ### 9.4.2 UX
 
-## 10. Entwicklungsumgebung (ALLE)
+## 10. Implementierungsdetails (ALLE)
+<!-- Hier bitte pro Gruppe eintragen, wie genau die Teilprodukte implementiert werden sollen.
+Also auch sowas wie verwendete Technologie, Teilschritte (Meilensteine?) etc.. WBS wäre auch nett-->
+### 10.1 Crawler <!-- Humam -->
+
+### 10.2 Datenbank <!-- Sönke -->
+
+### 10.3 STAC API <!-- Robin -->
+
+### 10.4 UI <!-- Justin -->
 - Git
 - Python
 - JavaScript
