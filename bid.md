@@ -13,7 +13,6 @@
 - API-Schnittstelle für Entwickler
 - Nutzerfreundliche Web-UI
 
-
 ## 2. Anwendungsbereiche und Zielgruppen (ALLE)
 
 ### 2.1 Zielgruppe
@@ -30,6 +29,7 @@
 - Backend-Server der für das Backend inkl. Crawlen verantwortlich ist
 - Starten per Docker einzeiler
 - Crawler in Python
+- Frontend in VueJS v3
 
 ## 4. Produktfunktionen (UNTERTEILT)
 - Soll ermöglichen:
@@ -50,9 +50,24 @@ Querybare Attribute sind: (TO:DO)
 
 ## 5. Produktdaten (Crawler & Datenbank)
 
-
 ## 6. Leistungsanforderungen (ALLE)
-- System Startbar per einzeiler (Docker)
+
+### UI-Komponente
+- Design orientiert am STAC Index und Komponenten
+- VueJS v3
+- Selektion
+    - BoundingBox/?Polygon?
+    - Zeit
+- Responsive
+- Scratch?? CQL2 Filter & Kondition bauen
+- Interaktive Karte
+- Lizenzkonforme Verweise auf genutzte Software (Verweis auf STAC Catalog, STAC API, ...)
+- Kollektionen suchen und filtern
+- BONUS Kollektionen vergleichen
+- (TO:DO Abklären) BONUS Items einer Collection im Frontend anzeigen lassen 
+  - Also nicht Items abspeichern, sondern On-Demand abrufen
+
+- System Startbar per Einzeiler (docker-compose up --build)
 
 - Datenspeicherung Konform zu STAC
 - Datenschnittstelle Konform zur STAC API
@@ -98,7 +113,6 @@ Querybare Attribute sind: (TO:DO)
 - STAC Validator
 - STAC API Validator
 
-
 ## 8. Sonstige nichtfunktionale Anforderungen (ALLE)
 - Ausführliche Dokumentation
   - Im Code
@@ -143,11 +157,23 @@ Querybare Attribute sind: (TO:DO)
 
 ### 9.4 UI-Komponente
 
+### 9.4.1 UI
+
+### 9.4.2 UX
 
 ## 10. Entwicklungsumgebung (ALLE)
 - Git
 - Python
 - JavaScript
+
+### UI/UX Tech Stack
+- VueJS
+- Vite
+- NodeJS
+- OpenLayers/ Leaflet/ MapLibre GL JS
+- Plain CSS
+    - Reset File, Component Files, Vars
+- Figma
 
 ## 11. Zeitplan (ALLE)
 
