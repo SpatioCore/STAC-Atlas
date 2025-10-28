@@ -44,21 +44,38 @@ Das Projekt besteht aus vier Hauptkomponenten:
 - Entwicklungsumgebung: Node.js 20
 
 ## 4. Produktfunktionen (UNTERTEILT) <!-- Robin -->
-- Soll ermöglichen:
-  - Auffindbar machen von Collections
-  - Suche nach Collection auf Basis von zeitlicher/räumlicher Ausdehnung oder Thema
-  - Einen vergleich zwischen collections verschiedener Anbieter
-  - Einen Zugriff auf die Metadaten der Collections ermöglichen
-Möglich als:
-  - Programmatischer Ansatz (API)
-  - Webanwendung (Frontend)
+| ID | Komponente | Funktion (Kurzbeschreibung) | Optional | Akzeptanzkriterium | Prio |
+|---|---|---|---|---|---|
+| PF-CR-01 | Crawler | Alle im STAC Index gelisteten statischen Kataloge und STAC-APIs nach Collections crawlen | – | Mind. 87 Quellen gecrawlt; Trefferquote ≥ 95 % | M |
+| PF-CR-02 | Crawler | Collections in beliebiger Verschachtelungstiefe erfassen (nested catalogs) | – | Nachweis Crawl über ≥ N  Ebenen <!-- @Mammutor bitte anpassen -->; keine Duplikate | M |
+| PF-CR-03 | Crawler | Metadaten extrahieren: id, title, description, spatial/temporal extent, keywords, provider, license, DOI, summaries(platform/constellation/gsd/processing:level) | – | ≥ 95 % Felder gefüllt bei Stichprobe n=50 | H |
+| PF-CR-04 | Crawler | Quell-URL, Quell-Titel, „zuletzt gecrawlt“ speichern | – | Felder in DB vorhanden und befüllt | M |
+| PF-CR-05 | Crawler | Alle stabilen STAC-Versionen unterstützen (alte Ressourcen werden automatisch auf 1.1 migriert) | – | Collections unterschiedl. Versionen werden gespeichert und ggf. migriert | M |
+| PF-CR-06 | Crawler | Inkrementelle Updates und periodisches Re-Crawling | – | Änderungen können ohne vollständige Neuindexierung hinzugefügt werden | H |
+| PF-CR-07 | Crawler | Vollständige STAC-Collection + extrahierte Suchfelder persistent ablegen | – | ≥ 95 % Felder identisch zwischen Quelle und Datenbank bei Stichprobe n=50 | H |
+| PF-CR-08 | Crawler | Erweiterbares DB-Design für zusätzliche Felder vorschlagen (siehe 5. Produktdaten) | – | Schema-Entwurf dokumentiert & abgenommen | M |
+| PF-CR-09 | Crawler | Rate-Limiting einhalten (Quellen nicht überlasten) | – | Keine 429-Antworten/Blockings in Testlauf über 12 h | M |
+| PF-CR-10 | Crawler | Konfigurierbare Crawl-Zeitpläne/Frequenzen | ✔ | CRON/Intervall vom Anwender frei konfigurierbar | L |
+| PF-CR-11 | Crawler | Fehlerbehandlung + Retry; problematische Quellen überspringen | ✔ | Backoff/Retry-Logik; Fehlerbericht vorhanden | M |
+| PF-CR-12 | Crawler | Logging & Monitoring der Crawl-Aktivitäten | ✔ | Dashboards/Metriken (Rate, Fehler, Status) | M |
+| PF-CR-13 | Crawler | Version-agnostische STAC-Extensions erkennen und als Tags speichern (EO, SAR, Point Cloud) | ✔ | Extensions-Tags in DB & Queryables sichtbar | L |
+| PF-API-01 | STAC-API | API gemäß relevanten Spezifikationen gültig (STAC API und Collection Search Extension) | – | `/conformance` enthält zutreffende URIs | H |
+| PF-API-02 | STAC-API | Erweiterung der bestehenden STAC Index API; bleibt selbst gültige STAC-API | – | Root/Collections gültig - Getestet durch `STAC Validator` und `STAC API Validator` | H |
+| PF-API-03 | STAC-API | Collection Search: Freitext `q`, Filter, Sortierung | – | Beispiel-Queries liefern erwartete Treffer | H |
+| PF-API-04 | STAC-API | CQL2-Filtering (Basic CQL2) für Collection-Eigenschaften | – | Gültige Filter → 200 Antworten; ungültige → 400 Antworten mit Fehlerbeschreibung | H |
+| PF-API-05 | STAC-API | Zusätzliche CQL2-Fähigkeiten (Advanced Comparison Operators) | ✔ | Conformance-URIs ergänzt; Tests grün | M |
+| PF-API-06 | STAC-API | CQL2 als Standalone-Library bereitstellen | ✔ | Lib mit Parser/Validation + README | L |
+| PF-API-07 | STAC-API | Integration der neuen Funktionen in bestehende STAC Index API | ✔ | End-to-End-Tests (Crawler→API→UI) grün | M |
+| PF-UI-01 | Web-UI | Intuitive Suchoberfläche für Collections | – | Usability-Test: Kernflows bestehen | H |
+| PF-UI-02 | Web-UI | Implementierung in Vue (v3) zur Einbindung in STAC Index | – | Build integriert; Routing/State funktionsfähig | M |
+| PF-UI-03 | Web-UI | Interaktive Auswahl von Bounding Box und Zeitintervall | – | BBox/Datetime erzeugen korrekte Parameter | H |
+| PF-UI-04 | Web-UI | Composable Queryables in der UI → generiert CQL2-Ausdruck | – | UI-Builder erzeugt valide CQL2 (Server-OK) | H |
+| PF-UI-05 | Web-UI | Kartenansicht mit Visualisierung räumlicher Extents | – | Extents werden auf interaktiver Karte dargestellt | M |
+| PF-UI-06 | Web-UI | Links zur Originalquelle (Katalog/API) und optional zur Item Search | – | Links korrekt & erreichbar | M |
+| PF-UI-07 | Web-UI | Inspection-Ansicht für Collections (Details) | – | Detailseite zeigt alle Kernfelder | M |
+| PF-UI-08 | Web-UI | Items der Collections inspizieren können | ✔ | Item-Liste/Detail aufrufbar | L |
+| PF-UI-09 | Web-UI | Collections vergleichen (Mehrfachauswahl & Vergleich) | ✔ | Vergleichsansicht mit minimum 2 Collections | L |
 
-Querybare Attribute sind: (TO:DO)
--
--
--
--
--
 
 ## 5. Produktdaten (Crawler & Datenbank) <!-- Humam & Sönke -->
 
