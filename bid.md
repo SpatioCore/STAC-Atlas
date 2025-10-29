@@ -267,22 +267,92 @@ Also auch sowas wie verwendete Technologie, Teilschritte (Meilensteine?) etc.. W
 ### 10.3 STAC API <!-- Robin -->
 
 ### 10.4 UI <!-- Justin -->
-- Git
-- Python
-- JavaScript
-- NodeJS
 
-### UI/UX Tech Stack
-- VueJS
-- Vite
-- NodeJS
-- OpenLayers/ Leaflet/ MapLibre GL JS
-- Plain CSS
-    - Reset File, Component Files, Vars
-- Figma
+#### **UI/UX Tech Stack**
+
+Die Implementierung der UI-Komponente erfolgt auf Basis moderner Webtechnologien, die eine hohe Performance, Wartbarkeit und Erweiterbarkeit gewährleisten.  
+Die folgende Übersicht fasst die wesentlichen Werkzeuge und Frameworks zusammen und erläutert ihre jeweilige Auswahlbegründung:
+
+- **Framework:** Vue 3 (Composition API) 
+
+- **Build-Tool:** Vite (Node.js 20)  
+  Vite bietet sehr schnelle Entwicklungs- und Build-Zeiten durch modernes ESM-Bundling und Hot-Module-Replacement.  
+  Dadurch kann die Benutzeroberfläche auch bei größeren Datenmengen performant entwickelt und getestet werden.
+
+- **Programmiersprache:** JavaScript / TypeScript
+
+- **Zustandsverwaltung:** Pinia  
+  Pinia dient als zentraler State-Store für Filter, Suchparameter und UI-Status.  
+  Es ist die offizielle, moderne Alternative zu Vuex und bietet eine klar typisierbare API sowie einfache Integration in Composition-API-Komponenten.
+
+- **Routing:** Vue Router  
+  Der Vue Router ermöglicht die Abbildung komplexer Navigations- und Filterzustände in der URL.  
+  Dadurch können Suchergebnisse oder Filterparameter als Deep-Link geteilt und reproduzierbar gespeichert werden.
+
+- **Kartenbibliothek:** MapLibre GL JS  
+  MapLibre wurde aufgrund seiner hohen Performance bei der Darstellung großer Geometriedatensätze und der Unterstützung von Vektorkarten gewählt.  
+  Im Gegensatz zu alternativen Bibliotheken wie Leaflet bietet MapLibre native Unterstützung für Layer-Styles, Clustering und interaktive Filterung, was den Anforderungen an die Visualisierung räumlicher Extents entspricht.
+
+- **Styling:** Plain CSS mit strukturierter Aufteilung (`reset.css`, `vars.css`, `components/*.css`)  
+  Auf den Einsatz eines UI-Frameworks (z. B. Tailwind oder Bootstrap) wird bewusst verzichtet, um volle Kontrolle über Design, Barrierefreiheit und Performance zu behalten.  
+  Die Trennung in Reset-, Variablen- und Komponenten-Dateien ermöglicht eine klare Strukturierung und spätere Erweiterbarkeit (z. B. Theme-Unterstützung).
+
+- **Design & Prototyping:** Figma  
+  Figma wird zur Erstellung interaktiver Prototypen, Farbschemata und UI-Komponenten eingesetzt.  
+  Dadurch kann das Design frühzeitig mit Nutzenden und im Team abgestimmt werden, bevor die Implementierung erfolgt.
+
+- **Testing:** Vitest (Unit-Tests), Playwright (End-to-End-Tests)  
+  Vitest wird für Komponententests auf Funktionsebene eingesetzt, um die Logik einzelner Module zu prüfen.  
+  Playwright dient der automatisierten End-to-End-Validierung der Benutzerinteraktionen über verschiedene Browser hinweg.  
+  Diese Kombination gewährleistet eine stabile, reproduzierbare und testbare Benutzeroberfläche.
+
+- **Qualitätssicherung:** ESLint + Prettier, Lighthouse Performance Audits  
+  Durch statische Codeanalyse (ESLint), automatische Formatierung (Prettier) und regelmäßige Lighthouse-Audits wird eine gleichbleibend hohe Codequalität und Performance sichergestellt.
+
+<!-- Optional: - **Internationalisierung:** vue-i18n (Deutsch / Englisch) -->
+
+---
+
+#### **Architektur und Aufbau**
+
+Das Frontend folgt einer komponentenbasierten Architektur, um eine klare Trennung der Verantwortlichkeiten, Wiederverwendbarkeit und Wartbarkeit zu gewährleisten.  
+Zentrale Bestandteile sind:
+
+- **Karten-Komponente:**  
+  Stellt den zentralen Kartenbereich auf Basis von MapLibre GL JS dar.  
+  Zeigt räumliche Extents der STAC-Collections an und ermöglicht Interaktion durch Zoom, Pan, Bounding-Box-Selektion und Hover-Informationen.
+
+- **FilterPanel-Komponente:**  
+  Sidebar zur Definition von Suchparametern wie Zeitintervall, Raumfilter, Schlüsselwörtern, Provider und Lizenz.  
+  Die Filterparameter werden intern im Pinia-Store verwaltet und in CQL2-kompatible Suchanfragen übersetzt.
+
+- **Ergebnisliste-Komponente:**  
+  Scrollbare Listen-/ Gridansicht mit Kurzinfos zu gefundenen Collections (z. B. Titel, Beschreibung, Provider, Lizenz).  
+  Bietet Aktionen zum Öffnen der Detailansicht oder zur Navigation in die Karte.
+
+- **Modal/Seiten-Komponente:**  
+  Popup- oder Seitenansicht zur Anzeige vollständiger Metadaten einer Collection, einschließlich DOI, Lizenz, zeitlicher und räumlicher Extent sowie verfügbarer Vorschaubilder.
+
+<!-- Optional: - **CompareView-Komponente:** Darstellung zweier Collections im Vergleich (Seiten-an-Seite-Layout). -->
+
+Die Kommunikation mit der STAC-API erfolgt asynchron über HTTPS-Requests.  
+Filterparameter werden in den Anfragen nach dem CQL2-Standard übergeben.
+
+---
+
+#### **WBS (Work Breakdown Structure)**
+
+1. **Workspace:** Aufbau der Projekt- und Ordnerstruktur  
+2. **Design:** Definition des Farbsystems und Erstellung eines Figma-Mockups der Hauptkomponenten  
+3. **Implementierung:** Überführung der entworfenen Komponenten in das Frontend  
+4. **Funktionalität (Zusammenarbeit mit API):** Anbindung der Komponenten an die STAC-API und Implementierung der Such- und Filterlogik  
+
+**Durchgängige Aufgaben:**
+- **Revisions:**  
+  - Design-Optimierung und kontinuierliche Verbesserung der Benutzerfreundlichkeit  
+  - Qualitätssicherung durch Testing und Code Reviews  
 
 ## 11. Zeitplan (ALLE)
-
 
 ## 12. Zuständigkeiten (ALLE)
 ### 12.1 Crawler-Komponente
