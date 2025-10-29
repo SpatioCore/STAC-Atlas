@@ -204,18 +204,17 @@ Querybare Attribute sind: (TO:DO)
 <!-- Was kann jedes Teilprodukt, wo sind die Grenzen. Welche Aufgaben erfüllt es -->
 - Jede Komponente als eigenständiger Docker-Container
 ### 9.1 Crawler-Komponente <!-- Lenn -->
-- crawlen der STAC Kataloge und STAC API von STAC Index
-- mehr als 95% der Collections von STAC Index werden erfolgreich gecrawlt
-- vollständiges Crawlen der vorgebenen Kategorien (Keywords) (6.1.1.3)
-- wöchentliches crawlen des Indexes für die STAC API
-- crawlen der Collections und nicht der Items (siehe 6.1.1.7)
-- erstellen einer konfigurierbaren Crawling schedule
-- nutzung von Pystac and asyncio
-- Speicherung durch PypgSTAC 
-- rekursive Navigation
-- Error-Handling mit Retry-, Backoff-Logic und Failure Threshold oder Blacklisting
-- Protokollierung der Crawl-Aktivitäten
-- Frage: sollen gelöschte Collections beim Überschreiben auch gelöscht werden?
+Der Crawler durchsucht STAC Index nach STAC Kataloge und STAC APIs. Dabei sollen mehr als 95% der Collections erfolgreich erfasst werden.
+Das Crawling erfolgt rekursiv, sodass Collections in beliebiger Tiefe innerhalb verschachtelter Kataloge erkannt werden. Es werden ausschließlich Collections und keine Items erfasst. Die Crawling Vorgänge extrahieren die relevanten Metadaten jeder Collection (6.1.1.3) und speichern sie zusammen mit der Quell-URL, dem Katalognamen und dem Zeitstempel des letzten Crawls.
+
+Es werden alle stabilen STAC-Versionen, durch Migration unterstützt. 
+Eine Crawling-Plan (Schedule) ermöglicht die zeitliche Steuerung einzelner Crawl-Vorgänge. Es soll eine wöchentliche Aktualisierungen des Indexes durchgeführt werden.
+
+Für die Umsetzung werden PySTAC und asyncio zur Verarbeitung genutzt. Die Ergebnisse werden mittels PypgSTAC in einer PostgreSQL-Datenbank gespeichert.
+
+Zur Stabilität trägt ein Fehlerbehandlungssystem mit Retry- und Backoff-Mechanismen bei. Quellen, die wiederholt fehlschlagen, werden nach Erreichen einer konfigurierbaren Fehlerschwelle automatisch übersprungen oder auf eine Blacklist gesetzt.
+Außerdem werden alle Crawl-Aktivitäten protokolliert, um Transparenz und Nachvollziehbarkeit zu gewährleisten.
+
 
 ### 9.2 Datenbank-Komponente <!-- Sönke -->
 - Bereitstellung effizienter Indizes für Such- und Filteroperationen
