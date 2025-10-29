@@ -62,8 +62,8 @@ Das Projekt besteht aus vier Hauptkomponenten:
 | PF-API-01 | STAC-API | API gemäß relevanten Spezifikationen gültig (STAC API und Collection Search Extension) | – | `/conformance` enthält zutreffende URIs | H |
 | PF-API-02 | STAC-API | Erweiterung der bestehenden STAC Index API; bleibt selbst gültige STAC-API | – | Root/Collections gültig - Getestet durch `STAC Validator` und `STAC API Validator` | H |
 | PF-API-03 | STAC-API | Collection Search: Freitext `q`, Filter, Sortierung | – | Beispiel-Queries liefern erwartete Treffer | H |
-| PF-API-04 | STAC-API | CQL2-Filtering (Basic CQL2) für Collection-Eigenschaften | – | Gültige Filter → 200 Antworten; ungültige → 400 Antworten mit Fehlerbeschreibung | H |
-| PF-API-05 | STAC-API | Zusätzliche CQL2-Fähigkeiten (Advanced Comparison Operators) | ✔ | Conformance-URIs ergänzt; Tests grün | M |
+| PF-API-04 | STAC-API | CQL2-Filtering (Basic CQL2 (`AND`, `OR`, `NOT`, `=`, `<>`, `<`, `<=`, `>`, `>=`, `IS NULL`)) für Collection-Eigenschaften | – | Gültige Filter → 200 Antworten; ungültige → 400 Antworten mit Fehlerbeschreibung | H |
+| PF-API-05 | STAC-API | Zusätzliche CQL2-Fähigkeiten (Advanced Comparison Operators (`LIKE/BETWEEN/IN`, `casei/accenti`, `Spatial/Temporal`, `Arrays`)) | ✔ | Conformance-URIs ergänzt; Tests grün | M |
 | PF-API-06 | STAC-API | CQL2 als Standalone-Library bereitstellen | ✔ | Lib mit Parser/Validation + README | L |
 | PF-API-07 | STAC-API | Integration der neuen Funktionen in bestehende STAC Index API | ✔ | End-to-End-Tests (Crawler→API→UI) grün | M |
 | PF-UI-01 | Web-UI | Intuitive Suchoberfläche für Collections | – | Usability-Test: Kernflows bestehen | H |
