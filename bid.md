@@ -100,9 +100,7 @@ Das System soll explizit **NICHT**:
 - Vollständige Historie aller Metadatenänderungen vorhalten
 - Real-time Synchronisation mit Quell-Katalogen garantieren
 
-## 2. Anwendungsbereiche und Zielgruppen (ALLE)
-
-### 2.1 Zielgruppe <!-- Jakob -->
+## 2. Anwendungsbereiche und Zielgruppen (ALLE) <!-- Jakob -->
 
 Das System richtet sich an verschiedene Nutzergruppen mit unterschiedlichen Anforderungen und Anwendungsfällen:
 
