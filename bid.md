@@ -172,7 +172,7 @@ Querybare Attribute sind: (TO:DO)
 - Effiziente Datenhaushaltung
 
 ## 7. Qualitätsanforderungen (ALLE) <!-- Vincent -->
-Zur Sicherstellung einer hohen Code-, System- und Datenqualität werden im Projekt STAC Index: Collection Search folgende Qualitätsanforderungen definiert.
+Zur Sicherstellung einer hohen Code-, System- und Datenqualität werden im Projekt *STAC-Atlas* folgende Qualitätsanforderungen definiert.
 Sie betreffen alle drei Komponenten – Crawler, STAC API und Web UI – mit Schwerpunkt auf der API, da diese die Kernlogik des Gesamtsystems darstellt.
 Die nachfolgenden Maßnahmen gewährleisten die Korrektheit, Wartbarkeit, Standardkonformität und Zuverlässigkeit der entwickelten Software.
 
@@ -286,19 +286,66 @@ Die nachfolgenden Maßnahmen gewährleisten die Korrektheit, Wartbarkeit, Standa
     => führt zu persistenter Speicherung der Daten und schnellen Abfragemöglichkeiten
 
 ### 9.3 STAC API-Komponente <!-- Vincent -->
-- implementiert die STAC API Specification und die Collection Search Extension
-#### Bereitstellung von Collections
-- GET /collections -> Gibt eine Liste aller gespeicherten Collections aus der    Datenbank zurück
-#### Abruf einer bestimmten Collection
-- GET /collections/{id} -> Liefert die vollständigen Metadaten einer einzelnen Collection
-#### Collection Search
-GET /search -> Ermöglicht Filterung nach:
+- Die STAC API-Komponente bildet das zentrale Bindeglied zwischen dem Crawler (Datenquelle) und der Web-UI (Frontend).
+  Sie implementiert die SpatioTemporal Asset Catalog (STAC) API Specification in der jeweils aktuellen stabilen Version
+  sowie die Collection Search Extension, um eine standardisierte und effiziente Abfrage der gespeicherten STAC Collections zu ermöglichen.
+  
+#### 9.3.2 Technische Grundlagen
+- Technologien: Node.js (Express oder Fastify) mit TypeScript
+- Datenbank-Anbindung: PostgreSQL (inkl. PostGIS-Erweiterung für räumliche Abfragen)
+- API-Format: JSON (konform zur STAC-Spezifikation, RFC 8259)
+- Filterlogik: Umsetzung der STAC Collection Search Extension inkl. CQL2 (Basic)
 
-- Schlüsselwörtern
-- räumlicher Ausdehnung (Bounding Box)
-- Zeitraum (temporal extent)
-- Provider oder Lizenz
-- Unterstützt CQL2-Filterung für erweiterte Abfragen
+#### 9.3.3 Endpunkte
+1. Bereitstellung von Collections
+   - GET /collections 
+     - Gibt eine Liste aller gespeicherten Collections aus der Datenbank zurück.
+   - Die Antwort ist konform zum STAC API Standard und enthält Metadaten wie id, title, description, extent, keywords, providers, license, sowie relevante links.
+   - Ergebnisse werden pagininiert und alphabetisch nach title sortiert (Standardverhalten).
+
+2. Abruf einer bestimmten Collection
+   - GET /collections/{id}
+     - Liefert die vollständigen Metadaten einer einzelnen Collection, einschließlich des gesamten STAC-konformen JSON-Objekts.
+   - Wird eine unbekannte ID angefragt, gibt die API eine strukturierte Fehlermeldung gemäß STAC-Spezifikation zurück (404 Not Found, JSON mit code, description, id).
+   - Die Antwort enthält auch links zur zugehörigen Quelle (Original-STAC-API oder Katalog).
+   - GET /collections/{id} -> Liefert die vollständigen Metadaten einer einzelnen Collection
+   
+3. Collection Search
+- GET /search
+  und
+- POST /search
+- Ermöglicht die gezielte Filterung und Suche nach Collections innerhalb des Index.
+- Unterstützt wird sowohl die einfache Query-Parameter-Variante (GET) als auch komplexe CQL2-Abfragen (POST).
+
+- Unterstützte Filterparameter (GET):
+   - q → Freitextsuche über Titel, Beschreibung und Schlüsselwörter
+   - bbox → Räumliche Einschränkung (Bounding Box, [minX, minY, maxX, maxY])
+   - datetime → Zeitintervall (ISO8601-Format, z. B. 2019-01-01/2021-12-31)
+   - provider → Name oder Kürzel des Datenanbieters
+   - license → Lizenzfilter (z. B. cc-by-4.0)
+   - limit → Anzahl der zurückgegebenen Ergebnisse pro Seite
+   - sortby → Sortierung (z. B. +title, -created_at)
+
+- Erweiterte Filterung über CQL2 (POST):
+   - Die API implementiert CQL2 Basic Filtering zur semantischen Abfrage von Eigenschaften:
+   - Vergleichsoperatoren: =, !=, <, <=, >, >=
+   - Logische Operatoren: and, or, not
+   - Räumliche Operatoren: t_intersects
+   - Zeitliche Operatoren: t_before, t_after, t_during
+
+#### 9.3.4 Validierung und Qualitätssicherung
+- Die STAC API-Komponente wird regelmäßig mit dem offiziellen STAC API Validator getestet, um vollständige Konformität sicherzustellen.
+- Die API-Ergebnisse werden auf folgendes überprüft:
+   - Korrekte STAC-Version (stac_version)
+   - Pflichtfelder (id, title, extent, license, links)
+   - Korrektes Verhalten bei ungültigen Abfragen (Fehler-Handling)
+- Der Validator-Lauf ist Teil der GitHub CI-Pipeline und blockiert Merge-Requests bei Nichtbestehen.
+
+#### 9.3.5 Sicherheit, Performance und Erweiterbarkeit
+- Sicherheit: Eingaben werden validiert und gegen SQL-Injection geschützt.
+- Leistung: Suchabfragen ≤ 5 Sekunden für typische Filter; Pagination aktiviert.
+- Erweiterbarkeit: API-Architektur erlaubt künftige Integration weiterer STAC-Endpunkte (z. B. /items, /item-search).
+- Dokumentation: OpenAPI-Spezifikation (Swagger) wird automatisch aus TypeScript-Typen generiert.
 
 ### 9.4 UI-Komponente <!-- Simon -->
 
