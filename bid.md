@@ -89,8 +89,9 @@ Querybare Attribute sind: (TO:DO)
 ### source 
 - source_url
 - title
-- type
+- isApi
 - status
+- isPrivate
 - last_crawled
 
 ### summaries
@@ -104,6 +105,23 @@ Querybare Attribute sind: (TO:DO)
 ## 6. Leistungsanforderungen (ALLE)
 
 ### 6.1 Crawler <!-- Humam -->
+Die Craler-Komponente soll eine hohe Effizienz, Stabilität und Skalierbar sein, um große Mengen an STAC-Katalogen und -APIs regelmäißg und zuverlässig zu erfassen.
+
+#### Crawling Leistung
+Der Crawler soll in der Lage sein, alle aktuell vorhanden (94) STAC-Quellen innerhlab einer Woche zu analysieren. In folge dessen soll auch die Aktualisierung aller bekannter und neuer Quellen maximal eine Woche betragen. Die einzelnen STAC-Collections sollen jeweils innerhalb von < 5 Sekunden abgerufen und verarbeitet werden. Zudem wollen wir selber den Crawler Rate-Limiting einhalten, um die externen Dienste nicht zu überlasten (z.B. max. 5 Request/Sekunde pro Quelle).
+
+#### Crlawing Parallelität und Skalierbarkeit
+Die Implementierung soll asynchrones und paralleles Crawling unterstützten. Es wird nur ein einzelene Crawler-Instanz sein, um die Komplexität mit Datenbankkonflikten zu vermeiden. Es wird darauf geachtet eine Modulare weise zu programmieren um in Zukunft horizontale Skalierung mit mehren Cralwern möglich zu machen.
+
+#### Crawling Zuverlässigkeit unf Fehlertoleranz
+Der Crawler darf bei fehlerhaften oder inaktiven Quellen nicht vollständig abbrechen. Die Quellen, die dreimal hintereinander fehlschlagen, sollen als inaktiv bis zum Crawling Event behandelt werden. Fehler und Wiederholungen müssen in protokolliert werden.
+
+#### Ressourcenverbrauch
+Der Crawler darf im Normalbetrieb auf einer Standard-VM mit (2 vCPUs,8GB RAM) betrieben werden. Dies ist der alleinstehende Verbrauch. Eine CPU-Auslatung von über 80% im Mittel einer Woche darf nicht überschritten werden. RAM Verbrauch ist maximal 4GB pro Crawler.
+
+#### Wartbarkeit und Monitoring
+Die Crawling-Durchläufe sollen über Logging und Metriken wie der Anzahl gecrawlter Quellen, Anzahl gecrawlter Collections und Laufzeit überwacht werden. Die Metriken werden nur über eine Lokale Datei von einem System-Admin abrufbar sein.
+
 
 ### 6.2 Datenbank <!-- Sönke -->
 
@@ -260,6 +278,53 @@ GET /search -> Ermöglicht Filterung nach:
 <!-- Hier bitte pro Gruppe eintragen, wie genau die Teilprodukte implementiert werden sollen.
 Also auch sowas wie verwendete Technologie, Teilschritte (Meilensteine?) etc.. WBS wäre auch nett-->
 ### 10.1 Crawler <!-- Humam -->
+Ziel ist die Automatische Erfassung, Validierung und Speicherung von STAC-Collections aus verteilten Quellen in einer PostgreSQL-Datenbank.
+
+#### Technologien
+Dies wird in Python realisiert. Genutzte Bibilotheken sind:
+- ```pystac``` / ```pystac-client``` zum Lesen und Traversieren von STAC-Katalogen und -APIs
+- ```stactools``` für Migration und Validierung von STAC-Versionen
+- ```requests``` oder ```httpx``` für asynchrone API-Aufrufe
+- ```asyncio``` für paralleles Crawling
+- ```sqlalchemy``` oder ```asyncpg ``` für Datenbankzugriffe
+- ```pypgstac``` zum Einspielen von Collections in PostgreSQL (PgSTAC-kompatibel)
+- ```logging``` / ```structlog``` für strukturierte Protokollierung
+asynchrones Crawlen
+
+Alle verwendeten Bibliotheken 
+sollen unter Apache-2.0 oder kompatibler Lizenz verfügbar sein.
+
+#### Architektur
+
+Der Crawler ist als eigenständiger Microservice implementiert.
+Komponenten sind:
+
+1. Der Source Manager, der die Quelleinträge verwaltet (aktiv/inaktiv, letzter Crawl).
+2. Die Crawler Engine, welches das rekursives Laden von STAC-Katalogen (async) ermöglicht.
+3. Der Metadata Extractor, der extrahiert relevante Felder (id, title, extent usw.)
+4. Database Writer, der persistiert Daten in PostgreSQL
+5. Der Scheduler der die periodische Crawls steuert
+6. Logger / Monitor welcher den Status, Fehler und Statistiken auf zeichnet.
+
+#### Ablauf
+
+1. Initialisierung
+Lade aktive Quellen und plane Crawls gemäß Konfiguration
+2. Crawling
+Für jede Quelle:
+Erkunde STAC-Katalog/API rekursiv (Follow child, catalog Links) <!-- Prüfe STAC-Version und migriere bei Bedarf (stactools migrate) -->
+3. Metadatenextraktion
+Extrahiere Felder laut Spezifikation (id, title, extent, provider, license, etc.)
+4. Validierung
+Prüfe STAC-Konformität (stactools validate oder stac-check)
+5. Datenpersistenz
+Upsert in PostgreSQL via pypgstac oder sqlalchemy
+Aktualisiere last_crawled in sources
+6. Fehlerbehandlung
+Wiederhole fehlgeschlagene Requests (n = 3)
+Markiere Quelle bei dauerhaften Fehlern als inactive
+7. Logging & Monitoring
+Schreibe Crawling-Logs und Performance-Metriken in Logdateien / DB
 
 ### 10.2 Datenbank <!-- Sönke -->
 
