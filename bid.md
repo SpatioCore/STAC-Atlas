@@ -298,40 +298,40 @@ Die nachfolgenden Maßnahmen gewährleisten die Korrektheit, Wartbarkeit, Standa
 
 #### 9.3.3 Endpunkte
 1. Bereitstellung von Collections
-   - GET /collections 
+   - `GET /collections` 
      - Gibt eine Liste aller gespeicherten Collections aus der Datenbank zurück.
-   - Die Antwort ist konform zum STAC API Standard und enthält Metadaten wie id, title, description, extent, keywords, providers, license, sowie relevante links.
-   - Ergebnisse werden pagininiert und alphabetisch nach title sortiert (Standardverhalten).
+   - Die Antwort ist konform zum STAC API Standard und enthält Metadaten wie `id`, `title`, `description`, `extent`, `keywords`, `providers`, `license`, sowie relevante links.
+   - Ergebnisse werden pagininiert und alphabetisch nach `title` sortiert (Standardverhalten).
 
 2. Abruf einer bestimmten Collection
-   - GET /collections/{id}
+   - `GET /collections/{id}`
      - Liefert die vollständigen Metadaten einer einzelnen Collection, einschließlich des gesamten STAC-konformen JSON-Objekts.
-   - Wird eine unbekannte ID angefragt, gibt die API eine strukturierte Fehlermeldung gemäß STAC-Spezifikation zurück (404 Not Found, JSON mit code, description, id).
+   - Wird eine unbekannte ID angefragt, gibt die API eine strukturierte Fehlermeldung gemäß STAC-Spezifikation zurück (`404 Not Found`, JSON mit `code`, `description`, `id`).
    - Die Antwort enthält auch links zur zugehörigen Quelle (Original-STAC-API oder Katalog).
-   - GET /collections/{id} -> Liefert die vollständigen Metadaten einer einzelnen Collection
+   - `GET /collections/{id}` -> Liefert die vollständigen Metadaten einer einzelnen Collection
    
 3. Collection Search
-- GET /search
+- `GET /search`
   und
-- POST /search
+- `POST /search`
 - Ermöglicht die gezielte Filterung und Suche nach Collections innerhalb des Index.
 - Unterstützt wird sowohl die einfache Query-Parameter-Variante (GET) als auch komplexe CQL2-Abfragen (POST).
 
 - Unterstützte Filterparameter (GET):
-   - q → Freitextsuche über Titel, Beschreibung und Schlüsselwörter
-   - bbox → Räumliche Einschränkung (Bounding Box, [minX, minY, maxX, maxY])
-   - datetime → Zeitintervall (ISO8601-Format, z. B. 2019-01-01/2021-12-31)
-   - provider → Name oder Kürzel des Datenanbieters
-   - license → Lizenzfilter (z. B. cc-by-4.0)
-   - limit → Anzahl der zurückgegebenen Ergebnisse pro Seite
-   - sortby → Sortierung (z. B. +title, -created_at)
+   - `q` → Freitextsuche über Titel, Beschreibung und Schlüsselwörter
+   - `bbox` → Räumliche Einschränkung (Bounding Box, `[minX, minY, maxX, maxY])`
+   - `datetime` → Zeitintervall (ISO8601-Format, z. B. 2019-01-01/2021-12-31)
+   - `provider` → Name oder Kürzel des Datenanbieters
+   - `license` → Lizenzfilter 
+   - `limit` → Anzahl der zurückgegebenen Ergebnisse pro Seite
+   - `sortby` → Sortierung 
 
 - Erweiterte Filterung über CQL2 (POST):
    - Die API implementiert CQL2 Basic Filtering zur semantischen Abfrage von Eigenschaften:
-   - Vergleichsoperatoren: =, !=, <, <=, >, >=
-   - Logische Operatoren: and, or, not
-   - Räumliche Operatoren: t_intersects
-   - Zeitliche Operatoren: t_before, t_after, t_during
+   - Vergleichsoperatoren: `=`, `!=`, `<`, `<=`, `>`, `>=`
+   - Logische Operatoren: `and`, `or`, `not`
+   - Räumliche Operatoren: `t_intersects`
+   - Zeitliche Operatoren: `t_before`, `t_after`, `t_during`
 
 #### 9.3.4 Validierung und Qualitätssicherung
 - Die STAC API-Komponente wird regelmäßig mit dem offiziellen STAC API Validator getestet, um vollständige Konformität sicherzustellen.
@@ -344,7 +344,7 @@ Die nachfolgenden Maßnahmen gewährleisten die Korrektheit, Wartbarkeit, Standa
 #### 9.3.5 Sicherheit, Performance und Erweiterbarkeit
 - Sicherheit: Eingaben werden validiert und gegen SQL-Injection geschützt.
 - Leistung: Suchabfragen ≤ 5 Sekunden für typische Filter; Pagination aktiviert.
-- Erweiterbarkeit: API-Architektur erlaubt künftige Integration weiterer STAC-Endpunkte (z. B. /items, /item-search).
+- Erweiterbarkeit: API-Architektur erlaubt künftige Integration weiterer STAC-Endpunkte.
 - Dokumentation: OpenAPI-Spezifikation (Swagger) wird automatisch aus TypeScript-Typen generiert.
 
 ### 9.4 UI-Komponente <!-- Simon -->
