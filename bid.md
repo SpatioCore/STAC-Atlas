@@ -110,20 +110,40 @@ Querybare Attribute sind: (TO:DO)
 ### 6.3 STAC API <!-- George -->
 
 ### 6.4 UI <!-- Justin -->
-### UI-Komponente
-- Design orientiert am STAC Index und Komponenten
-- VueJS v3
-- Selektion
-    - BoundingBox/?Polygon?
-    - Zeit
-- Responsive
-- Scratch?? CQL2 Filter & Kondition bauen
-- Interaktive Karte
-- Lizenzkonforme Verweise auf genutzte Software (Verweis auf STAC Catalog, STAC API, ...)
-- Kollektionen suchen und filtern
-- BONUS Kollektionen vergleichen
-- (TO:DO Abklären) BONUS Items einer Collection im Frontend anzeigen lassen 
-  - Also nicht Items abspeichern, sondern On-Demand abrufen
+Die UI-Komponente dient als benutzerfreundliche Schnittstelle zur Suche, Filterung und Exploration von STAC-Collections über die bereitgestellte STAC API.  
+Sie visualisiert Metadaten und räumliche Extents der Collections und ermöglicht Nutzenden eine interaktive, responsive und barrierearme Bedienung.
+
+#### Funktionale Leistungsanforderungen
+
+- Das Design orientiert sich am bestehenden STAC Index sowie dessen Komponenten, um Konsistenz innerhalb des STAC-Ökosystems zu gewährleisten.  
+- Die Implementierung erfolgt mit Vue.js v3, unter Verwendung moderner Webstandards und komponentenbasierter Architektur.  
+- Die Anwendung muss Nutzenden ermöglichen:
+  - die Auswahl eines räumlichen Bereichs (Bounding Box, ggf. Polygon) über eine interaktive Karte,  
+  - die Definition eines zeitlichen Intervalls,  
+  - die Suche nach Collections über Keywords, Provider, Lizenz oder Themenbereich,  
+  - die Kombination mehrerer Suchparameter zu komplexen CQL2-Filtern („Scratch-Modus“ zum Erstellen logischer Bedingungen).  
+- Die UI zeigt die räumliche Ausdehnung der Suchergebnisse auf einer interaktiven Karte an (MapLibre GL JS).  
+- Die Ergebnisse sollen in einer scrollbaren Liste/ Grid mit Titel, Beschreibung, Lizenz und Provider dargestellt werden.  
+- Für jede Collection werden lizenzkonforme Verweise auf die Originalquelle (STAC Catalog oder API) bereitgestellt.  
+- Die UI muss das Filtern, Anzeigen und Vergleichen mehrerer Collections ermöglichen.
+
+#### Nichtfunktionale Leistungsanforderungen
+
+- Die Benutzeroberfläche ist responsiv und muss auf verschiedenen Endgeräten (Desktop, Tablet, Smartphone) funktionsfähig sein.  
+- Das Design muss für Personen mit Farbfehlsichtigkeit geeignet sein; kontrastreiche Darstellungen sind sicherzustellen.  
+- Die UI ist mit allen gängigen Browsern kompatibel, die zusammen mindestens 80 % der Nutzerbasis repräsentieren (aktuelle Versionen von Chrome, Firefox, Edge, Safari).  
+- Fehlerbehandlung: Fehlerzustände (z. B. Verbindungsprobleme, ungültige Filter) werden klar und verständlich kommuniziert, ohne dass die Anwendung abstürzt.  
+- **Sprache**:
+  - Die API-Kommunikation erfolgt in Englisch.  
+  - Das Frontend wird zweisprachig (Englisch / Deutsch) bereitgestellt.  
+- **Reaktionszeiten**:
+  - Benutzerinteraktionen (außer Suchanfragen) sollen innerhalb von 1 Sekunde eine sichtbare Rückmeldung liefern.  
+  - Einfache Suchanfragen (z. B. Freitextsuche nach Keywords) müssen in unter 5 Sekunden abgeschlossen sein.  
+  - Komplexe geometrische oder kombinierte CQL2-Filter dürfen maximal 1 Minute dauern.  
+- **Pagination**: Bei umfangreichen Ergebnismengen erfolgt eine seitenweise Darstellung, um Performance und Übersichtlichkeit zu gewährleisten.  
+- **Asynchrones Laden**: Aufwändige Datenabfragen werden parallel und schrittweise geladen, um die Reaktionsfähigkeit der Oberfläche zu erhalten.  
+
+---
 
 - System Startbar per Einzeiler (docker-compose up --build)
 
@@ -149,18 +169,6 @@ Querybare Attribute sind: (TO:DO)
 - STAC API	GET-Abfrage /collections	≤ 1 Sekunde
 - STAC API	Komplexe Filterabfrage /search	≤ 5 Sekunden
 - STAC API	Maximale Anfragezeit	≤ 1 Minute
-
-### Frontend
-- Kompatibel mit Browsern, die 80% der User repräsentieren
-- Geeignet für farbenblinde Personen
-- Ausführliches Errorhandling
-- API in Englisch
-- Frontend in Englisch und Deutsch
-- Reaktionszeit (außer Query in weniger als einer Sekunde)
-- Asynchrones Laden komplexer Anfragen
-- Einfache textuelle Queries nach Keywords etc. < 5s
-- Komplexe geometrische Queries < 1min
-- Unterteilung von Suchergebnissen auf mehrere Seiten
 
 ### Crawler
 - Full Crawl < one week
