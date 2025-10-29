@@ -262,7 +262,52 @@ GET /search -> Ermöglicht Filterung nach:
 Also auch sowas wie verwendete Technologie, Teilschritte (Meilensteine?) etc.. WBS wäre auch nett-->
 ### 10.1 Crawler <!-- Humam -->
 
-### 10.2 Datenbank <!-- Sönke -->
+### 10.2 Implementierungsdetails der Datenbankkomponente <!-- Sönke -->
+
+Die Implementierung der Datenbankkomponente erfolgt auf Basis von **JavaScript** unter Verwendung der **Node.js**-Laufzeitumgebung. Für die Interaktion mit der Datenbank wird ein objekt-relationales Mapping (ORM) eingesetzt, um den Zugriff auf die PostgreSQL-Datenbank zu abstrahieren und gleichzeitig die Konsistenz der Daten zu gewährleisten. Die Bibliothek **Prisma ORM** wird hierfür bevorzugt, da sie sowohl eine typsichere Datenmodellierung als auch automatisierte Migrationen unterstützt.
+
+Der Datenbankzugriff erfolgt asynchron und wird durch Connection-Pooling optimiert, um parallele Abfragen effizient zu verarbeiten. Zur Unterstützung geographischer Abfragen wird die PostgreSQL-Erweiterung **PostGIS** integriert, die direkt über das ORM oder über native SQL-Befehle angesprochen werden kann.
+
+Die Implementierung folgt einem klar strukturierten Vorgehen in mehreren Phasen, die jeweils definierte Meilensteine umfassen und eine schrittweise Integration in das Gesamtsystem ermöglichen.
+
+#### Verwendete Technologien
+- **NodeJS 20**  
+- **PostgreSQL** als relationales Datenbanksystem  
+- **PostGIS** für Geometrie- und Raumdaten  
+- **Prisma ORM** zur Datenmodellierung und Migration  
+- **Express.js** als REST-Schnittstelle zur Integration mit dem Crawler  
+- **Jest** als Testumgebung
+- **Docker** zur Bereitstellung der Entwicklungs- und Testumgebung  
+
+#### Phasen und Meilensteine
+
+1. **Analyse- und Entwurfsphase (M1)**  
+   In dieser Phase werden das Datenmodell und die Schnittstellenanforderungen definiert. Die STAC-konformen Metadatenstrukturen werden analysiert und in ein relationales Schema überführt. Hierzu wird ein erstes **Prisma-Datenmodell** erstellt, das alle Tabellen (`collection`, `catalog`, `keywords`, `source`, `summaries`) sowie deren Beziehungen enthält.  
+   Ergebnis: Validiertes ER-Diagramm und initiales Datenmodell (`schema.prisma`).
+
+2. **Implementierungsphase (M2)**  
+   Aufbauend auf dem Datenmodell wird die Datenbank über Prisma-Migrationen aufgebaut. Dabei werden alle Tabellen und Fremdschlüsselbeziehungen erzeugt.  
+   Parallel werden erste API-Endpunkte über **Express.js** implementiert, um einfache CRUD-Operationen zu testen.  
+   Ergebnis: funktionierendes Datenbankschema mit Zugriff über ORM und API-Testendpunkte.
+
+3. **Integration mit dem Crawler (M3)**  
+   In dieser Phase wird eine Importkomponente entwickelt, die die vom Crawler gelieferten **STAC-JSON-Dateien** einliest, validiert und in die Datenbank einfügt.  
+   Der Importprozess erkennt über eindeutige URLs, ob Datensätze neu, geändert oder inaktiv sind, und führt inkrementelle Updates durch.  
+   Ergebnis: stabile Datenübernahme mit Differenzabgleich und Logging.
+
+4. **Abfrage- und Optimierungsphase (M4)**  
+   Anschließend werden die Such- und Filtermechanismen implementiert. Dazu gehört die Integration einer **Volltextsuche** auf Basis von PostgreSQL-TSVector, die Anbindung von **PostGIS** für Bounding-Box- und Distanzabfragen sowie die Umsetzung einer Übersetzungsschicht für **CQL2-Filterausdrücke**.  
+   Ergebnis: performante Such- und Filterfunktionen mit optimierten Indizes.
+
+5. **Test- und Validierungsphase (M5)**  <!-- welche Test-Umgebung wollen wir verwenden? oder machen wir das für jeden Schritt einzelnd, dann würde ich diese Komponente mit Jest testen -->
+   Alle Komponenten werden mit **Jest** automatisiert getestet. Dabei werden Unit-Tests für ORM-Funktionen, Integrationstests für den Crawler-Import sowie Performanztests für parallele Abfragen durchgeführt.  
+   Ergebnis: stabile, getestete Datenbanklogik mit vollständiger Testabdeckung.
+
+6. **Deployment und Dokumentation (M6)**  
+   Die produktive Bereitstellung erfolgt über **Docker Compose** <!-- , wobei separate Umgebungen für Entwicklung, Test und Produktion eingerichtet werden.-->
+   Das Prisma-Schema, die Migrationsdateien und die API-Routen werden versioniert und dokumentiert. Eine technische Dokumentation beschreibt die Struktur, Indexierung und Updateprozesse der Datenbank.  
+   Ergebnis: einsatzbereite, dokumentierte Datenbankkomponente.
+
 
 ### 10.3 STAC API <!-- Robin -->
 
