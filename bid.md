@@ -107,6 +107,54 @@ Querybare Attribute sind: (TO:DO)
 
 ### 6.2 Datenbank <!-- Sönke -->
 
+#### Funktionale Leistungsanforderungen
+
+1. **Antwortzeiten der Datenbankabfragen**  
+   - Standardabfragen (z. B. Abruf einer Collection nach ID) müssen innerhalb von **< 1 Sekunde** beantwortet werden.  
+   - Komplexe Suchanfragen mit Filtern (z. B. Freitextsuche, räumliche und zeitliche Filterung) müssen innerhalb von **≤ 5 Sekunden** abgeschlossen sein.  
+   - Langlaufende Abfragen dürfen eine maximale Bearbeitungszeit von **≤ 60 Sekunden** nicht überschreiten.
+
+2. **Crawler-Performance**  
+   - Ein vollständiger Crawl-Durchlauf aller bekannten Quellen darf **maximal 7 Tage** ununterbrochener Laufzeit in Anspruch nehmen.
+   - Inkrementelle Updates (Re-Crawling einzelner Quellen) müssen innerhalb von **24 Stunden** nach Planstart abgeschlossen sein.  
+   - Die Datenbank muss mindestens **100 Schreibvorgänge pro Sekunde** verarbeiten können, ohne Performanceverluste zu verursachen.
+
+3. **Gleichzeitige Zugriffe (Concurrency)**  
+   - Das System muss mindestens **50 gleichzeitige Leseanfragen** und **10 gleichzeitige Schreibanfragen** ohne merkliche Leistungseinbußen (< 10 % längere Antwortzeit) verarbeiten können.  
+   - Gleichzeitige API-Anfragen dürfen keine Deadlocks oder Timeout-Fehler erzeugen.
+
+4. **Suchindex und Filterleistung**  
+   - Die Datenbank muss einen Volltextindex bereitstellen, der Suchabfragen über Metadatenfelder (`title`, `description`, `keywords`, `providers`) innerhalb von **≤ 3 Sekunden** ermöglicht.  
+   - CQL2-Filter (Basic) müssen vollständig innerhalb von **≤ 5 Sekunden** evaluiert werden können.  
+
+---
+
+#### Nicht-funktionale Leistungsanforderungen
+
+1. **Skalierbarkeit**  
+   - Das System muss bei einer Verdopplung der Datensatzmenge (z. B. von 1 Mio. auf 2 Mio. Collections) einen **Leistungsabfall von höchstens 20 %** bei Abfragezeiten aufweisen.  
+   - Horizontales Skalieren (z. B. über mehrere Container/Instanzen) muss ohne Systemneustart möglich sein.
+
+2. **Datenpersistenz und Verfügbarkeit**  
+   - Die Datenbankverfügbarkeit (Uptime) muss im Dauerbetrieb bei **≥ 99 %** liegen.  
+   - Nach einem Systemausfall dürfen maximal **1 Minute an Datenverlust** (Write-Ahead-Log oder Transaktionsverlust) auftreten.
+
+3. **Datenintegrität und Fehlerbehandlung**  
+   - Transaktionen müssen atomar ausgeführt werden (ACID-konform).  
+   - Schreibfehler oder Integritätsverletzungen dürfen in **< 0,1 %** der Transaktionen auftreten.  
+   - Fehlerhafte Crawls werden automatisch innerhalb von **≤ 10 Minuten** erneut versucht (Retry-Mechanismus).
+
+4. **Speichereffizienz**  
+   - Der Speicherbedarf pro STAC-Collection (inkl. Metadaten und Indexeinträge) darf **50 kB** im Durchschnitt nicht überschreiten.  
+   - Die Datenbank muss mindestens **10 Millionen Collections** verwalten können, ohne dass die Antwortzeiten die unter Punkt 1 definierten Grenzwerte überschreiten.
+
+---
+
+#### Zusammenfassung
+
+Die Datenbankkomponente muss somit nachweislich in der Lage sein, große Mengen an STAC-Kollektionen performant, skalierbar und zuverlässig zu speichern und zu durchsuchen. Die hier genannten Werte dienen als verbindliche, messbare Leistungsziele für die Implementierung, Abnahme und spätere Systemtests.
+
+
 ### 6.3 STAC API <!-- George -->
 
 ### 6.4 UI <!-- Justin -->
