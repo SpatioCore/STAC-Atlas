@@ -282,6 +282,22 @@ Also auch sowas wie verwendete Technologie, Teilschritte (Meilensteine?) etc.. W
 ### 10.2 Datenbank <!-- Sönke -->
 
 ### 10.3 STAC API <!-- Robin -->
+| ID | Arbeitspaket | Ziel/Output | Schritte (Stichpunkte) | Reuse/Technologien |
+|----|--------------|-------------|-------------------------|--------------------|
+| AP-01 | Projekt-Skeleton & Infrastruktur | Lauffähiges API-Grundgerüst mit Konfiguration & Logging | Repo-Struktur (`/api`, `/docs`, `/ops`); Apache-2.0 LICENSE; ENV-Konfig (Port, DB-URL vom DB-Team); strukturierte Logs; einfache Health-Route `GET /` | Python+FastAPI *oder* Node+Fastify/Express; uvicorn/node pm2; dotenv |
+| AP-02 | Daten-Vertrag & Queryables (API-Seite) | Konsistentes Feld-Set & ` /queryables` für die UI | Such-/Filterfelder festlegen (id, title, description, extent, keywords, providers.name, license, doi, `summaries.platform/constellation/gsd/processing:level`); Datentypen (CQL2-kompatibel) definieren; `GET /queryables` (global/optional pro Collection); Dokumentation für UI | STAC Collections/Queryables Best Practices; CQL2 Typen |
+| AP-03 | STAC-Core Endpunkte | STAC-konforme Basisrouten bereitstellen | `GET /` (Landing + Links), `GET /conformance` (Core+Collections vorerst), `GET /collections`, `GET /collections/{id}`; Link-Relationen & Service-Doku referenzieren | OpenAPI/Swagger-UI; STAC API Core/Collections |
+| AP-04 | Collection Search – Routen & Parameter | Collection-Search-Schnittstelle mit `q`, `filter`, `sort`, Paging | Route definieren (`/collections/search` oder Parametrisierung von `/collections`); Request-Validierung; Paging-Links | STAC Collection Search Extension; API Framework Middleware |
+| AP-05 | CQL2 Basic – Parsing & Validierung | Gültige CQL2-Basic-Filter erkennen & valide/klare Fehlermeldungen liefern | Bestehende Parser/Validator-Lib einbinden; Request-Modelle (JSON/Text); Fehlermeldungen standardisieren | **cql2-rs** (Py-Bindings) oder **pycql2**; Pydantic/zod |
+| AP-06 | CQL2-Ausführung – AST → SQL | CQL2-AST in effiziente SQL-Where-Klauseln übersetzen | Visitor/Mapper je Knotentyp (Vergleich, Logik, `IS NULL`, optional `LIKE/IN/BETWEEN`); Parametrisiertes SQL; Schutz vor teuren Scans (Zeit/Seite begrenzen) | — |
+| AP-07 | Freitext `q` & Sortierung | Relevanzbasierte Freitextsuche + stabile Sortierung | Felder für `q` bestimmen (title, description, keywords, providers); Whitelist für `sortby`; Validierung bei nicht unterstützten Feldern → 400 | API-seitige Param-Validierung |
+| AP-08 | Conformance & OpenAPI | Vollständige Konformitätsangaben & saubere API-Doku | `/conformance` um **Collection Search** + **Filter (Basic CQL2)** erweitern (später optional Advanced); OpenAPI/Service-Desc verlinken; Beispiele dokumentieren | STAC Conformance-URIs; OpenAPI Generator/Swagger-UI |
+| AP-09 | Fehlerbehandlung & Antwortformate | Konsistente HTTP-Fehler & STAC-kompatible Antworten | Einheitliche Fehlerstruktur (400/404/422/500) | RFC7807 |
+| AP-10 | Performance & Parallelität (API-Ebene) | Anforderungen an Latenz/Parallelität API-seitig erfüllen | Server-Worker/Threading konfigurieren; DB-Poolgrößen (Client-Seite) abstimmen; Limits/Timeouts setzen; typische Queries als Synthetic-Checks | uvicorn/gunicorn-Workers oder Node Cluster; Locust/k6 für Synthetic |
+| AP-11 | Security & Betrieb (API-Ebene) | Sichere Standardkonfiguration & Betriebsfähigkeit | CORS/Headers; Request-Größenlimits; Rate-Limiting/Burst-Schutz; strukturierte Logs & Basis-Metriken; einfache Traces | fastapi-middlewares/helmet/express-rate-limit; OpenTelemetry (leichtgewichtig) |
+| AP-12 | Deployment & Cross-OS | Reproduzierbare Bereitstellung der **API** | Container/Dockerfile nur für API; Compose (optional) ohne DB-Build; Windows & Linux Smoke-Tests; ENV-Templates | Docker/Podman; Make/Taskfile; `.env.example` |
+| AP-13 | Integration & E2E Demo | Nachweis „Crawler → API → UI“ aus API-Sicht | DB- & UI-Team liefern Staging-Instanzen | curl/Postman Collections; minimaler Demo-Guide |
+
 
 ### 10.4 UI <!-- Justin -->
 - Git
