@@ -1,35 +1,146 @@
 # Pflichtenheft STAC Atlas
 
 ## 1. Zielbestimmung (ALLE) <!-- Jakob -->
-- Verwaltung von Metadaten von Geodaten
-- DATENBANK: Die Datenbankkomponente dient der persistenten Speicherung und effizienten Abfrage von STAC-Collection-Metadaten, die vom Crawler gesammelt werden und über die STAC API verfügbar gemacht werden. Ziel ist es, eine leistungsfähige, erweiterbare und standardkonforme Datenhaltung zu entwickeln, die sowohl strukturierte Suchabfragen (CQL2) als auch Volltextsuche unterstützt.
-- Zentrailisierte Plattform
-- Automatisches Crawlen und Indexieren von STAC collections
-  - von unterschiedlichen Quellen
-- Soll ermöglichen:
-  - Auffindbar machen von Collections
-  - Suche und Filterung von Collection auf Basis von zeitlicher/räumlicher Ausdehnung oder Thema
-  - Einen vergleich zwischen collections verschiedener Anbieter
-  - Einen Zugriff auf die Metadaten der Collections ermöglichen
 
-- API-Schnittstelle für Entwickler
-- Nutzerfreundliche Web-UI
-Das Projekt besteht aus vier Hauptkomponenten:
+Das Projekt STAC Atlas zielt darauf ab, eine zentralisierte Plattform zur Verwaltung, Indexierung und Bereitstellung von STAC-Collection-Metadaten zu entwickeln. In der heutigen Geodaten-Landschaft existieren zahlreiche dezentrale STAC-Kataloge und -APIs verschiedener Datenanbieter, was die Auffindbarkeit und den Zugriff auf relevante Geodaten-Collections erschwert. STAC Atlas adressiert dieses Problem, indem es als zentrale Anlaufstelle fungiert, die Metadaten aus verschiedenen Quellen aggregiert und durchsuchbar macht.
 
-- Crawler – erfasst Daten aus STAC-Katalogen
-- Datenbank – speichert Metadaten
-- STAC API – ermöglicht standardisierten Zugriff
-- UI – bietet visuelle Suche und Kartenansicht
+Die Plattform ermöglicht es Nutzern, Collections anbieterübergreifend zu suchen, zu filtern und zu vergleichen, ohne jeden einzelnen STAC-Katalog manuell durchsuchen zu müssen. Durch die Implementierung standardkonformer Schnittstellen (STAC API) wird sowohl die programmatische Nutzung durch Entwickler als auch die interaktive Nutzung über eine Web-Oberfläche ermöglicht. Dies steigert die Effizienz bei der Arbeit mit Geodaten erheblich und fördert die Wiederverwendbarkeit von Datenressourcen.
+
+Das Projekt besteht aus vier Hauptkomponenten, die nahtlos zusammenarbeiten:
+- **Crawler** – erfasst automatisch Daten aus verschiedenen STAC-Katalogen und hält diese aktuell
+- **Datenbank** – speichert Metadaten persistent und ermöglicht effiziente Abfragen
+- **STAC API** – ermöglicht standardisierten, programmatischen Zugriff auf die indexierten Collections
+- **UI** – bietet eine nutzerfreundliche Web-Oberfläche mit visueller Suche und interaktiver Kartenansicht
+
+### 1.1 Musskriterien
+
+Die Musskriterien definieren die zwingend erforderlichen Funktionalitäten des Systems. Diese Anforderungen müssen vollständig erfüllt werden, damit das Projekt als erfolgreich gilt. Sie bilden den Kern der Systemfunktionalität und sind für den produktiven Einsatz unerlässlich.
+
+#### Crawler
+- Automatisches Crawlen und Indexieren von STAC Collections aus verschiedenen Quellen
+- Erfassung von mehr als 95% der Collections vom STAC Index
+- Rekursive Navigation durch STAC-Kataloge
+- Wöchentliches Re-Crawling zur Aktualisierung der Daten
+- Robustes Error-Handling mit Retry-Logic
+
+#### Datenbank
+- Persistente Speicherung von STAC-Collection-Metadaten
+- Unterstützung strukturierter Suchabfragen (CQL2)
+- Volltextsuche über Titel, Beschreibung und Keywords
+- Räumliche Filterung (Bounding Box) mittels PostGIS
+- Zeitliche Filterung nach Start- und Endzeitpunkten
+- Effiziente Indizierung für schnelle Abfragen (< 100 ms)
+
+#### STAC API
+- Konforme Implementierung der STAC API Specification
+- Implementierung der Collection Search Extension
+- Bereitstellung von Collections (GET /collections)
+- Abruf einzelner Collections (GET /collections/{id})
+- Erweiterte Suchfunktion (GET /search) mit Filterung nach:
+  - Schlüsselwörtern
+  - Räumlicher Ausdehnung
+  - Zeitraum
+  - Provider und Lizenz
+- CQL2-Filterung für komplexe Abfragen
+- Parallele Verarbeitung von mindestens 100 Anfragen
+- Antwortzeiten: einfache Abfragen ≤ 1s, komplexe Abfragen ≤ 5s
+
+#### UI (Web-Interface)
+- Nutzerfreundliche Web-Oberfläche zur Suche und Filterung
+- Interaktive Kartenansicht zur räumlichen Suche
+- Filterung nach:
+  - Bounding Box / räumlicher Ausdehnung
+  - Zeitraum
+  - Thema / Keywords
+- Responsive Design für verschiedene Bildschirmgrößen
+- Mehrsprachigkeit (Deutsch und Englisch)
+- Barrierefreiheit (farbenblindentauglich)
+- Anzeige der Collection-Metadaten
+
+#### Allgemein
+- Containerisierung aller Komponenten mit Docker
+- System startbar per Einzeiler: `docker-compose up --build`
+- Open Source unter Apache 2.0 Lizenz
+- Standardkonforme Datenmodellierung nach STAC Specification
+
+### 1.2 Wunschkriterien
+
+Die Wunschkriterien beschreiben optionale Funktionalitäten, die das System über die Grundanforderungen hinaus erweitern würden. Diese Features sind nicht zwingend erforderlich, würden aber den Nutzen und die Attraktivität der Plattform erheblich steigern. Ihre Implementierung erfolgt in Abhängigkeit von verfügbaren Ressourcen und Zeit.
+
+#### Erweiterte Funktionen
+- Vergleich zwischen Collections verschiedener Anbieter
+- On-Demand Abruf von Items einer Collection (ohne persistente Speicherung)
+- Erweiterte CQL2-Filterung mit zusätzlichen Operatoren
+- CQL2-Filterung als eigenständige, wiederverwendbare Library
+- Integration der Lösung in das bestehende STAC Index API
+
+#### Crawler
+- Konfigurierbare Crawling-Schedule
+- Blacklisting fehlerhafter Quellen
+- Erfassung zusätzlicher STAC Extensions
+
+#### UI
+- Polygon-basierte räumliche Suche (nicht nur Bounding Box)
+- Visueller CQL2 Query Builder ("from scratch")
+- Erweiterte Visualisierungen und Diagramme
+- Export-Funktionen für Suchergebnisse
+
+### 1.3 Abgrenzungskriterien
+
+Die Abgrenzungskriterien definieren bewusst, welche Funktionalitäten nicht Teil des Projekts sind. Diese klare Abgrenzung verhindert Missverständnisse und Scope Creep während der Entwicklung. Sie hilft allen Beteiligten, realistische Erwartungen an das System zu haben und den Fokus auf die Kernfunktionalität zu wahren.
+
+Das System soll explizit **NICHT**:
+- Items von STAC Collections persistent speichern (nur Collections)
+- Als vollständiger STAC Catalog Ersatz dienen
+- Originale Geodaten (Raster-/Vektordaten) speichern oder verarbeiten
+- Authentifizierung oder Benutzerverwaltung implementieren
+- Schreibzugriff auf externe STAC Catalogs ermöglichen
+- Datenanalyse oder -verarbeitung durchführen
+- Als Download-Portal für Geodaten fungieren
+- Vollständige Historie aller Metadatenänderungen vorhalten
+- Real-time Synchronisation mit Quell-Katalogen garantieren
 
 ## 2. Anwendungsbereiche und Zielgruppen (ALLE)
 
 ### 2.1 Zielgruppe <!-- Jakob -->
-- Data scientists and researchers
-- GIS professionals
-- Application developers
-- Data providers
 
-**Userstorys noch hinzufügen**
+Das System richtet sich an verschiedene Nutzergruppen mit unterschiedlichen Anforderungen und Anwendungsfällen:
+
+#### Data Scientists and Researchers
+Wissenschaftler und Datenanalysten, die für ihre Forschungsprojekte passende Geodaten-Collections finden müssen.
+
+**User Stories:**
+- Als Data Scientist möchte ich nach Satellitenbildern eines bestimmten Zeitraums und Gebiets suchen, um Veränderungen in der Landnutzung zu analysieren.
+- Als Forscherin möchte ich verschiedene Sentinel-2 Collections unterschiedlicher Anbieter vergleichen, um die für meine Studie am besten geeignete Datenquelle zu identifizieren.
+- Als Klimaforscher möchte ich Collections nach spezifischen Attributen (z.B. Auflösung, Sensortyp) filtern, um geeignete Daten für meine Klimamodelle zu finden.
+- Als Researcher möchte ich über die API automatisiert nach Collections suchen, um sie in meine Analyse-Pipeline zu integrieren.
+
+#### GIS Professionals
+GIS-Experten und Geoinformatiker, die regelmäßig mit Geodaten arbeiten und diese in ihren Projekten einsetzen.
+
+**User Stories:**
+- Als GIS-Analyst möchte ich auf einer Karte nach verfügbaren Collections in meinem Projektgebiet suchen, um schnell passende Datenquellen zu identifizieren.
+- Als Kartograf möchte ich Collections nach Lizenzen filtern, um nur solche Daten zu finden, die ich in meinen kommerziellen Projekten verwenden darf.
+- Als GIS-Consultant möchte ich die zeitliche Verfügbarkeit verschiedener Collections vergleichen, um meinen Kunden die beste Datenlösung empfehlen zu können.
+- Als Geoinformatiker möchte ich Collections nach Provider durchsuchen, um alle Datenquellen eines bestimmten Anbieters zu evaluieren.
+
+#### Application Developers
+Softwareentwickler, die Anwendungen mit Geodaten-Funktionalitäten erstellen und STAC-Collections programmatisch nutzen möchten.
+
+**User Stories:**
+- Als Entwickler möchte ich über eine standardkonforme STAC API auf Collections zugreifen, um diese in meine Anwendung zu integrieren.
+- Als Frontend-Entwicklerin möchte ich CQL2-Queries programmatisch erstellen und ausführen, um komplexe Suchfunktionen in meiner App zu implementieren.
+- Als Backend-Entwickler möchte ich automatisiert Collections nach bestimmten Kriterien abfragen, um meinen Nutzern relevante Datensätze vorzuschlagen.
+- Als Software-Architekt möchte ich die API-Dokumentation einsehen, um die Integration in unsere bestehende Geodaten-Infrastruktur zu planen.
+
+#### Data Providers
+Datenanbieter und -kuratoren, die ihre STAC-Kataloge bekannter machen und die Nutzung ihrer Daten fördern möchten.
+
+**User Stories:**
+- Als Datenanbieter möchte ich sicherstellen, dass meine Collections korrekt indexiert werden, um die Sichtbarkeit meiner Daten zu erhöhen.
+- Als Data Curator möchte ich verstehen, wie meine Collections im Vergleich zu anderen Anbietern gefunden werden, um die Metadaten-Qualität zu optimieren.
+- Als Open-Data-Anbieter möchte ich sehen, welche meiner Collections am häufigsten gesucht werden, um zukünftige Datenbereitstellung zu priorisieren.
+- Als Infrastrukturbetreiber möchte ich, dass mein STAC-Katalog automatisch gecrawlt wird, um ohne zusätzlichen Aufwand in der Plattform präsent zu sein.
 
 ## 3. Produkt-Umgebung (ALLE) <!-- Jonas -->
 - STAC API konforme API-Schnittstelle
@@ -179,25 +290,55 @@ Querybare Attribute sind: (TO:DO)
 - STAC API Validator
 
 ## 8. Sonstige nichtfunktionale Anforderungen (ALLE) <!-- Jakob -->
-- Ausführliche Dokumentation
-  - Im Code
-  - Im Repository
-  - Verwendung von JSDoc
-  - Verwendung von OpenAPI als Dokumentation
 
-- Live Präsentation des finalen Produkts
+### 8.1 Dokumentation und Code-Qualität
+- Code-Dokumentation mit JSDoc (JavaScript/TypeScript) und Docstrings (Python)
+- Repository-Dokumentation (README, Setup-Anleitungen)
+- API-Dokumentation via OpenAPI/Swagger
+- Bedienungsanleitung für Endnutzer
+- Linter: ESLint (JavaScript/TypeScript), Pylint/Flake8 (Python)
+- Code-Formatierung: Prettier (JavaScript/TypeScript), Black (Python)
+- Einhaltung von Coding-Standards
+- Modulare Architektur
 
-- Projektbericht
-  - als PDF
-  - mit Bedienungsanleitung
-  - Beschreibung, wie die verschiedenen Anwendungsfälle durch unser Produkt gelöst werden
-  - Beschreibung des Zusammenspiels aus den drei Komponenten Crawler, API und UI
+### 8.2 Projektmanagement und Entwicklungsprozess
+- Agiles Projektmanagement über GitHub-Projekte (Kunde erhält Zugriff)
+- Versionskontrolle mit Git
+- GitHub-Pipeline für CI/CD
+- Code Reviews
+- Open Source unter Apache 2.0 Lizenz
+- Lizenzkonforme Verweise auf genutzte Software
 
-- Open Source unter Apache 2.0
-- Verwendung von Lintern
+### 8.3 Deployment und Wartbarkeit
+- Jede Komponente als eigenständiger Docker-Container
+- System startbar per Einzeiler: `docker-compose up --build`
+- Konfigurierbarkeit über Umgebungsvariablen
+- Klare Trennung der Komponenten (Crawler, Datenbank, API, UI)
+- Definierte Schnittstellen zwischen Komponenten
+- API-Versionierung und Erweiterbarkeit
 
-- Agiles Projektmanagement über GitHub-Projekte
-  - Kunde erhält Zugriff
+### 8.4 Sicherheit und Logging
+- Sichere Datenbankverbindungen
+- Eingabevalidierung (SQL-Injection-Schutz)
+- Sanitization von Nutzereingaben
+- Keine Exposition sensibler Daten in Logs
+- Protokollierung der Crawl-Aktivitäten
+- Strukturierte Error-Logs mit konfigurierbaren Log-Levels
+
+### 8.5 Benutzerfreundlichkeit
+- API in Englisch
+- Frontend in Englisch und Deutsch mit Sprachumschaltung
+- Browser-Kompatibilität (80% User-Abdeckung)
+- Farbenblindentauglich (kontrastreiche Farbschemata)
+- Semantisches HTML und Tastaturnavigation
+
+### 8.6 Projektabschluss
+- Live-Präsentation des finalen Produkts
+- Projektbericht (PDF) mit:
+  - Bedienungsanleitung
+  - Beschreibung der Anwendungsfälle und Lösungen
+  - Zusammenspiel der Komponenten (Crawler, API, UI)
+  - Lessons Learned
 
 
 ## 9. Gliederung in Teilprodukte (Unterteilt)
