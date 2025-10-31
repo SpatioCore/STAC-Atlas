@@ -140,7 +140,7 @@ Die `collection`-Tabelle dient als zentrales Objekt für die Speicherung der Sam
 
 Diese Tabelle speichert statistische oder beschreibende Zusammenfassungen einzelner Collections. Über den Fremdschlüssel `collection_id` wird sichergestellt, dass alle Summary-Werte eindeutig zugeordnet werden können.  
 
-#### collection_assets
+#### collection:assets
 - **collection_id**  
 - **asset_id**  
 - collection_asset_roles  
