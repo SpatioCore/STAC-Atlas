@@ -62,6 +62,157 @@ Querybare Attribute sind: (TO:DO)
 
 ## 5. Produktdaten (Crawler & Datenbank) <!-- Humam & Sönke -->
 
+Die Datenbankkomponente bildet das zentrale Rückgrat der gesamten Datenverwaltung und dient zur strukturierten, effizienten und STAC-konformen Speicherung sämtlicher durch den Crawler erfassten (Meta-) Daten. Grundlage ist eine relationale PostgreSQL-Datenbank mit PostGIS-Erweiterung, um sowohl klassische als auch räumliche Abfragen performant verarbeiten zu können.  
+Die Struktur ist so aufgebaut, dass sie die in STAC definierten Entitäten (Catalog, Collection, Extensions, Keywords usw.) logisch und referenziell abbildet. Sämtliche Primär- und Fremdschlüsselbeziehungen gewährleisten dabei eine hohe Datenintegrität und ermöglichen zugleich schnelle Abfragen über verschiedene Zugriffspfade.  
+
+Für eine bessere Wartbarkeit und klare Trennung der logischen Einheiten ist die Datenbank in **mehrere thematisch abgegrenzte Tabellenbereiche** gegliedert: *Catalogs*, *Collections* sowie allgemeine, nicht spezifische Tabellen.  
+Die Tabellen enthalten jeweils Primärschlüssel zur eindeutigen Identifikation sowie Zeitstempel-Felder zur Nachvollziehbarkeit von Änderungen. Darüber hinaus sind alle textbasierten Felder, Geometrien und Zeitinformationen für effiziente Suchvorgänge indexiert.  
+
+---
+
+### Tabellenbereich „Catalogs“
+
+Der Bereich **Catalogs** bildet die hierarchische Struktur der STAC-Kataloge ab. Jeder Katalog speichert seine Metadaten inklusive Versionierung, Typ, Beschreibung und zugehöriger Links. Über Zwischentabellen werden Keywords sowie Erweiterungen (STAC Extensions) referenziert.  
+
+#### catalog
+- **id**  
+- stac_version  
+- type  
+- title  
+- description  
+- created_at  
+- updated_at  
+
+Die Haupttabelle `catalog` bildet den zentralen Einstiegspunkt der Kataloghierarchie. Sie speichert allgemeine Metadaten und dient als Ankerpunkt für die zugehörigen Relationen.
+
+#### catalog_links
+- **id**  
+- catalog_id  
+- rel  
+- href  
+- type  
+- title  
+
+Die Tabelle `catalog_links` beschreibt die Verknüpfungen zwischen einzelnen Katalogen oder externen Referenzen und implementiert damit die STAC-Link-Struktur.
+
+#### catalog:keywords
+- **catalog_id**  
+- **keyword_id**  
+
+Relationstabelle zur Mehrfachzuordnung von Keywords an Catalogs. Dadurch können Sammlungen gezielt über Schlagwörter gefiltert werden. Diese Tabelle wird benötigt, da hier eine (n:n)-Beziehung vorliegt.
+
+#### catalog:stac_extension
+- **catalog_id**  
+- **stac_extension_id**  
+
+Diese Relation beschreibt, welche STAC-Erweiterungen in einem bestimmten Katalog verwendet werden. Hier wird eine eigene Tabelle benötigt da hier eine (n:n)-Beziehung zwischen den beiden tabellen vorliegt.
+
+---
+
+### Tabellenbereich „Collections“
+
+Der Bereich **Collections** bildet die Sammlungen von Collections innerhalb eines Katalogs ab. Jede Collection enthält spezifische Metadaten, räumliche Ausdehnungen, zeitliche Intervalle sowie referenzierte Provider, Assets und Summaries.  
+
+#### collection
+- **id**  
+- stac_version  
+- type  
+- title  
+- description  
+- license  
+- created_at  
+- updated_at  
+- spatial_extend  
+- temporal_extend_start  
+- temporal_extend_end  
+
+Die `collection`-Tabelle dient als zentrales Objekt für die Speicherung der Sammlungsinformationen. Neben den textuellen Attributen werden hier räumliche und zeitliche Dimensionen gespeichert, die für Filter- und Suchoperationen entscheidend sind.  
+
+#### collection_summaries
+- **id**  
+- collection_id  
+- name  
+- kind  
+- range_min  
+- mange_max  
+- set_value  
+- json_schema  
+
+Diese Tabelle speichert statistische oder beschreibende Zusammenfassungen einzelner Collections. Über den Fremdschlüssel `collection_id` wird sichergestellt, dass alle Summary-Werte eindeutig zugeordnet werden können.  
+
+#### collection_assets
+- **collection_id**  
+- **asset_id**  
+- collection_asset_roles  
+
+Dient der Verknüpfung von Collections mit ihren zugehörigen Assets, einschließlich der Angabe spezifischer Rollen. Dies ist nötig, da hier eine (n:n)-Beziehung vorliegt.
+
+#### collection:keywords
+- **collection_id**  
+- **keyword_id**  
+
+Relationstabelle zur Mehrfachzuordnung von Keywords an Collections. Dadurch können Colletions gezielt über Schlagwörter gefiltert werden. Diese Tabelle wird benötigt, da hier eine (n:n)-Beziehung vorliegt.
+
+#### collection:stac_extension
+- **collection_id**  
+- **stac_extension_id**  
+
+Relationstabelle zur Mehrfachzuordnung von stac_extension an Collections. Dadurch können Colletions gezielt über die stac_extension gefiltert werden. Diese Tabelle wird benötigt, da hier eine (n:n)-Beziehung vorliegt.
+
+#### collection:providers
+- **collection_id**  
+- **provider_id**  
+- collection_provider_roles  
+
+Definiert die Zuordnung von Datenanbietern (Providern) zu einzelnen Collections. Über das Feld `collection_provider_roles` können die jeweiligen Rollen (z. B. „producer“, „licensor“) eindeutig beschrieben werden.
+
+---
+
+### Allgemeine und Hilfstabellen
+
+Neben den spezifischen Tabellen für Catalogs und Collections existieren mehrere **nicht-spezifische Hilfstabellen**, die für eine einheitliche Referenzierung, Nachverfolgung und Filterung verwendet werden. Diese werden benötigt, da diese Tabellen mit den Tabellen `collections` und `catalogs` eine n:n-Beziehung haben und somit die datenbank unnötig viele Daten speichern würde wenn man diese Daten direkt in einer der beiden Tabellen referenzieren würde.
+
+#### providers
+- **id**  
+- provider  
+
+Speichert die Informationen zu Datenanbietern, Organisationen oder Institutionen.  
+
+#### keywords
+- **id**  
+- keyword  
+
+Liste aller verwendeten Schlagwörter, die in unterschiedlichen Kontexten wiederverwendet werden können.  
+
+#### stac_extensions
+- **id**  
+- stac_extension  
+
+Verwaltet die in STAC definierten Erweiterungen, die sowohl von Catalogs als auch von Collections genutzt werden können.  
+
+#### crawllog_catalog
+- **id**  
+- catalog_id  
+- last_crawled  
+
+Protokolliert die Zeitpunkte der letzten Crawling-Vorgänge für jeden Katalog.  
+
+#### crawllog_collection
+- **id**  
+- collection_id  
+- last_crawled  
+
+Analog zur vorherigen Tabelle dient `crawllog_collection` der Nachverfolgung der Crawling-Zyklen für Collections.  
+
+---
+
+### Zusammenfassung
+
+Mit dieser Datenbankstruktur wird eine **vollständig STAC-kompatible, referenzielle und hochperformante Datenspeicherung** gewährleistet.  
+Durch den modularen Aufbau mit klar getrennten Tabellenbereichen, Mehrfachbeziehungen und Protokollierungseinheiten ist die Architektur sowohl **skalierbar als auch wartungsfreundlich**.  
+Indizes auf allen relevanten Attributen (IDs, Zeitstempel, Textfelder und Geometrien) sowie die Integration von PostgreSQL-TSVector und PostGIS stellen sicher, dass **alle Such-, Filter- und Analyseoperationen** in kurzer Zeit und mit minimalem Ressourcenverbrauch ausgeführt werden können.
+
+<!-->
 ### bezüglich den catalogs
 
 #### catalog
@@ -133,6 +284,14 @@ Querybare Attribute sind: (TO:DO)
 - **provider_id**
 - collection_provider_roles
 
+#### collection_links
+- **id**
+- collection_id
+- rel
+- href
+- type
+- title
+
 
 ### nicht spezifische tabellen
 
@@ -157,8 +316,7 @@ Querybare Attribute sind: (TO:DO)
 - **id**
 - collection_id
 - last_crawled
-
-
+<-->
 
 
 ## 6. Leistungsanforderungen (ALLE)
