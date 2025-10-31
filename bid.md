@@ -1,45 +1,33 @@
 # Pflichtenheft STAC Atlas
 
 ## 1. Zielbestimmung (ALLE)
+- Verwaltungvon Metadaten zu Geodaten
+- Ermöglicht Suche und Filterung
+- Verlinkt auf die echte Daten
+- Anwendung soll Geodaten verschiedener Anbieter automatisiert erfassen
+- werden in einer DB gespeichert 
+- sollen über eine standardisierte API sowie eine benutzerfreundliche Weboberfläche zugänglich sein
 
+Das Projekt besteht aus vier Hauptkomponenten:
+
+- Crawler – erfasst Daten aus STAC-Katalogen
+- Datenbank – speichert Metadaten
+- STAC API – ermöglicht standardisierten Zugriff
+- UI – bietet visuelle Suche und Kartenansicht
 
 ## 2. Anwendungsbereiche und Zielgruppen (ALLE)
+STAC-Index website
+GIS-Fachleute
+Datenanbieter
+Entwickler
+Datenwissenschaftler
 
-
-## 3. Produkt-Umgebung
-
-Die Produktumgebung beschreibt die technischen Rahmenbedingungen für Entwicklung, Betrieb und Integration der drei Hauptkomponenten des Projekts – **Crawler**, **STAC API** und **Frontend**.  
-Alle Komponenten werden in einer modernen, containerisierten Umgebung entwickelt und bereitgestellt, um eine einheitliche und reproduzierbare Laufzeitumgebung sicherzustellen.
-
-### 3.1 STAC API-konforme Schnittstelle
-Das Backend stellt eine API bereit, die vollständig mit der **STAC API-Spezifikation** kompatibel ist und standardisierte Zugriffe auf die gespeicherten STAC Collections ermöglicht.
-
-### 3.2 Backend
-Das Backend wird überwiegend in **Python** umgesetzt und umfasst u. a. eine Übersetzung von **CQL2**-Abfragen (mittels [pycql2](https://pypi.org/project/pycql2/)).  
-Ein dedizierter **Backend-Server** ist für die Verarbeitung von Anfragen sowie das **Crawlen externer STAC-Kataloge** verantwortlich.  
-Neben Python können für Teilkomponenten auch **Node.js** und **JavaScript** verwendet werden.
-
-### 3.3 Crawler
-Der **Crawler** wird in **Python** implementiert und ist zuständig für das automatische Auffinden und Einlesen von STAC Collections aus verschiedenen Quellen.  
-Er aktualisiert regelmäßig die Datenbank, um eine aktuelle Indexierung sicherzustellen.
-
-### 3.4 Frontend
-Das **Web-Frontend** wird mit **Vue.js (Version 3)** entwickelt und bietet eine benutzerfreundliche Oberfläche zur Suche, Filterung und Visualisierung der STAC Collections.  
-Die Kommunikation zwischen Frontend und Backend erfolgt über die STAC API.
-
-### 3.5 Datenbankmanagementsystem
-Zur Speicherung der Metadaten wird **PostgreSQL** eingesetzt.  
-Das Datenbankschema ist erweiterbar gestaltet, um zusätzliche Metadatenfelder aufnehmen zu können, beispielsweise Informationen aus STAC-Erweiterungen oder Providerdaten.
-
-### 3.6 Containerisierung
-Alle Komponenten werden mittels **Docker** containerisiert.  
-Dadurch kann das gesamte System mit einem einzigen Startbefehl (**Docker-Einzeiler**) ausgeführt werden und ist plattformunabhängig lauffähig.  
-Docker gewährleistet eine konsistente Laufzeitumgebung und erleichtert die Integration zwischen den Komponenten.
-
-### 3.7 Entwicklungsumgebung
-Die Entwicklungsumgebung basiert auf **Node.js 20** und ermöglicht eine einheitliche lokale Entwicklungs- und Testumgebung.  
-Abhängigkeiten werden über **npm** verwaltet.  
-Die Ausführung und Integration aller Komponenten kann lokal über Docker Compose oder direkt in der Node.js-Umgebung erfolgen.
+## 3. Produkt-Umgebung (ALLE)
+Server-Umgebung: Docker-Container
+Datenbank:  CQL2
+Backend:Python, Node.js, JavaScript
+Frontend: Vue.js, css, Disign ählich mit STAC websites
+Kommunikation:GitHub, Discord,WhattsApp
 
 ## 4. Produktfunktionen (UNTERTEILT)
 
@@ -48,11 +36,28 @@ Die Ausführung und Integration aller Komponenten kann lokal über Docker Compos
 
 
 ## 6. Leistungsanforderungen (ALLE)
+Die STAC API-Komponente bildet die zentrale Datenschnittstelle des Systems und ermöglicht einen standardkonformen Zugriff auf die im Index gespeicherten STAC Collections. Sie erfüllt vollständig die Anforderungen der SpatioTemporal Asset Catalog (STAC) API sowie der Collection Search Extension und bietet erweiterte Such- und Filterfunktionen.
 
+Über die Endpunkte /collections und /search können Nutzer Collections nach Attributen wie Titel, Lizenz, Schlüsselwörtern sowie räumlicher und zeitlicher Ausdehnung durchsuchen, filtern und sortieren. Zusätzlich wird die CQL2-Filterung unterstützt, um gezielt nach Attributen wie platform, gsd oder processing:level zu suchen. Dabei stehen logische Operatoren (AND, OR, NOT) und Vergleichsoperatoren (=, <, >, IN) zur Verfügung; optional sind auch erweiterte Funktionen wie LIKE, BETWEEN oder INTERSECTS vorgesehen.
 
+Die Architektur ist modular aufgebaut, sodass insbesondere die CQL2-Filterlogik als eigenständige Library wiederverwendet oder in andere Systeme integriert werden kann.
+
+Die API bietet eine hohe Performance:
+
+Zugriff auf indizierte Daten mit Antwortzeiten unter 100 ms,
+
+Verarbeitung von mindestens 100 parallelen Anfragen,
+
+Antwortzeiten unter 1 s für einfache Abfragen und unter 5 s für komplexe Filterabfragen,
+
+maximale Anfragezeit: 1 Minute.
+
+Damit stellt die STAC API eine leistungsfähige, flexible und erweiterbare Grundlage für die standardisierte Suche innerhalb der indizierten STAC Collections dar.
 ## 7. Qualitätsanforderungen (ALLE)
-
-
+Benutzerfreundlich: einfache, klare Bedienoberfläche
+Robust: Fehlerbehandlung bei Crawling & API-Anfragen
+Open Source: Apache 2.0 Lizenz
+Testabdeckung: grundlegende Unit- und Integrationstests
 ## 8. Sonstige nichtfunktionale Anforderungen (ALLE)
 
 
@@ -62,9 +67,25 @@ Die Ausführung und Integration aller Komponenten kann lokal über Docker Compos
 ### 9.2 Datenbank-Komponente
 
 ### 9.3 STAC API-Komponente
+- implementiert die STAC API Specification und die Collection Search Extension
+
+# Bereitstellung von Collections
+- GET /collections -> Gibt eine Liste aller gespeicherten Collections aus der    Datenbank zurück
+
+# Abruf einer bestimmten Collection
+- GET /collections/{id} -> Liefert die vollständigen Metadaten einer einzelnen Collection
+
+# Collection Search
+GET /search -> Ermöglicht Filterung nach:
+
+- Schlüsselwörtern
+- räumlicher Ausdehnung (Bounding Box)
+- Zeitraum (temporal extent)
+- Provider oder Lizenz
+- Unterstützt CQL2-Filterung für erweiterte Abfragen
 
 ### 9.4 UI-Komponente
-
+- Weboberfläche (Vue.js ) mit Suchfeld, Filteroptionen, Zeit- und Raum-Auswahl sowie Kartendarstellung der Ergebnisse
 
 ## 10. Entwicklungsumgebung (ALLE)
 
