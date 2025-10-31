@@ -62,44 +62,104 @@ Querybare Attribute sind: (TO:DO)
 
 ## 5. Produktdaten (Crawler & Datenbank) <!-- Humam & Sönke -->
 
-### collection
+### bezüglich den catalogs
+
+#### catalog
+- **id**
+- stac_version
+- type
 - title
 - description
-- spatial extent
-- temporal extent (start-end)
-- provider names
-- license 
-- DOIs
-- created_timestamp
-- last_crawled
-- extracted collection metadata
+- created_at
+- updated_at
 
-- STAC extensions 
-- active boolean
-
-### catalog
+#### catalog_links
+- **id**
+- catalog_id
+- rel
+- href
+- type
 - title
-(- description)
-- catalog_parent 
 
-### keywords
+#### catalog:keywords
+- **catalog_id**
+- **keyword_id**
 
+#### catalog:stac_extension
+- **catalog_id**
+- **stac_extension_id**
+
+
+### bezüglich den collections
+
+#### collection
+- **id**
+- stac_version
+- type
+- title
+- description
+- license
+- created_at
+- updated_at
+- spatial_extend
+- temporal_extend_start
+- temporal_extend_end
+
+#### collection_summaries
+- **id**
+- collection_id
+- name
+- kind
+- range_min
+- mange_max
+- set_value
+- json_schema
+
+#### collection_assets
+- **collection_id**
+- **asset_id**
+- collection_asset_roles
+
+#### collection:keywords
+- **collection_id**
+- **keyword_id**
+
+#### collection:stac_extension
+- **collection_id**
+- **stac_extension_id**
+
+#### collection:providers
+- **collection_id**
+- **provider_id**
+- collection_provider_roles
+
+
+### nicht spezifische tabellen
+
+#### providers
+- **id**
+- provider
+
+#### keywords
+- **id**
 - keyword
 
-### source 
-- source_url
-- title
-- type
-- status
+#### stac_extensions
+- **id**
+- stac_extension
+
+#### crawllog_catalog
+- **id**
+- catalog_id
 - last_crawled
 
-### summaries
-- collection_id	
-- platform	TEXT	(z. B. „Sentinel-2“)
-- constellation	TEXT	(z. B. „Sentinel“)
-- gsd
-- processing_level
-- summary_json
+#### crawllog_collection
+- **id**
+- collection_id
+- last_crawled
+
+
+
 
 ## 6. Leistungsanforderungen (ALLE)
 
