@@ -108,9 +108,9 @@ Querybare Attribute sind: (TO:DO)
 Die Craler-Komponente soll eine hohe Effizienz, Stabilität und Skalierbar sein, um große Mengen an STAC-Katalogen und -APIs regelmäißg und zuverlässig zu erfassen.
 
 #### Crawling Leistung
-Der Crawler soll in der Lage sein, alle aktuell vorhanden (94) STAC-Quellen innerhlab einer Woche zu analysieren. In folge dessen soll auch die Aktualisierung aller bekannter und neuer Quellen maximal eine Woche betragen. Die einzelnen STAC-Collections sollen jeweils innerhalb von < 5 Sekunden abgerufen und verarbeitet werden. Zudem wollen wir selber den Crawler Rate-Limiting einhalten, um die externen Dienste nicht zu überlasten (z.B. max. 5 Request/Sekunde pro Quelle).
+Der Crawler soll in der Lage sein aus dem STAC-Index Quellen innerhlab einer Woche zu analysieren. In folge dessen soll auch die Aktualisierung aller bekannter und neuer Quellen maximal eine Woche betragen. Die einzelnen STAC-Collections sollen jeweils innerhalb von < 5 Sekunden abgerufen und verarbeitet werden. Zudem wollen wir selber den Crawler Rate-Limiting einhalten, um die externen Dienste nicht zu überlasten (z.B. max. 5 Request/Sekunde pro Quelle).
 
-#### Crlawing Parallelität und Skalierbarkeit
+#### Crawling Parallelität und Skalierbarkeit
 Die Implementierung soll asynchrones und paralleles Crawling unterstützten. Es wird nur ein einzelene Crawler-Instanz sein, um die Komplexität mit Datenbankkonflikten zu vermeiden. Es wird darauf geachtet eine Modulare weise zu programmieren um in Zukunft horizontale Skalierung mit mehren Cralwern möglich zu machen.
 
 #### Crawling Zuverlässigkeit unf Fehlertoleranz
@@ -122,6 +122,13 @@ Der Crawler darf im Normalbetrieb auf einer Standard-VM mit (2 vCPUs,8GB RAM) be
 #### Wartbarkeit und Monitoring
 Die Crawling-Durchläufe sollen über Logging und Metriken wie der Anzahl gecrawlter Quellen, Anzahl gecrawlter Collections und Laufzeit überwacht werden. Die Metriken werden nur über eine Lokale Datei von einem System-Admin abrufbar sein.
 
+#### Abnahmekriterien
+
+- Der Crawler kann mindestens einen realen STAC Katalog vollständig traversieren.
+- Collections werden in PostgreSQL mit PostGIS persistiert.
+- Die Validierung erfolgt gegen das STAC JSON Schema und auftretende Fehler werden protokolliert.
+- Bei Fehlern sind Wiederholungsversuche implementiert und dauerhaft fehlerhafte Quellen können als inaktiv markiert werden.
+- Strukturierte Logs sind vorhanden.
 
 ### 6.2 Datenbank <!-- Sönke -->
 
@@ -277,54 +284,46 @@ GET /search -> Ermöglicht Filterung nach:
 ## 10. Implementierungsdetails (ALLE)
 <!-- Hier bitte pro Gruppe eintragen, wie genau die Teilprodukte implementiert werden sollen.
 Also auch sowas wie verwendete Technologie, Teilschritte (Meilensteine?) etc.. WBS wäre auch nett-->
-### 10.1 Crawler <!-- Humam -->
-Ziel ist die Automatische Erfassung, Validierung und Speicherung von STAC-Collections aus verteilten Quellen in einer PostgreSQL-Datenbank.
+### 10.1 Crawler
+
+Ziel des Crawler‑Moduls ist die automatische Erfassung, Validierung und Speicherung von STAC‑Collections aus verteilten Quellen in einer PostgreSQL‑Datenbank mit PostGIS‑Erweiterung. Der Crawler soll robust gegenüber transienten Fehlern sein (konfigurierbare Retries mit Backoff), Monitoring‑Metriken liefern und idempotente Persistenz gewährleisten, damit wiederholte Crawls keine Duplikate erzeugen.
 
 #### Technologien
-Dies wird in Python realisiert. Genutzte Bibilotheken sind:
-- ```pystac``` / ```pystac-client``` zum Lesen und Traversieren von STAC-Katalogen und -APIs
-- ```stactools``` für Migration und Validierung von STAC-Versionen
-- ```requests``` oder ```httpx``` für asynchrone API-Aufrufe
-- ```asyncio``` für paralleles Crawling
-- ```sqlalchemy``` oder ```asyncpg ``` für Datenbankzugriffe
-- ```pypgstac``` zum Einspielen von Collections in PostgreSQL (PgSTAC-kompatibel)
-- ```logging``` / ```structlog``` für strukturierte Protokollierung
-asynchrones Crawlen
 
-Alle verwendeten Bibliotheken 
-sollen unter Apache-2.0 oder kompatibler Lizenz verfügbar sein.
+Der Crawler wird als Node.js‑Anwendung konzipiert wir werden JavaScript (vielleicht TypeScript) nutzten, um bessere Wartbarkeit und Weiternetwicklung innerhalb der Gruppe zu erreichen und die Probleme mit bestimmten Versionen von z.B. Python zu unterbinden. Für das STAC‑Handling kommen [stac-js](https://github.com/moregeo-it/stac-js) und [stac-migrate](https://github.com/stac-utils/stac-migrate) zum Migrieren älterer STAC‑Versionen zum Einsatz. Für HTTP‑Zugriffe eignen sich axios oder got (unterstützen Timeouts und Retries). Alternativ kann node‑fetch verwendet werden. Beim Crawling und Queueing sind für komplexe Szenarien Frameworks wie Crawlee (Apify) oder vergleichbare Lösungen mit integrierter Queue/Retry‑Logik empfehlenswert, für leichtere Implementierungen bieten sich p‑queue oder Bottleneck zur Steuerung von Parallelität und Rate‑Limits an. Zur zeitgesteuerten Ausführung kann lokal node‑cron genutzt werden. Die Validierung erfolgt via JSON‑Schema Validator (z. B. ajv) unter Verwendung der offiziellen STAC‑Schemas. Als Datenbank wird PostgreSQL mit PostGIS empfohlen. Die Anbindung kann mit node‑postgres (pg) erfolgen. Für Logging und Monitoring werden strukturierte Logs eingesetzt. Zur Auslieferung und Reproduzierbarkeit der Laufzeitumgebung wird Docker genutzt.
 
 #### Architektur
 
-Der Crawler ist als eigenständiger Microservice implementiert.
-Komponenten sind:
-
-1. Der Source Manager, der die Quelleinträge verwaltet (aktiv/inaktiv, letzter Crawl).
-2. Die Crawler Engine, welches das rekursives Laden von STAC-Katalogen (async) ermöglicht.
-3. Der Metadata Extractor, der extrahiert relevante Felder (id, title, extent usw.)
-4. Database Writer, der persistiert Daten in PostgreSQL
-5. Der Scheduler der die periodische Crawls steuert
-6. Logger / Monitor welcher den Status, Fehler und Statistiken auf zeichnet.
+Die Architektur ist modular aufgebaut und besteht aus folgenden Komponenten: Der Source Manager persistiert Quellendaten (URL, Typ, Crawl‑Intervall, Status, letzte Ausführung) und stellt eine Admin‑API zum Aktivieren/Deaktivieren sowie für manuelle Trigger bereit. Der Scheduler plant die periodischen Crawls gemäß der konfigurierten Intervalle. Die Crawler Engine lädt STAC‑Kataloge und STAC‑APIs asynchron, folgt relevanten Link‑Relationen (child, catalog, collection) und beachtet dabei Rate‑Limits, mögliche robots.txt‑Regeln sowie Parallelitätsgrenzen. Der Metadata Extractor / Normalizer migriert STAC‑Versionen mit stac‑migrate, modelliert Objekte (z. B. mit stac‑js) und extrahiert die relevanten Felder. Der Validator prüft die Objekte gegen die STAC JSON‑Schemas (z. B. mit ajv) und protokolliert Validierungsfehler samt Persistenz der Rohdaten zur Analyse. Der Database Writer verwaltet Indizes und Transaktionen. Die Logger / Monitor‑Komponente erfasst Fehler, Durchsatz, Latenzen und stellt Health‑Checks bzw. Metriken bereit. Optional existiert eine Admin UI / API zur Anzeige von Quellen, Fehlerlogs und für manuelle Resets.
 
 #### Ablauf
 
-1. Initialisierung
-Lade aktive Quellen und plane Crawls gemäß Konfiguration
-2. Crawling
-Für jede Quelle:
-Erkunde STAC-Katalog/API rekursiv (Follow child, catalog Links) <!-- Prüfe STAC-Version und migriere bei Bedarf (stactools migrate) -->
-3. Metadatenextraktion
-Extrahiere Felder laut Spezifikation (id, title, extent, provider, license, etc.)
-4. Validierung
-Prüfe STAC-Konformität (stactools validate oder stac-check)
-5. Datenpersistenz
-Upsert in PostgreSQL via pypgstac oder sqlalchemy
-Aktualisiere last_crawled in sources
-6. Fehlerbehandlung
-Wiederhole fehlgeschlagene Requests (n = 3)
-Markiere Quelle bei dauerhaften Fehlern als inactive
-7. Logging & Monitoring
-Schreibe Crawling-Logs und Performance-Metriken in Logdateien / DB
+1. Initialisierung: Beim Start liest der Crawler die aktiven Quellen aus der Datenbank und plant die Crawls entsprechend der konfigurierten Intervalle.
+
+2. Start eines Crawls (pro Quelle): Für jede Quelle wird deren Typ bestimmt (statischer STAC‑Catalog JSON, STAC API mit search/collections‑Endpunkten oder Verzeichnisstruktur) und die Start‑URL geladen — unter Verwendung von Timeouts und konfigurierten Retries.
+
+3. Rekursives Crawling und Pagination: Die Engine folgt Link‑Rela‑Typen wie child, catalog und collection sowie paginiert bei STAC APIs; neue URLs/Tasks werden in die Queue aufgenommen und asynchron abgearbeitet, wobei Rate‑Limits und Parallelität berücksichtigt werden.
+
+4. Migration & Modeling: Gefundene STAC‑Objekte werden mit stac‑migrate in eine einheitliche STAC‑Version überführt und anschließend in ein internes Datenmodell (z. B. stac‑js‑Objekt oder DTO) umgewandelt.
+
+5. Extraktion & Normalisierung: Aus den STAC‑Objekten werden Schlüsselattribute extrahiert (z. B. id, title, description, extent – bbox und temporal, providers, license, assets, HREFs). Die BBOX‑Angaben werden in eine PostGIS‑Geometrie konvertiert (z. B. Envelope/Polygon), zeitliche Angaben als TIMESTAMPTZ abgelegt.
+
+6. Validierung: Die Objekte werden gegen die STAC JSON‑Schemas validiert; bei Nicht‑Konformität werden die Fehler protokolliert und die Rohdaten je nach Policy entweder gespeichert, markiert oder ignoriert.
+
+7. Persistenz: Validierte Collections werden idempotent in die collections‑Tabelle geschrieben (Upsert). Zusätzlich wird sources.last_crawled aktualisiert. Optional können Audit/History‑Einträge erzeugt werden oder Änderungen nur dann persistiert werden, wenn sich der Inhalt (z. B. hash(collection)) geändert hat.
+
+8. Fehlerbehandlung: Transiente Fehler werden mit einem exponentiellen Backoff mehrfach (z. B. bis zu 3 Versuche) neu versucht; bei dauerhaften Fehlern wird die Quelle markiert und ein Alert/Notification erzeugt. Es soll eine Dead‑Letter‑Queue für manuelle Analyse existieren.
+
+9. Monitoring: Der Crawler sammelt Metriken zu erfolgreich verarbeiteten Objekten, Fehlern, Laufzeiten und stellt einen Health‑Endpoint (/metrics) zur Verfügung, damit Monitoring‑Systeme (z. B. Prometheus/Grafana) diese Metriken abfragen können.
+
+#### Sprint‑Mapping (2‑Wochen Sprints)
+
+- Sprint 1: Setup & Design (erste DB Modell)
+- Sprint 2: Crawler Engine
+- Sprint 3: Queueing + Basic fetcher
+- Sprint 4: Extractor/Migration + Validator + DB Writer
+- Sprint 5: Scheduler + Monitoring
+- Sprint 6: Tests + Deploy + Docs
 
 ### 10.2 Datenbank <!-- Sönke -->
 
