@@ -328,20 +328,15 @@ Indizes auf allen relevanten Attributen (IDs, Zeitstempel, Textfelder und Geomet
 #### Funktionale Leistungsanforderungen
 
 1. **Antwortzeiten der Datenbankabfragen**  
-   - Standardabfragen (z. B. Abruf einer Collection nach ID) müssen innerhalb von **< 1 Sekunde** beantwortet werden.  
-   - Komplexe Suchanfragen mit Filtern (z. B. Freitextsuche, räumliche und zeitliche Filterung) müssen innerhalb von **≤ 5 Sekunden** abgeschlossen sein.  
+   - Standardabfragen (z. B. Abruf einer Collection nach ID) müssen innerhalb von **< 5 Sekunde** beantwortet werden.  
+   - Komplexe Suchanfragen mit Filtern (z. B. Freitextsuche, räumliche und zeitliche Filterung) müssen innerhalb von **≤ 30 Sekunden** abgeschlossen sein.  
    - Langlaufende Abfragen dürfen eine maximale Bearbeitungszeit von **≤ 60 Sekunden** nicht überschreiten.
 
-2. **Crawler-Performance**  
-   - Ein vollständiger Crawl-Durchlauf aller bekannten Quellen darf **maximal 7 Tage** ununterbrochener Laufzeit in Anspruch nehmen.
-   - Inkrementelle Updates (Re-Crawling einzelner Quellen) müssen innerhalb von **24 Stunden** nach Planstart abgeschlossen sein.  
-   - Die Datenbank muss mindestens **100 Schreibvorgänge pro Sekunde** verarbeiten können, ohne Performanceverluste zu verursachen.
-
-3. **Gleichzeitige Zugriffe (Concurrency)**  
+2. **Gleichzeitige Zugriffe (Concurrency)**  
    - Das System muss mindestens **50 gleichzeitige Leseanfragen** und **10 gleichzeitige Schreibanfragen** ohne merkliche Leistungseinbußen (< 10 % längere Antwortzeit) verarbeiten können.  
    - Gleichzeitige API-Anfragen dürfen keine Deadlocks oder Timeout-Fehler erzeugen.
 
-4. **Suchindex und Filterleistung**  
+3. **Suchindex und Filterleistung**  
    - Die Datenbank muss einen Volltextindex bereitstellen, der Suchabfragen über Metadatenfelder (`title`, `description`, `keywords`, `providers`) innerhalb von **≤ 3 Sekunden** ermöglicht.  
    - CQL2-Filter (Basic) müssen vollständig innerhalb von **≤ 5 Sekunden** evaluiert werden können.  
 
@@ -360,7 +355,6 @@ Indizes auf allen relevanten Attributen (IDs, Zeitstempel, Textfelder und Geomet
 3. **Datenintegrität und Fehlerbehandlung**  
    - Transaktionen müssen atomar ausgeführt werden (ACID-konform).  
    - Schreibfehler oder Integritätsverletzungen dürfen in **< 0,1 %** der Transaktionen auftreten.  
-   - Fehlerhafte Crawls werden automatisch innerhalb von **≤ 10 Minuten** erneut versucht (Retry-Mechanismus).
 
 4. **Speichereffizienz**  
    - Der Speicherbedarf pro STAC-Collection (inkl. Metadaten und Indexeinträge) darf **50 kB** im Durchschnitt nicht überschreiten.  
@@ -565,12 +559,8 @@ Die Implementierung folgt einem klar strukturierten Vorgehen in mehreren Phasen,
    Anschließend werden die Such- und Filtermechanismen implementiert. Dazu gehört die Integration einer **Volltextsuche** auf Basis von PostgreSQL-TSVector, die Anbindung von **PostGIS** für Bounding-Box- und Distanzabfragen sowie die Umsetzung einer Übersetzungsschicht für **CQL2-Filterausdrücke**.  
    Ergebnis: performante Such- und Filterfunktionen mit optimierten Indizes.
 
-5. **Test- und Validierungsphase (M5)**  <!-- welche Test-Umgebung wollen wir verwenden? oder machen wir das für jeden Schritt einzelnd, dann würde ich diese Komponente mit Jest testen -->
-   Alle Komponenten werden mit **Jest** automatisiert getestet. Dabei werden Unit-Tests für ORM-Funktionen, Integrationstests für den Crawler-Import sowie Performanztests für parallele Abfragen durchgeführt.  
-   Ergebnis: stabile, getestete Datenbanklogik mit vollständiger Testabdeckung.
-
-6. **Deployment und Dokumentation (M6)**  
-   Die produktive Bereitstellung erfolgt über **Docker Compose** <!-- , wobei separate Umgebungen für Entwicklung, Test und Produktion eingerichtet werden.-->
+5. **Deployment und Dokumentation (M6)**  
+   Die produktive Bereitstellung erfolgt über **Docker Compose** <!-- , wobei separate Umgebungen für Entwicklung und Produktion eingerichtet werden.-->
    Das Prisma-Schema, die Migrationsdateien und die API-Routen werden versioniert und dokumentiert. Eine technische Dokumentation beschreibt die Struktur, Indexierung und Updateprozesse der Datenbank.  
    Ergebnis: einsatzbereite, dokumentierte Datenbankkomponente.
 
