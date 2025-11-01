@@ -31,35 +31,33 @@
 ### 9.3 STAC API-Komponente
 
 ### 9.4 UI-Komponente
-- Stellt die grafische Benutzeroberfläche (GUI) der Plattform dar.
-- Dient als Schnittstelle zum Anwender für die interaktive Nutzung der indexierten STAC-Sammlungen.
-- Kernaufgabe: Gewährleistung einer effizienten Suche, Filterung und Exploration der Sammlungen.
-- Funktion: Übersetzt Benutzereingaben in CQL2 Suchanfragen für das Backend (API).
-- Funktion: Bereitet die Ergebnisse der API visuell auf.
-- Technologie: Umsetzung in VueJS (v2 oder v3) Wir setzen es in v3 um.
-- Ziel (Technologie): Ermöglichung einer potenziellen zukünftigen Integration in den bestehenden STAC Index.
-- Grenze: Fokus liegt auf der Suche und Darstellung von Collections.
-- Grenze (Bonus): Inspektion von Items oder ein Sammlungsvergleich sind optionale Bonus-Anforderungen.
-- Grenze (Scope): Die finale Integration in die bestehende STAC-Index-Webseite ist nicht Teil dieses Projekts.
+Die UI-Komponente stellt die grafische Benutzeroberfläche (GUI) der Plattform dar. Sie dient als Schnittstelle für die interaktive Nutzung der indexierten STAC-Sammlungen. Die Kernaufgabe ist die Gewährleistung einer effizienten Suche, Filterung und Exploration der Sammlungen.
+
+Funktionen beinhalten die Übersetzung der Benutzereingaben (Filter) in CQL2-Suchanfragen und die visuelle Darstellung der Daten in einer Liste sowie auf einer Karte.  
+Die Umsetzung erfolgt in VueJS v3 und soll eine potenzielle zukünftige Integration in den bestehenden STAC-Index ermöglichen.
+
+Der Fokus liegt auf der Suche und Darstellung von Collections.
 
 ### 9.4.1 UI 
-- Suchschnittstelle: Bereitstellung einer intuitiven Suchoberfläche (Orientierung am STAC Browser, fangen aber von neu an).
-- Filter (Queryables): Nutzer müssen Filterkriterien (Queryables) definieren können.
-- CQL2-Generierung: Die UI muss die Eingaben zu einem CQL2-Ausdruck komponieren und an den Server übermitteln.
-- Muss-Filter: Zwingende Unterstützung für Filterung nach räumlichem Bereich (Bounding Box) und Zeitraum.
-- Kartenvisualisierung: Die räumlichen Ausdehnungen der Suchergebnisse müssen auf einer Karte visualisiert werden.
-- Ergebnisdarstellung (Details): Die Inspektion der Metadaten einzelner Sammlungen muss möglich sein.
-- Ergebnisdarstellung (Quelle): Ein Link zum originalen STAC-Katalog (Quell-API) muss pro Sammlung bereitgestellt werden.
-- Ergebnisdarstellung (Paginierung): Implementierung einer Paginierung für große Treffermengen, also Seitenanzahlen ermöglichen.
+Bereitstellung einer intuitiven Suchoberfläche:
+- Filter (Queryables): Nutzer können Filterkriterien definieren.
+  - CQL2-Generierung: Die UI komponiert die Eingaben zu einem CQL2-Ausdruck und übermittelt diesen an den Server.
+  - Karten-Filter: Filterung nach räumlichen Bereichen (Bounding Box) und Zeiträumen.
+- Kartenvisualisierung: Die räumliche Ausdehnung der Suchergebnisse wird auf einer Karte visualisiert.
+- Ergebnisdarstellung:
+  - Die Inspektion der Metadaten einzelner Sammlungen ist möglich.
+  - Quelle: Ein Link zum originalen STAC-Katalog (Quell-API) wird pro Sammlung bereitgestellt.
+  - Paginierung: Für große Treffermengen steht eine erweiterte Seitenansicht zur Verfügung.
 
-  ### 9.4.2 UX
-- Performance (Interaktion): Sichtbare Reaktion auf Standard-Interaktionen (z.B. Klicks) innerhalb von 1 Sekunde.
-- Performance (Suche): Abschluss typischer Suchanfragen innerhalb von 5 Sekunden - hauptsächlich Aufgabe des API-Teams
-- Design: Gestaltung als cleanes und modernes Interface
-- Barrierefreiheit: Sicherstellung der bestmöglichen Zugänglichkeit; explizite Eignung für farbenblinde Nutzer.
-- Browser-Kompatibilität: Funktionalität muss für Browser gewährleistet sein, die mind. 80% der Nutzer abdecken (65% sind alleine Chrome-Nutzer).
-- Fehlerbehandlung: Klare, informative Fehlermeldungen und ein kontrolliertes Erholen von Fehlern.
-- Sprache: Alle Komponenten müssen vorzugsweise in Englisch, alternativ in Deutsch, verfügbar sein.
+### 9.4.2 UX
+- Performance:
+  - Interaktion: Sichtbare Reaktion auf Standardinteraktionen (z. B. Klicks) innerhalb von 1 Sekunde.
+  - Suche: Abschluss typischer Suchanfragen innerhalb von 5 Sekunden (Ladezeit).
+- Barrierefreiheit: Es werden farbenblindenfreundliche Farben verwendet.
+- Browser-Kompatibilität: Funktional und getestet für 80 % der gängigen Browser.
+- Fehlerbehandlung: Klare, informative Fehlermeldungen.
+- Sprache: Alle Komponenten sind auf Englisch, alternativ auf Deutsch verfügbar.
+
 ## 10. Entwicklungsumgebung (ALLE)
 
 
