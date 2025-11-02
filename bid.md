@@ -225,7 +225,7 @@ Die nachfolgenden Maßnahmen gewährleisten die Korrektheit, Wartbarkeit, Standa
 - Ziel: 100 % bestehende STAC-Validator-Tests.
 
 ### 7.5 Dokumentations- und Wartungsqualität
-- Jedes Modul wird mit aussagekräftigen JSDoc-Kommentaren versehen.
+- Alle Module werden mit aussagekräftigen Kommentaren dokumentiert, entsprechend der jeweils verwendeten Programmiersprache (z. B. PyDoc für Python-Module oder JSDoc für JavaScript/Vue-Komponenten).
 
 ## 8. Sonstige nichtfunktionale Anforderungen (ALLE) <!-- Jakob -->
 - Ausführliche Dokumentation
