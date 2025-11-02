@@ -191,8 +191,8 @@ Die nachfolgenden Maßnahmen gewährleisten die Korrektheit, Wartbarkeit, Standa
      - Abrufbarkeit und Filterbarkeit dieser Daten über die STAC-API-Endpunkte (/collections, /collections/search).
      - Validität der API-Antworten im STAC-Standardformat.
      - Pagination-, Sortier- und Filterfunktionen (CQL2).
-   - Integrationstests werden mit einem separaten Docker-Compose-Setup ausgeführt, um realitätsnahe Umgebungen zu simulieren.
-   
+   - Die Integrationstests werden in einer getrennten Testumgebung ausgeführt, die der realen Systemarchitektur entspricht (wahlweise über ein separates Docker-Compose-Setup oder im Rahmen des regulären Setups).
+  
 ### 7.2 Kontinuierliche Integration (CI)
 - Es wird eine GitHub Actions-Pipeline eingerichtet, die alle wesentlichen Qualitätssicherungs-Schritte automatisiert:
    - Build – Installation aller Abhängigkeiten und Prüfung auf erfolgreiche Kompilierung.
