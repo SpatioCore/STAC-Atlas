@@ -330,8 +330,7 @@ Die nachfolgenden Maßnahmen gewährleisten die Korrektheit, Wartbarkeit, Standa
    - Die API implementiert CQL2 Basic Filtering zur semantischen Abfrage von Eigenschaften:
    - Vergleichsoperatoren: `=`, `!=`, `<`, `<=`, `>`, `>=`
    - Logische Operatoren: `and`, `or`, `not`
-   - Räumliche Operatoren: `t_intersects`
-   - Zeitliche Operatoren: `t_before`, `t_after`, `t_during`
+  
 
 #### 9.3.4 Validierung und Qualitätssicherung
 Die Konformität der STAC API zur offiziellen STAC-Spezifikation wird durch automatisierte Tests und Validierungen sichergestellt (siehe Kapitel 7 – Qualitätsanforderungen).
