@@ -15,12 +15,15 @@ Alle Komponenten werden in einer modernen, containerisierten Umgebung entwickelt
 Das Backend stellt eine API bereit, die vollständig mit der **STAC API-Spezifikation** kompatibel ist und standardisierte Zugriffe auf die gespeicherten STAC Collections ermöglicht.
 
 ### 3.2 Backend
-Das Backend wird überwiegend in **Python** umgesetzt und umfasst u. a. eine Übersetzung von **CQL2**-Abfragen (mittels [pycql2](https://pypi.org/project/pycql2/)).  
-Ein dedizierter **Backend-Server** ist für die Verarbeitung von Anfragen sowie das **Crawlen externer STAC-Kataloge** verantwortlich.  
-Neben Python können für Teilkomponenten auch **Node.js** und **JavaScript** verwendet werden.
+Das Backend wird primär in **JavaScript / Node.js** umgesetzt und als dedizierter Backend‑Server betrieben. 
+Als API‑Framework wird **Express** (unter Verwendung von Node.js 20) empfohlen, um Anfragen zu verarbeiten und das Crawlen externer STAC‑Kataloge zu koordinieren. 
+Für die Übersetzung und Auswertung von **CQL2**‑Abfragen wird die robuste Rust‑Implementierung **cql2‑rs** eingesetzt. 
+Die bevorzugte Integrationsvariante ist das Kompilieren von **cql2‑rs** zu **WebAssembly** und das direkte Einbinden in den Node‑Prozess (Vorteile: In‑Process‑Ausführung, geringere Latenz, einfache Containerisierung). 
+Die ursprünglich vorgeschlagene Python‑Option mit **pycql2** bleibt als Option bestehen, wird aber nicht als Primärvariante empfohlen, um Konsistenz mit dem JavaScript‑Stack und der Team‑Expertise sicherzustellen. 
+Falls das Team dennoch Python bevorzugt, kann ein Backend in Python (z. B. mit FastAPI) implementiert werden, das Crawling, Anfrageverarbeitung und CQL2‑Übersetzung übernimmt.
 
 ### 3.3 Crawler
-Der **Crawler** wird in **Python** implementiert und ist zuständig für das automatische Auffinden und Einlesen von STAC Collections aus verschiedenen Quellen.  
+Der **Crawler** wird in **Python** implementiert und ist zuständig für das automatische Auffinden und Einlesen von STAC Collections aus dem STAC Index.  
 Er aktualisiert regelmäßig die Datenbank, um eine aktuelle Indexierung sicherzustellen.
 
 ### 3.4 Frontend
@@ -28,18 +31,18 @@ Das **Web-Frontend** wird mit **Vue.js (Version 3)** entwickelt und bietet eine 
 Die Kommunikation zwischen Frontend und Backend erfolgt über die STAC API.
 
 ### 3.5 Datenbankmanagementsystem
-Zur Speicherung der Metadaten wird **PostgreSQL** eingesetzt.  
-Das Datenbankschema ist erweiterbar gestaltet, um zusätzliche Metadatenfelder aufnehmen zu können, beispielsweise Informationen aus STAC-Erweiterungen oder Providerdaten.
+PostgreSQL in Kombination mit PostGIS bildet die zentrale Datengrundlage. 
+Die Metadaten werden in normalisierten Teiltabellen gehalten; Primär‑/Fremdschlüssel sorgen für Referenzen. 
+Für Performance werden B‑Tree‑Indizes (ID, Zeit), GIN/GiST (Text, Geometrien) und `tsvector`‑Volltextindizes eingesetzt. 
+Datensätze werden als PostGIS-Geometrieobjekt gespeichert.
+CQL2‑Filter werden serverseitig in SQL‑WHERE‑Klauseln übersetzt. 
+Inkremetelle Updates und Soft‑Deletes (`active = false`) sichern Integrität und Revisionsfähigkeit. 
 
 ### 3.6 Containerisierung
-Alle Komponenten werden mittels **Docker** containerisiert.  
+Alle Komponenten werden einzeln mittels **Docker** containerisiert.
 Dadurch kann das gesamte System mit einem einzigen Startbefehl (**Docker-Einzeiler**) ausgeführt werden und ist plattformunabhängig lauffähig.  
 Docker gewährleistet eine konsistente Laufzeitumgebung und erleichtert die Integration zwischen den Komponenten.
 
-### 3.7 Entwicklungsumgebung
-Die Entwicklungsumgebung basiert auf **Node.js 20** und ermöglicht eine einheitliche lokale Entwicklungs- und Testumgebung.  
-Abhängigkeiten werden über **npm** verwaltet.  
-Die Ausführung und Integration aller Komponenten kann lokal über Docker Compose oder direkt in der Node.js-Umgebung erfolgen.
 
 ## 4. Produktfunktionen (UNTERTEILT)
 
