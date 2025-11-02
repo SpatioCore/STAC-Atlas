@@ -290,12 +290,12 @@ Querybare Attribute sind: (TO:DO)
 ## 8. Sonstige nichtfunktionale Anforderungen (ALLE) <!-- Jakob -->
 
 ### 8.1 Dokumentation und Code-Qualität
-- Code-Dokumentation mit JSDoc (JavaScript/TypeScript) und Docstrings (Python)
+- Code-Dokumentation mit JSDoc (JavaScript/TypeScript)
 - Repository-Dokumentation (README, Setup-Anleitungen)
 - API-Dokumentation via OpenAPI/Swagger
 - Bedienungsanleitung für Endnutzer
-- Linter: ESLint (JavaScript/TypeScript), Pylint/Flake8 (Python)
-- Code-Formatierung: Prettier (JavaScript/TypeScript), Black (Python)
+- Linter: ESLint (JavaScript/TypeScript)
+- Code-Formatierung: Prettier (JavaScript/TypeScript)
 - Einhaltung von Coding-Standards
 - Modulare Architektur
 
