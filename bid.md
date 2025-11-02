@@ -1,176 +1,56 @@
 # Pflichtenheft STAC Atlas
 
-## 1. Zielbestimmung (ALLE) <!-- Jakob -->
-- Verwaltung von Metadaten von Geodaten
-- DATENBANK: Die Datenbankkomponente dient der persistenten Speicherung und effizienten Abfrage von STAC-Collection-Metadaten, die vom Crawler gesammelt werden und über die STAC API verfügbar gemacht werden. Ziel ist es, eine leistungsfähige, erweiterbare und standardkonforme Datenhaltung zu entwickeln, die sowohl strukturierte Suchabfragen (CQL2) als auch Volltextsuche unterstützt.
-- Zentrailisierte Plattform
-- Automatisches Crawlen und Indexieren von STAC collections
-  - von unterschiedlichen Quellen
-- Soll ermöglichen:
-  - Auffindbar machen von Collections
-  - Suche und Filterung von Collection auf Basis von zeitlicher/räumlicher Ausdehnung oder Thema
-  - Einen vergleich zwischen collections verschiedener Anbieter
-  - Einen Zugriff auf die Metadaten der Collections ermöglichen
+## 1. Zielbestimmung (ALLE)
 
-- API-Schnittstelle für Entwickler
-- Nutzerfreundliche Web-UI
-Das Projekt besteht aus vier Hauptkomponenten:
-
-- Crawler – erfasst Daten aus STAC-Katalogen
-- Datenbank – speichert Metadaten
-- STAC API – ermöglicht standardisierten Zugriff
-- UI – bietet visuelle Suche und Kartenansicht
 
 ## 2. Anwendungsbereiche und Zielgruppen (ALLE)
 
-### 2.1 Zielgruppe <!-- Jakob -->
-- Data scientists and researchers
-- GIS professionals
-- Application developers
-- Data providers
 
-**Userstorys noch hinzufügen**
+## 3. Produkt-Umgebung
 
-## 3. Produkt-Umgebung (ALLE) <!-- Jonas -->
-- STAC API konforme API-Schnittstelle
-- Backend vermutlich Python übersetzung von CQL2 (https://pypi.org/project/pycql2/)
-- Backend-Server der für das Backend inkl. Crawlen verantwortlich ist
-- Backend:Python, Node.js, JavaScript
-- Crawler in Python
-- Frontend in VueJS v3
-- Datenbankmanagementsystem: PostgreSQL
-- Containerisierung: Docker
-- Starten per Docker Einzeiler
-- Entwicklungsumgebung: Node.js 20
+Die Produktumgebung beschreibt die technischen Rahmenbedingungen für Entwicklung, Betrieb und Integration der drei Hauptkomponenten des Projekts – **Crawler**, **STAC API** und **Frontend**.  
+Alle Komponenten werden in einer modernen, containerisierten Umgebung entwickelt und bereitgestellt, um eine einheitliche und reproduzierbare Laufzeitumgebung sicherzustellen.
 
-## 4. Produktfunktionen (UNTERTEILT) <!-- Robin -->
-- Soll ermöglichen:
-  - Auffindbar machen von Collections
-  - Suche nach Collection auf Basis von zeitlicher/räumlicher Ausdehnung oder Thema
-  - Einen vergleich zwischen collections verschiedener Anbieter
-  - Einen Zugriff auf die Metadaten der Collections ermöglichen
-Möglich als:
-  - Programmatischer Ansatz (API)
-  - Webanwendung (Frontend)
+### 3.1 STAC API-konforme Schnittstelle
+Das Backend stellt eine API bereit, die vollständig mit der **STAC API-Spezifikation** kompatibel ist und standardisierte Zugriffe auf die gespeicherten STAC Collections ermöglicht.
 
-Querybare Attribute sind: (TO:DO)
--
--
--
--
--
+### 3.2 Backend
+Das Backend wird primär in **JavaScript / Node.js** umgesetzt und als dedizierter Backend‑Server betrieben. 
+Als API‑Framework wird **Express** (unter Verwendung von Node.js 20) empfohlen, um Anfragen zu verarbeiten und das Crawlen externer STAC‑Kataloge zu koordinieren. 
+Für die Übersetzung und Auswertung von **CQL2**‑Abfragen wird die robuste Rust‑Implementierung **cql2‑rs** eingesetzt. 
+Die bevorzugte Integrationsvariante ist das Kompilieren von **cql2‑rs** zu **WebAssembly** und das direkte Einbinden in den Node‑Prozess (Vorteile: In‑Process‑Ausführung, geringere Latenz, einfache Containerisierung). 
+Als Fallback bleibt alternativ die Python‑Option mit **pycql2**, wird aber nicht als Primärvariante verwendet, um Konsistenz mit dem JavaScript‑Stack und der Team‑Expertise sicherzustellen. 
+Sollten sich große Schwierigkeiten mit der cql2-rs-Library ergeben, kann ein Backend in Python (z. B. mit FastAPI) implementiert werden, das die Anfrageverarbeitung und CQL2‑Übersetzung übernimmt.
 
-## 5. Produktdaten (Crawler & Datenbank) <!-- Humam & Sönke -->
+### 3.3 Crawler
+Der **Crawler** wird in **Python** implementiert und ist zuständig für das automatische Auffinden und Einlesen von STAC Collections aus dem STAC Index.  
+Er aktualisiert regelmäßig die Datenbank, um eine aktuelle Indexierung sicherzustellen.
 
-### collection
-- title
-- description
-- spatial extent
-- temporal extent (start-end)
-- provider names
-- license 
-- DOIs
-- created_timestamp
-- last_crawled
-- extracted collection metadata
+### 3.4 Frontend
+Das **Web-Frontend** wird mit **Vue.js (Version 3)** entwickelt und bietet eine benutzerfreundliche Oberfläche zur Suche, Filterung und Visualisierung der STAC Collections.  
+Die Kommunikation zwischen Frontend und Backend erfolgt über die STAC API.
 
-- STAC extensions 
-- active boolean
+### 3.5 Datenbankmanagementsystem
+PostgreSQL in Kombination mit PostGIS bildet die zentrale Datengrundlage. 
+Die Metadaten werden in normalisierten Teiltabellen gehalten; Primär‑/Fremdschlüssel sorgen für Referenzen. 
+Für Performance werden B‑Tree‑Indizes (ID, Zeit), GIN/GiST (Text, Geometrien) und `tsvector`‑Volltextindizes eingesetzt. 
+Datensätze werden als PostGIS-Geometrieobjekt gespeichert.
+CQL2‑Filter werden serverseitig in SQL‑WHERE‑Klauseln übersetzt. 
+Inkremetelle Updates und Soft‑Deletes (`active = false`) sichern Integrität und Revisionsfähigkeit. 
 
-### catalog
-- title
-(- description)
-- catalog_parent 
+### 3.6 Containerisierung
+Alle Komponenten werden einzeln mittels **Docker** containerisiert und als Komplett-Paket miteinander verknüpft um sowohl die Verwendung einzelner Komponenten getrennt voneinander, als auch die Verwendung des vollständigen Systems zu ermöglichen.
+Dadurch kann das gesamte System mit einem einzigen Startbefehl (**Docker-Einzeiler**) ausgeführt werden und ist plattformunabhängig lauffähig.  
+Docker gewährleistet eine konsistente Laufzeitumgebung und erleichtert die Integration zwischen den Komponenten.
 
-### keywords
 
-- keyword
+## 4. Produktfunktionen (UNTERTEILT)
 
-### source 
-- source_url
-- title
-- type
-- status
-- last_crawled
 
-### summaries
-- collection_id	
-- platform	TEXT	(z. B. „Sentinel-2“)
-- constellation	TEXT	(z. B. „Sentinel“)
-- gsd
-- processing_level
-- summary_json
+## 5. Produktdaten (Crawler & Datenbank)
+
 
 ## 6. Leistungsanforderungen (ALLE)
-
-### 6.1 Crawler <!-- Humam -->
-
-### 6.2 Datenbank <!-- Sönke -->
-
-### 6.3 STAC API <!-- George -->
-
-### 6.4 UI <!-- Justin -->
-### UI-Komponente
-- Design orientiert am STAC Index und Komponenten
-- VueJS v3
-- Selektion
-    - BoundingBox/?Polygon?
-    - Zeit
-- Responsive
-- Scratch?? CQL2 Filter & Kondition bauen
-- Interaktive Karte
-- Lizenzkonforme Verweise auf genutzte Software (Verweis auf STAC Catalog, STAC API, ...)
-- Kollektionen suchen und filtern
-- BONUS Kollektionen vergleichen
-- (TO:DO Abklären) BONUS Items einer Collection im Frontend anzeigen lassen 
-  - Also nicht Items abspeichern, sondern On-Demand abrufen
-
-- System Startbar per Einzeiler (docker-compose up --build)
-
-- Datenspeicherung Konform zu STAC
-- Datenschnittstelle Konform zur STAC API
-- Datenschnittstelle Konform zur STAC API Collection Search Extension
-- Implementierung der STAC API Collection Search Extension (Free-text search, Filter, Sort)
-- Implementierung der CQL2 Filterung für Attribute der Collections
-
-- BONUS:
-  - Erweiterte CQL2 Filterung
-  - CQL2 Filterung als eigenständige Library
-  - Integrations unserer Lösung ins bisherige STAC Index API
-
-- API ist Querybar nach folgenden Attributen: (TO:DO)
-  -
-  -
-  -
-  -
-
-- Datenbank	Lesezugriff auf indizierte Felder	< 100 ms pro Query
-- System	Parallel verarbeitbare Anfragen	≥ 100 gleichzeitig
-- STAC API	GET-Abfrage /collections	≤ 1 Sekunde
-- STAC API	Komplexe Filterabfrage /search	≤ 5 Sekunden
-- STAC API	Maximale Anfragezeit	≤ 1 Minute
-
-### Frontend
-- Kompatibel mit Browsern, die 80% der User repräsentieren
-- Geeignet für farbenblinde Personen
-- Ausführliches Errorhandling
-- API in Englisch
-- Frontend in Englisch und Deutsch
-- Reaktionszeit (außer Query in weniger als einer Sekunde)
-- Asynchrones Laden komplexer Anfragen
-- Einfache textuelle Queries nach Keywords etc. < 5s
-- Komplexe geometrische Queries < 1min
-- Unterteilung von Suchergebnissen auf mehrere Seiten
-
-### Crawler
-- Full Crawl < one week
-
-### API
-- Unterstützung gleichzeitiger Anfragen
-
-### Datenbank
-- Effiziente Datenhaushaltung
-
 ## 7. Qualitätsanforderungen (ALLE) <!-- Vincent -->
 Zur Sicherstellung einer hohen Code-, System- und Datenqualität werden im Projekt *STAC-Atlas* folgende Qualitätsanforderungen definiert.
 Sie betreffen alle drei Komponenten – Crawler, STAC API und Web UI – mit Schwerpunkt auf der API, da diese die Kernlogik des Gesamtsystems darstellt.
@@ -235,22 +115,9 @@ Die nachfolgenden Maßnahmen gewährleisten die Korrektheit, Wartbarkeit, Standa
   - Verwendung von JSDoc
   - Verwendung von OpenAPI als Dokumentation
 
-- Live Präsentation des finalen Produkts
-
-- Projektbericht
-  - als PDF
-  - mit Bedienungsanleitung
-  - Beschreibung, wie die verschiedenen Anwendungsfälle durch unser Produkt gelöst werden
-  - Beschreibung des Zusammenspiels aus den drei Komponenten Crawler, API und UI
-
-- Open Source unter Apache 2.0
-- Verwendung von Lintern
-
-- Agiles Projektmanagement über GitHub-Projekte
-  - Kunde erhält Zugriff
-
 
 ## 9. Gliederung in Teilprodukte (Unterteilt)
+### 9.1 Crawler-Komponente
 <!-- Was kann jedes Teilprodukt, wo sind die Grenzen. Welche Aufgaben erfüllt es -->
 - Jede Komponente als eigenständiger Docker-Container
 ### 9.1 Crawler-Komponente <!-- Lenn -->
@@ -376,26 +243,5 @@ Also auch sowas wie verwendete Technologie, Teilschritte (Meilensteine?) etc.. W
     - Reset File, Component Files, Vars
 - Figma
 
-## 11. Zeitplan (ALLE)
 
-
-## 12. Zuständigkeiten (ALLE)
-### 12.1 Crawler-Komponente
-- Humam (Teamleiter)
-- Jakob
-- Lenn
-
-### 12.2 Datenbank
-- Sönke (Teamleiter)
-
-### 12.3 STAC API-Komponente
-- Robin (Projektleiter, Teamleiter)
-- Jonas
-- George
-- Vincent
-
-### 12.4 UI
-- Justin (Teamleiter)
-- Simon
-
-## 13. Glossar (ALLE)
+## 11. Glossar (ALLE)
