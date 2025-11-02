@@ -19,8 +19,8 @@ Das Backend wird primär in **JavaScript / Node.js** umgesetzt und als dediziert
 Als API‑Framework wird **Express** (unter Verwendung von Node.js 20) empfohlen, um Anfragen zu verarbeiten und das Crawlen externer STAC‑Kataloge zu koordinieren. 
 Für die Übersetzung und Auswertung von **CQL2**‑Abfragen wird die robuste Rust‑Implementierung **cql2‑rs** eingesetzt. 
 Die bevorzugte Integrationsvariante ist das Kompilieren von **cql2‑rs** zu **WebAssembly** und das direkte Einbinden in den Node‑Prozess (Vorteile: In‑Process‑Ausführung, geringere Latenz, einfache Containerisierung). 
-Die ursprünglich vorgeschlagene Python‑Option mit **pycql2** bleibt als Option bestehen, wird aber nicht als Primärvariante empfohlen, um Konsistenz mit dem JavaScript‑Stack und der Team‑Expertise sicherzustellen. 
-Falls das Team dennoch Python bevorzugt, kann ein Backend in Python (z. B. mit FastAPI) implementiert werden, das Crawling, Anfrageverarbeitung und CQL2‑Übersetzung übernimmt.
+Als Fallback bleibt alternativ die Python‑Option mit **pycql2**, wird aber nicht als Primärvariante verwendet, um Konsistenz mit dem JavaScript‑Stack und der Team‑Expertise sicherzustellen. 
+Sollten sich große Schwierigkeiten mit der cql2-rs-Library ergeben, kann ein Backend in Python (z. B. mit FastAPI) implementiert werden, das die Anfrageverarbeitung und CQL2‑Übersetzung übernimmt.
 
 ### 3.3 Crawler
 Der **Crawler** wird in **Python** implementiert und ist zuständig für das automatische Auffinden und Einlesen von STAC Collections aus dem STAC Index.  
