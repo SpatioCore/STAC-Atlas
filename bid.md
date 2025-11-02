@@ -334,18 +334,14 @@ Die nachfolgenden Maßnahmen gewährleisten die Korrektheit, Wartbarkeit, Standa
    - Zeitliche Operatoren: `t_before`, `t_after`, `t_during`
 
 #### 9.3.4 Validierung und Qualitätssicherung
-- Die STAC API-Komponente wird regelmäßig mit dem offiziellen STAC API Validator getestet, um vollständige Konformität sicherzustellen.
-- Die API-Ergebnisse werden auf folgendes überprüft:
-   - Korrekte STAC-Version (stac_version)
-   - Pflichtfelder (id, title, extent, license, links)
-   - Korrektes Verhalten bei ungültigen Abfragen (Fehler-Handling)
-- Der Validator-Lauf ist Teil der GitHub CI-Pipeline und blockiert Merge-Requests bei Nichtbestehen.
+Die Konformität der STAC API zur offiziellen STAC-Spezifikation wird durch automatisierte Tests und Validierungen sichergestellt (siehe Kapitel 7 – Qualitätsanforderungen).
 
 #### 9.3.5 Sicherheit, Performance und Erweiterbarkeit
-- Sicherheit: Eingaben werden validiert und gegen SQL-Injection geschützt.
-- Leistung: Suchabfragen ≤ 5 Sekunden für typische Filter; Pagination aktiviert.
-- Erweiterbarkeit: API-Architektur erlaubt künftige Integration weiterer STAC-Endpunkte.
-- Dokumentation: OpenAPI-Spezifikation (Swagger) wird automatisch aus TypeScript-Typen generiert.
+Die STAC API-Komponente bildet das zentrale Zugriffssystem auf die indexierten STAC-Collections.
+Sie stellt eine standardisierte und sichere Schnittstelle bereit, über die Nutzende oder andere Systeme gezielt nach Sammlungen suchen, diese filtern und abrufen können.
+Die API verarbeitet Anfragen zuverlässig und unterstützt den Zugriff über alle implementierten Suchfunktionen (Freitext, räumliche und zeitliche Filter, CQL2).
+Durch die modulare Architektur kann die API zukünftig um weitere STAC-Endpunkte, wie etwa „Items“ oder „Item Search“, erweitert werden.
+Zudem erlaubt der Aufbau eine einfache Integration mit der Web-UI-Komponente und externen Anwendungen über REST-Schnittstellen.
 
 ### 9.4 UI-Komponente <!-- Simon -->
 
