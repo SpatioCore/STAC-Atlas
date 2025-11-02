@@ -178,8 +178,8 @@ Die nachfolgenden Maßnahmen gewährleisten die Korrektheit, Wartbarkeit, Standa
 
 ### 7.1 Code-Qualität und Tests
   #### 7.1.1 Unit-Tests 
-   - Für alle zentralen Backend-Module (insbesondere STAC-API-Routen, CQL2-Parser, Datenbank-Abfrage-Logik und Crawler-Importfunktionen) werden Unit-Tests mit Jest
-     erstellt.
+   - Für alle zentralen Backend-Module (insbesondere STAC-API-Routen, CQL2-Parser, Datenbank-Abfrage-Logik und Crawler-Importfunktionen) werden Unit-Tests mit einem geeigneten Framework (z. B. pytest) erstellt.
+   - Für das Frontend werden Unit-Tests mit einem geeigneten Framework (Jest) erstellt.
    - Zielabdeckung: mindestens 80 % Branch- und Statement-Coverage laut Jest-Bericht.
    - Tests werden automatisiert bei jedem Commit und Merge-Request in der GitHub-Pipeline ausgeführt.
    - Fehlgeschlagene Unit-Tests blockieren den Merge in den Haupt-Branch.
@@ -197,7 +197,7 @@ Die nachfolgenden Maßnahmen gewährleisten die Korrektheit, Wartbarkeit, Standa
 - Es wird eine GitHub Actions-Pipeline eingerichtet, die alle wesentlichen Qualitätssicherungs-Schritte automatisiert:
    - Build – Installation aller Abhängigkeiten und Prüfung auf erfolgreiche Kompilierung.
    - Linting – Automatische Kontrolle der Codequalität (z. B. mit flake8 für Python und ESLint für JavaScript/Vue-Komponenten).
-   - Test – Ausführung sämtlicher Jest-Unit-Tests und Integrationstests.
+   - Test – Ausführung sämtlicher Unit-Tests (pytest Backend) und Komponententests (Jest Frontend) sowie Integrationstests über die GitHub Actions-Pipeline.
    - Validation – Ausführung der STAC- und API-Validatoren (s. Abschnitte 7.3 und 7.4).
    - Coverage-Report – automatische Generierung und Veröffentlichung in den Pipeline-Logs.
 - Die CI-Pipeline wird bei jedem Push und Pull-Request gegen den Main-Branch ausgeführt.
