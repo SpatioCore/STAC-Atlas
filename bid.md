@@ -291,7 +291,7 @@ Die nachfolgenden Maßnahmen gewährleisten die Korrektheit, Wartbarkeit, Standa
   Sie implementiert die SpatioTemporal Asset Catalog (STAC) API Specification in der jeweils aktuellen stabilen Version
   sowie die Collection Search Extension, um eine standardisierte und effiziente Abfrage der gespeicherten STAC Collections zu ermöglichen.
   
-#### 9.3.2 Technische Grundlagen
+#### 9.3.1 Technische Grundlagen
 Die STAC API-Komponente stellt eine standardisierte Schnittstelle bereit, über die alle gespeicherten STAC-Collections abgefragt und gefiltert werden können.
 Sie verbindet das Datenbank-Backend, in dem die Metadaten der Collections gespeichert sind, mit der Web-Benutzeroberfläche und externen Anwendungen.
 
@@ -304,7 +304,7 @@ Sie verbindet das Datenbank-Backend, in dem die Metadaten der Collections gespei
 Damit bildet die API die zentrale Kommunikationsschnittstelle zwischen der Datenbank, dem Crawler und der Web-UI
 und ermöglicht einen einheitlichen, standardkonformen Zugriff auf alle gespeicherten STAC-Daten.
 
-#### 9.3.3 Endpunkte
+#### 9.3.2 Endpunkte
 1. Bereitstellung von Collections
    - `GET /collections` 
      - Gibt eine Liste aller gespeicherten Collections aus der Datenbank zurück.
@@ -339,11 +339,7 @@ und ermöglicht einen einheitlichen, standardkonformen Zugriff auf alle gespeich
    - Vergleichsoperatoren: `=`, `!=`, `<`, `<=`, `>`, `>=`
    - Logische Operatoren: `and`, `or`, `not`
   
-
-#### 9.3.4 Validierung und Qualitätssicherung
-Die Konformität der STAC API zur offiziellen STAC-Spezifikation wird durch automatisierte Tests und Validierungen sichergestellt (siehe Kapitel 7 – Qualitätsanforderungen).
-
-#### 9.3.5 Sicherheit, Performance und Erweiterbarkeit
+#### 9.3.3 Sicherheit, Performance und Erweiterbarkeit
 Die STAC API-Komponente bildet das zentrale Zugriffssystem auf die indexierten STAC-Collections.
 Sie stellt eine standardisierte und sichere Schnittstelle bereit, über die Nutzende oder andere Systeme gezielt nach Sammlungen suchen, diese filtern und abrufen können.
 Die API verarbeitet Anfragen zuverlässig und unterstützt den Zugriff über alle implementierten Suchfunktionen (Freitext, räumliche und zeitliche Filter, CQL2).
