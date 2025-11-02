@@ -44,6 +44,9 @@ Das Projekt besteht aus vier Hauptkomponenten:
 - Entwicklungsumgebung: Node.js 20
 
 ## 4. Produktfunktionen (UNTERTEILT) <!-- Robin -->
+
+Im folgenden werden die einzelnen Produktfunktionen einerseits nach den einzelnen Komponenten unterteilt, nummeriert und beschrieben. Zusätzlich wird eine Priorität zur Orientierung in der Implementierung angegeben inkl. einer kurzen Beschreibung und einem groben Akzeptanzkriterium. Auf Basis der optionalen Elemente des Lastenhefts wurde auch eine Spalte "Optional" gefüllt, welche Features markiert, welche mit nachrangiger Priorität nach der Entwicklung der Hauptfunktionalitäten entwickelt werden, sollte dafür noch Zeit sein.
+
 | ID | Komponente | Funktion (Kurzbeschreibung) | Optional | Akzeptanzkriterium | Prio |
 |---|---|---|---|---|---|
 | PF-CR-01 | Crawler | Alle im STAC Index gelisteten statischen Kataloge und STAC-APIs nach Collections crawlen | – | Mind. 87 Quellen gecrawlt; Trefferquote ≥ 95 % | M |
