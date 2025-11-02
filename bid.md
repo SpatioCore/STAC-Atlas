@@ -291,10 +291,17 @@ Die nachfolgenden Maßnahmen gewährleisten die Korrektheit, Wartbarkeit, Standa
   sowie die Collection Search Extension, um eine standardisierte und effiziente Abfrage der gespeicherten STAC Collections zu ermöglichen.
   
 #### 9.3.2 Technische Grundlagen
-- Technologien: Node.js (Express oder Fastify) mit TypeScript
-- Datenbank-Anbindung: PostgreSQL (inkl. PostGIS-Erweiterung für räumliche Abfragen)
-- API-Format: JSON (konform zur STAC-Spezifikation, RFC 8259)
-- Filterlogik: Umsetzung der STAC Collection Search Extension inkl. CQL2 (Basic)
+Die STAC API-Komponente stellt eine standardisierte Schnittstelle bereit, über die alle gespeicherten STAC-Collections abgefragt und gefiltert werden können.
+Sie verbindet das Datenbank-Backend, in dem die Metadaten der Collections gespeichert sind, mit der Web-Benutzeroberfläche und externen Anwendungen.
+
+Über die API können Nutzende:
+   - Alle verfügbaren Collections abrufen oder gezielt nach bestimmten Daten suchen
+   - Filterungen und Sortierungen anhand von Schlüsselwörtern, räumlichen und zeitlichen Ausdehnungen oder weiteren Metadaten durchführen
+   - Details einzelner Collections abrufen, einschließlich Beschreibung, Lizenz, Provider und räumlicher Ausdehnung
+   - die Ergebnisse als STAC-konformes JSON-Format abrufen, das auch von anderen STAC-fähigen Anwendungen weiterverarbeitet werden kann
+
+Damit bildet die API die zentrale Kommunikationsschnittstelle zwischen der Datenbank, dem Crawler und der Web-UI
+und ermöglicht einen einheitlichen, standardkonformen Zugriff auf alle gespeicherten STAC-Daten.
 
 #### 9.3.3 Endpunkte
 1. Bereitstellung von Collections
