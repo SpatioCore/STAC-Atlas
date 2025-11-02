@@ -12,9 +12,9 @@ Das Projekt besteht aus vier Hauptkomponenten, die nahtlos zusammenarbeiten:
 - **STAC API** – ermöglicht standardisierten, programmatischen Zugriff auf die indexierten Collections
 - **UI** – bietet eine nutzerfreundliche Web-Oberfläche mit visueller Suche und interaktiver Kartenansicht
 
-### 1.1 Musskriterien
+### 1.1 Abnahmekriterien
 
-Die Musskriterien definieren die zwingend erforderlichen Funktionalitäten des Systems. Diese Anforderungen müssen vollständig erfüllt werden, damit das Projekt als erfolgreich gilt. Sie bilden den Kern der Systemfunktionalität und sind für den produktiven Einsatz unerlässlich.
+Die Abnahmekriterien definieren die zwingend erforderlichen Funktionalitäten des Systems. Diese Anforderungen müssen vollständig erfüllt werden, damit das Projekt als erfolgreich gilt. Sie bilden den Kern der Systemfunktionalität und sind für den produktiven Einsatz unerlässlich.
 
 #### Crawler
 - Automatisches Crawlen und Indexieren von STAC Collections aus verschiedenen Quellen
