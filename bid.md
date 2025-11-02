@@ -195,7 +195,8 @@ Die nachfolgenden Maßnahmen gewährleisten die Korrektheit, Wartbarkeit, Standa
    
 ### 7.2 Kontinuierliche Integration (CI)
 - Es wird eine GitHub Actions-Pipeline eingerichtet, die alle wesentlichen Qualitätssicherungs-Schritte automatisiert:
-   - Build – Installation von Dependencies, Linting-Prüfung.
+   - Build – Installation aller Abhängigkeiten und Prüfung auf erfolgreiche Kompilierung.
+   - Linting – Automatische Kontrolle der Codequalität (z. B. mit flake8 für Python und ESLint für JavaScript/Vue-Komponenten).
    - Test – Ausführung sämtlicher Jest-Unit-Tests und Integrationstests.
    - Validation – Ausführung der STAC- und API-Validatoren (s. Abschnitte 7.3 und 7.4).
    - Coverage-Report – automatische Generierung und Veröffentlichung in den Pipeline-Logs.
