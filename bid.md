@@ -211,57 +211,39 @@ Sie visualisiert Metadaten und räumliche Extents der Collections und ermöglich
 ## 9. Gliederung in Teilprodukte (Unterteilt)
 <!-- Was kann jedes Teilprodukt, wo sind die Grenzen. Welche Aufgaben erfüllt es -->
 - Jede Komponente als eigenständiger Docker-Container
-### 9.1 Crawler-Komponente <!-- Lenn -->
-- crawlen der STAC Kataloge und STAC API von STAC Index
-- mehr als 95% der Collections von STAC Index werden erfolgreich gecrawlt
-- vollständiges Crawlen der vorgebenen Kategorien (Keywords) (6.1.1.3)
-- wöchentliches crawlen des Indexes für die STAC API
-- crawlen der Collections und nicht der Items (siehe 6.1.1.7)
-- erstellen einer konfigurierbaren Crawling schedule
-- nutzung von Pystac and asyncio
-- Speicherung durch PypgSTAC 
-- rekursive Navigation
-- Error-Handling mit Retry-, Backoff-Logic und Failure Threshold oder Blacklisting
-- Protokollierung der Crawl-Aktivitäten
-- Frage: sollen gelöschte Collections beim Überschreiben auch gelöscht werden?
+### 9.1 Crawler-Komponente
 
-### 9.2 Datenbank-Komponente <!-- Sönke -->
-- Bereitstellung effizienter Indizes für Such- und Filteroperationen
-- Vollständige Speicherung der vom Crawler gelieferten Metadaten (inkl. STAC JSON).
-- Ermöglicht Freitextsuche über Titel, Beschreibung, Keywords.
-- Nutzung von PostGIS-Geometrien zur Filterung nach Bounding Box.
-- Indexierung und Abfrage nach Start- und Endzeitpunkten.
-- Übersetzung von CQL2-Ausdrücken in SQL WHERE-Bedingungen.
-- Unterstützung inkrementeller Updates durch den Crawler.
-- gelöschte Datensätze bleiben erhalten und bekommen ein active=false
+### 9.2 Datenbank-Komponente
 
-- Unterteilung der Datenbank in verschiedene Tabellen
-    - collection
-    - catalog
-    - keywords
-    - source
-    - summaries
-    - last_crawled
-    => führt zu persistenter Speicherung der Daten und schnellen Abfragemöglichkeiten
+### 9.3 STAC API-Komponente
 
-### 9.3 STAC API-Komponente <!-- Vincent -->
-- implementiert die STAC API Specification und die Collection Search Extension
-#### Bereitstellung von Collections
-- GET /collections -> Gibt eine Liste aller gespeicherten Collections aus der    Datenbank zurück
-#### Abruf einer bestimmten Collection
-- GET /collections/{id} -> Liefert die vollständigen Metadaten einer einzelnen Collection
-#### Collection Search
-GET /search -> Ermöglicht Filterung nach:
+### 9.4 UI-Komponente
+Die UI-Komponente stellt die grafische Benutzeroberfläche (GUI) der Plattform dar. Sie dient als Schnittstelle für die interaktive Nutzung der indexierten STAC-Sammlungen. Die Kernaufgabe ist die Gewährleistung einer effizienten Suche, Filterung und Exploration der Sammlungen.
 
-- Schlüsselwörtern
-- räumlicher Ausdehnung (Bounding Box)
-- Zeitraum (temporal extent)
-- Provider oder Lizenz
-- Unterstützt CQL2-Filterung für erweiterte Abfragen
+Funktionen beinhalten die Übersetzung der Benutzereingaben (Filter) in CQL2-Suchanfragen und die visuelle Darstellung der Daten in einer Liste sowie auf einer Karte.  
+Die Umsetzung erfolgt in VueJS v3 und soll eine potenzielle zukünftige Integration in den bestehenden STAC-Index ermöglichen.
 
-### 9.4 UI-Komponente <!-- Simon -->
+Der Fokus liegt auf der Suche und Darstellung von Collections.
 
-### 9.4.1 UI
+### 9.4.1 UI 
+Bereitstellung einer intuitiven Suchoberfläche:
+- Filter (Queryables): Nutzer können Filterkriterien definieren.
+  - CQL2-Generierung: Die UI komponiert die Eingaben zu einem CQL2-Ausdruck und übermittelt diesen an den Server.
+  - Karten-Filter: Filterung nach räumlichen Bereichen (Bounding Box) und Zeiträumen.
+- Kartenvisualisierung: Die räumliche Ausdehnung der Suchergebnisse wird auf einer Karte visualisiert.
+- Ergebnisdarstellung:
+  - Die Inspektion der Metadaten einzelner Sammlungen ist möglich.
+  - Quelle: Ein Link zum originalen STAC-Katalog (Quell-API) wird pro Sammlung bereitgestellt.
+  - Paginierung: Für große Treffermengen steht eine erweiterte Seitenansicht zur Verfügung.
+
+### 9.4.2 UX
+- Performance:
+  - Interaktion: Sichtbare Reaktion auf Standardinteraktionen (z. B. Klicks) innerhalb von 1 Sekunde.
+  - Suche: Abschluss typischer Suchanfragen innerhalb von 5 Sekunden (Ladezeit).
+- Barrierefreiheit: Es werden farbenblindenfreundliche Farben verwendet.
+- Browser-Kompatibilität: Funktional und getestet für 80 % der gängigen Browser.
+- Fehlerbehandlung: Klare, informative Fehlermeldungen.
+- Sprache: Alle Komponenten sind auf Englisch, alternativ auf Deutsch verfügbar.
 
 ### 9.4.2 UX
 
