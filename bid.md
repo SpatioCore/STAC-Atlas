@@ -422,7 +422,7 @@ Der Crawler soll in der Lage sein aus dem STAC-Index Quellen innerhalb einer Woc
 Die Implementierung soll asynchrones und paralleles Crawling unterstützten. Es wird nur ein einzelene Crawler-Instanz sein, um die Komplexität mit Datenbankkonflikten zu vermeiden. Es wird darauf geachtet eine Modulare weise zu programmieren um in Zukunft horizontale Skalierung mit mehren Cralwern möglich zu machen.
 
 #### Crawling Zuverlässigkeit unf Fehlertoleranz
-Der Crawler darf bei fehlerhaften oder inaktiven Quellen nicht vollständig abbrechen. Die Quellen, die dreimal hintereinander fehlschlagen, sollen als inaktiv bis zum Crawling Event behandelt werden. Fehler und Wiederholungen müssen in protokolliert werden.
+Der Crawler darf bei fehlerhaften oder inaktiven Quellen nicht vollständig abbrechen. Die Quellen, die dreimal hintereinander fehlschlagen, sollen als inaktiv bis zum Crawling Event behandelt werden. Fehler und Wiederholungen müssen protokolliert werden.
 
 #### Ressourcenverbrauch
 Der Crawler darf im Normalbetrieb auf einer Standard-VM mit (2 vCPUs,8GB RAM) betrieben werden. Dies ist der alleinstehende Verbrauch. Eine CPU-Auslatung von über 80% im Mittel einer Woche darf nicht überschritten werden. RAM Verbrauch ist maximal 4GB pro Crawler.
