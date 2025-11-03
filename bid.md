@@ -497,7 +497,7 @@ Damit stellt die STAC API eine leistungsfähige, flexible und erweiterbare Grund
 Die UI-Komponente dient als benutzerfreundliche Schnittstelle zur Suche, Filterung und Exploration von STAC-Collections über die bereitgestellte STAC API.  
 Sie visualisiert Metadaten und räumliche Extents der Collections und ermöglicht Nutzenden eine interaktive, responsive und barrierearme Bedienung.
 
-#### Funktionale Leistungsanforderungen
+### 6.4.1 Funktionale Leistungsanforderungen
 
 - Das Design orientiert sich am bestehenden STAC Index sowie dessen Komponenten, um Konsistenz innerhalb des STAC-Ökosystems zu gewährleisten.  
 - Die Implementierung erfolgt mit Vue.js v3, unter Verwendung moderner Webstandards und komponentenbasierter Architektur.  
@@ -511,7 +511,7 @@ Sie visualisiert Metadaten und räumliche Extents der Collections und ermöglich
 - Für jede Collection werden lizenzkonforme Verweise auf die Originalquelle (STAC Catalog oder API) bereitgestellt.  
 - Die UI muss das Filtern, Anzeigen und Vergleichen mehrerer Collections ermöglichen.
 
-#### Nichtfunktionale Leistungsanforderungen
+### 6.4.2 Nichtfunktionale Leistungsanforderungen
 
 - Die Benutzeroberfläche ist responsiv und muss auf verschiedenen Endgeräten (Desktop, Tablet, Smartphone) funktionsfähig sein.  
 - Das Design muss für Personen mit Farbfehlsichtigkeit geeignet sein; kontrastreiche Darstellungen sind sicherzustellen.  
