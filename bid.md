@@ -217,7 +217,7 @@ Sie visualisiert Metadaten und räumliche Extents der Collections und ermöglich
 
 ### 9.3 STAC API-Komponente
 
-### 9.4 UI-Komponente
+### 9.4 UI-Komponente <!-- Simon -->
 Die UI-Komponente stellt die grafische Benutzeroberfläche (GUI) der Plattform dar. Sie dient als Schnittstelle für die interaktive Nutzung der indexierten STAC-Sammlungen. Die Kernaufgabe ist die Gewährleistung einer effizienten Suche, Filterung und Exploration der Sammlungen.
 
 Funktionen beinhalten die Übersetzung der Benutzereingaben (Filter) in CQL2-Suchanfragen und die visuelle Darstellung der Daten in einer Liste sowie auf einer Karte.  
@@ -225,7 +225,7 @@ Die Umsetzung erfolgt in VueJS v3 und soll eine potenzielle zukünftige Integrat
 
 Der Fokus liegt auf der Suche und Darstellung von Collections.
 
-### 9.4.1 UI 
+### 9.4.1 UI <!-- Simon -->
 Bereitstellung einer intuitiven Suchoberfläche:
 - Filter (Queryables): Nutzer können Filterkriterien definieren.
   - CQL2-Generierung: Die UI komponiert die Eingaben zu einem CQL2-Ausdruck und übermittelt diesen an den Server.
@@ -236,7 +236,7 @@ Bereitstellung einer intuitiven Suchoberfläche:
   - Quelle: Ein Link zum originalen STAC-Katalog (Quell-API) wird pro Sammlung bereitgestellt.
   - Paginierung: Für große Treffermengen steht eine erweiterte Seitenansicht zur Verfügung.
 
-### 9.4.2 UX
+### 9.4.2 UX <!-- Simon -->
 - Performance:
   - Interaktion: Sichtbare Reaktion auf Standardinteraktionen (z. B. Klicks) innerhalb von 1 Sekunde.
   - Suche: Abschluss typischer Suchanfragen innerhalb von 5 Sekunden (Ladezeit).
@@ -244,8 +244,6 @@ Bereitstellung einer intuitiven Suchoberfläche:
 - Browser-Kompatibilität: Funktional und getestet für 80 % der gängigen Browser.
 - Fehlerbehandlung: Klare, informative Fehlermeldungen.
 - Sprache: Alle Komponenten sind auf Englisch, alternativ auf Deutsch verfügbar.
-
-### 9.4.2 UX
 
 ## 10. Implementierungsdetails (ALLE)
 <!-- Hier bitte pro Gruppe eintragen, wie genau die Teilprodukte implementiert werden sollen.
@@ -258,7 +256,7 @@ Also auch sowas wie verwendete Technologie, Teilschritte (Meilensteine?) etc.. W
 
 ### 10.4 UI <!-- Justin -->
 
-#### **UI/UX Tech Stack**
+#### **UI/UX Tech Stack**  <!-- Justin -->
 
 Die Implementierung der UI-Komponente erfolgt auf Basis moderner Webtechnologien, die eine hohe Performance, Wartbarkeit und Erweiterbarkeit gewährleisten.  
 Die folgende Übersicht fasst die wesentlichen Werkzeuge und Frameworks zusammen und erläutert ihre jeweilige Auswahlbegründung:
@@ -299,11 +297,7 @@ Die folgende Übersicht fasst die wesentlichen Werkzeuge und Frameworks zusammen
 - **Qualitätssicherung:** ESLint + Prettier, Lighthouse Performance Audits  
   Durch statische Codeanalyse (ESLint), automatische Formatierung (Prettier) und regelmäßige Lighthouse-Audits wird eine gleichbleibend hohe Codequalität und Performance sichergestellt.
 
-<!-- Optional: - **Internationalisierung:** vue-i18n (Deutsch / Englisch) -->
-
----
-
-#### **Architektur und Aufbau**
+#### **Architektur und Aufbau** <!-- Justin -->
 
 Das Frontend folgt einer komponentenbasierten Architektur, um eine klare Trennung der Verantwortlichkeiten, Wiederverwendbarkeit und Wartbarkeit zu gewährleisten.  
 Zentrale Bestandteile sind:
@@ -323,21 +317,17 @@ Zentrale Bestandteile sind:
 - **Modal/Seiten-Komponente:**  
   Popup- oder Seitenansicht zur Anzeige vollständiger Metadaten einer Collection, einschließlich DOI, Lizenz, zeitlicher und räumlicher Extent sowie verfügbarer Vorschaubilder.
 
-<!-- Optional: - **CompareView-Komponente:** Darstellung zweier Collections im Vergleich (Seiten-an-Seite-Layout). -->
-
 Die Kommunikation mit der STAC-API erfolgt asynchron über HTTPS-Requests.  
 Filterparameter werden in den Anfragen nach dem CQL2-Standard übergeben.
 
----
-
-#### **WBS (Work Breakdown Structure)**
+#### **WBS (Work Breakdown Structure)**  <!-- Justin -->
 
 1. **Workspace:** Aufbau der Projekt- und Ordnerstruktur  
 2. **Design:** Definition des Farbsystems und Erstellung eines Figma-Mockups der Hauptkomponenten  
 3. **Implementierung:** Überführung der entworfenen Komponenten in das Frontend  
 4. **Funktionalität (Zusammenarbeit mit API):** Anbindung der Komponenten an die STAC-API und Implementierung der Such- und Filterlogik  
 
-**Durchgängige Aufgaben:**
+**Durchgängige Aufgaben:**  <!-- Justin -->
 - **Revisions:**  
   - Design-Optimierung und kontinuierliche Verbesserung der Benutzerfreundlichkeit  
   - Qualitätssicherung durch Testing und Code Reviews  
