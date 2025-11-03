@@ -53,7 +53,7 @@ Die Abnahmekriterien definieren die zwingend erforderlichen Funktionalitäten de
   - Zeitraum
   - Thema / Keywords
 - Responsive Design für verschiedene Bildschirmgrößen
-- Mehrsprachigkeit (Deutsch und Englisch)
+- Sprache (Deutsch oder Englisch))
 - Barrierefreiheit (farbenblindentauglich)
 - Anzeige der Collection-Metadaten
 
