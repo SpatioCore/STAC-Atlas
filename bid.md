@@ -262,7 +262,7 @@ Die `collection`-Tabelle dient als zentrales Objekt für die Speicherung der Sam
 | range_min      | Minimalwert eines Wertebereichs                       | numeric           |
 | range_max      | Maximalwert eines Wertebereichs                       | numeric           |
 | set_value      | Einzelwerte bei Set-basierten Attributen              | text / json       |
-| json_schema    | Schema für strukturierte Daten            
+| json_schema    | Schema für strukturierte Daten            | json |
 
 Diese Tabelle speichert statistische oder beschreibende Zusammenfassungen einzelner Collections. Über den Fremdschlüssel `collection_id` wird sichergestellt, dass alle Summary-Werte eindeutig zugeordnet werden können.  
 
@@ -280,7 +280,7 @@ Dient der Verknüpfung von Collections mit ihren zugehörigen Assets, einschlie�
 
 | Spalte        | Beschreibung / Inhalt                | Datentyp / Format |
 |----------------|--------------------------------------|-------------------|
-| **collection_id** | Referenz auf `collection.id`     | integer (FK)      |
+| **collection_id** | Referenz auf `collection.id`    | integer (FK)      |
 | **keyword_id**    | Referenz auf `keyword.id`        | integer (FK)      |
 
 Relationstabelle zur Mehrfachzuordnung von Keywords an Collections. Dadurch können Colletions gezielt über Schlagwörter gefiltert werden. Diese Tabelle wird benötigt, da hier eine (n:n)-Beziehung vorliegt.
@@ -364,113 +364,6 @@ Analog zur vorherigen Tabelle dient `crawllog_collection` der Nachverfolgung der
 Mit dieser Datenbankstruktur wird eine **vollständig STAC-kompatible, referenzielle und hochperformante Datenspeicherung** gewährleistet.  
 Durch den modularen Aufbau mit klar getrennten Tabellenbereichen, Mehrfachbeziehungen und Protokollierungseinheiten ist die Architektur sowohl **skalierbar als auch wartungsfreundlich**.  
 Indizes auf allen relevanten Attributen (IDs, Zeitstempel, Textfelder und Geometrien) sowie die Integration von PostgreSQL-TSVector und PostGIS stellen sicher, dass **alle Such-, Filter- und Analyseoperationen** in kurzer Zeit und mit minimalem Ressourcenverbrauch ausgeführt werden können.
-
-<!-->
-### bezüglich den catalogs
-
-#### catalog
-- **id**
-- stac_version
-- type
-- title
-- description
-- created_at
-- updated_at
-
-#### catalog_links
-- **id**
-- catalog_id
-- rel
-- href
-- type
-- title
-
-#### catalog:keywords
-- **catalog_id**
-- **keyword_id**
-
-#### catalog:stac_extension
-- **catalog_id**
-- **stac_extension_id**
-
-
-### bezüglich den collections
-
-#### collection
-- **id**
-- stac_version
-- type
-- title
-- description
-- license
-- created_at
-- updated_at
-- spatial_extend
-- temporal_extend_start
-- temporal_extend_end
-
-#### collection_summaries
-- **id**
-- collection_id
-- name
-- kind
-- range_min
-- mange_max
-- set_value
-- json_schema
-
-#### collection_assets
-- **collection_id**
-- **asset_id**
-- collection_asset_roles
-
-#### collection:keywords
-- **collection_id**
-- **keyword_id**
-
-#### collection:stac_extension
-- **collection_id**
-- **stac_extension_id**
-
-#### collection:providers
-- **collection_id**
-- **provider_id**
-- collection_provider_roles
-
-#### collection_links
-- **id**
-- collection_id
-- rel
-- href
-- type
-- title
-
-
-### nicht spezifische tabellen
-
-#### providers
-- **id**
-- provider
-
-#### keywords
-- **id**
-- keyword
-
-#### stac_extensions
-- **id**
-- stac_extension
-
-#### crawllog_catalog
-- **id**
-- catalog_id
-- last_crawled
-
-#### crawllog_collection
-- **id**
-- collection_id
-- last_crawled
-<-->
-
 
 ## 6. Leistungsanforderungen (ALLE)
 
