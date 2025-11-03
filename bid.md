@@ -183,36 +183,47 @@ Die Tabellen enthalten jeweils Primärschlüssel zur eindeutigen Identifikation 
 
 Der Bereich **Catalogs** bildet die hierarchische Struktur der STAC-Kataloge ab. Jeder Katalog speichert seine Metadaten inklusive Versionierung, Typ, Beschreibung und zugehöriger Links. Über Zwischentabellen werden Keywords sowie Erweiterungen (STAC Extensions) referenziert.  
 
-#### catalog
-- **id**  
-- stac_version  
-- type  
-- title  
-- description  
-- created_at  
-- updated_at  
+#### Tabelle: `catalog`
+
+| Spalte        | Beschreibung / Inhalt                   | Datentyp / Format     |
+|---------------|------------------------------------------|------------------------|
+| **id**        | Eindeutige Identifikationsnummer des Katalogs | integer (PK)          |
+| stac_version  | STAC-Versionsnummer                     | text                  |
+| type          | Typ des STAC-Objekts                   | text                  |
+| title         | Titel des Katalogs                     | text                  |
+| description   | Beschreibung des Kataloginhalts         | text                  |
+| created_at    | Zeitpunkt der Erstellung                | timestamp             |
+| updated_at    | Zeitpunkt der letzten Änderung          | timestamp             |
 
 Die Haupttabelle `catalog` bildet den zentralen Einstiegspunkt der Kataloghierarchie. Sie speichert allgemeine Metadaten und dient als Ankerpunkt für die zugehörigen Relationen.
 
-#### catalog_links
-- **id**  
-- catalog_id  
-- rel  
-- href  
-- type  
-- title  
+#### Tabelle: `catalog_links`
+
+| Spalte       | Beschreibung / Inhalt                        | Datentyp / Format     |
+|---------------|----------------------------------------------|------------------------|
+| **id**        | Eindeutige Identifikationsnummer des Links   | integer (PK)          |
+| catalog_id    | Verweis auf den zugehörigen Katalog         | integer (FK)          |
+| rel           | Beziehungstyp (z. B. *parent*, *child*, *self*) | text              |
+| href          | Ziel-URL des Links                          | text                  |
+| type          | MIME-Type des Zielobjekts                   | text                  |
+| title         | Titel oder Name des Links                   | text                  |
 
 Die Tabelle `catalog_links` beschreibt die Verknüpfungen zwischen einzelnen Katalogen oder externen Referenzen und implementiert damit die STAC-Link-Struktur.
 
-#### catalog:keywords
-- **catalog_id**  
-- **keyword_id**  
+#### Tabelle: atalog:keywords
+| Spalte        | Beschreibung / Inhalt                       | Datentyp / Format |
+|----------------|---------------------------------------------|-------------------|
+| **catalog_id** | Referenz auf `catalog.id`                   | integer (FK)      |
+| **keyword_id** | Referenz auf `keyword.id`                   | integer (FK)      |
 
 Relationstabelle zur Mehrfachzuordnung von Keywords an Catalogs. Dadurch können Sammlungen gezielt über Schlagwörter gefiltert werden. Diese Tabelle wird benötigt, da hier eine (n:n)-Beziehung vorliegt.
 
-#### catalog:stac_extension
-- **catalog_id**  
-- **stac_extension_id**  
+#### Tabelle: catalog:stac_extension
+
+| Spalte              | Beschreibung / Inhalt                    | Datentyp / Format |
+|----------------------|------------------------------------------|-------------------|
+| **catalog_id**       | Referenz auf `catalog.id`                | integer (FK)      |
+| **stac_extension_id**| Referenz auf `stac_extension.id`         | integer (FK)      |
 
 Diese Relation beschreibt, welche STAC-Erweiterungen in einem bestimmten Katalog verwendet werden. Hier wird eine eigene Tabelle benötigt da hier eine (n:n)-Beziehung zwischen den beiden tabellen vorliegt.
 
@@ -222,56 +233,74 @@ Diese Relation beschreibt, welche STAC-Erweiterungen in einem bestimmten Katalog
 
 Der Bereich **Collections** bildet die Sammlungen von Collections innerhalb eines Katalogs ab. Jede Collection enthält spezifische Metadaten, räumliche Ausdehnungen, zeitliche Intervalle sowie referenzierte Provider, Assets und Summaries.  
 
-#### collection
-- **id**  
-- stac_version  
-- type  
-- title  
-- description  
-- license  
-- created_at  
-- updated_at  
-- spatial_extend  
-- temporal_extend_start  
-- temporal_extend_end  
+#### Tabelle: collection
+
+| Spalte                | Beschreibung / Inhalt                                    | Datentyp / Format  |
+|------------------------|----------------------------------------------------------|--------------------|
+| **id**                 | Eindeutige Identifikationsnummer der Collection          | integer (PK)       |
+| stac_version           | STAC-Versionsnummer                                     | text               |
+| type                   | Typ des STAC-Objekts                                    | text               |
+| title                  | Titel der Collection                                    | text               |
+| description            | Beschreibung der Collection                              | text               |
+| license                | Lizenzinformation                                       | text               |
+| created_at             | Zeitpunkt der Erstellung                                 | timestamp          |
+| updated_at             | Zeitpunkt der letzten Änderung                           | timestamp          |
+| spatial_extend         | Räumliche Ausdehnung (Bounding Box)                     | bbox (geometry)    |
+| temporal_extend_start  | Startzeitpunkt des zeitlichen Gültigkeitsbereichs        | timestamp          |
+| temporal_extend_end    | Endzeitpunkt des zeitlichen Gültigkeitsbereichs          | timestamp          |
 
 Die `collection`-Tabelle dient als zentrales Objekt für die Speicherung der Sammlungsinformationen. Neben den textuellen Attributen werden hier räumliche und zeitliche Dimensionen gespeichert, die für Filter- und Suchoperationen entscheidend sind.  
 
-#### collection_summaries
-- **id**  
-- collection_id  
-- name  
-- kind  
-- range_min  
-- mange_max  
-- set_value  
-- json_schema  
+#### Tabelle: collection_summaries
+
+| Spalte        | Beschreibung / Inhalt                                 | Datentyp / Format |
+|----------------|-------------------------------------------------------|-------------------|
+| **id**         | Eindeutige Identifikation                             | integer (PK)      |
+| collection_id  | Referenz auf `collection.id`                          | integer (FK)      |
+| name           | Name des Attributs oder Parameters                    | text              |
+| kind           | Art der Zusammenfassung (*range*, *set* etc.)         | text              |
+| range_min      | Minimalwert eines Wertebereichs                       | numeric           |
+| range_max      | Maximalwert eines Wertebereichs                       | numeric           |
+| set_value      | Einzelwerte bei Set-basierten Attributen              | text / json       |
+| json_schema    | Schema für strukturierte Daten            
 
 Diese Tabelle speichert statistische oder beschreibende Zusammenfassungen einzelner Collections. Über den Fremdschlüssel `collection_id` wird sichergestellt, dass alle Summary-Werte eindeutig zugeordnet werden können.  
 
-#### collection:assets
-- **collection_id**  
-- **asset_id**  
-- collection_asset_roles  
+#### Tabelle: collection:assets
+
+| Spalte                 | Beschreibung / Inhalt                 | Datentyp / Format |
+|-------------------------|---------------------------------------|-------------------|
+| **collection_id**       | Referenz auf `collection.id`          | integer (FK)      |
+| **asset_id**            | Referenz auf `asset.id`               | integer (FK)      |
+| collection_asset_roles  | Rollenbeschreibung des Assets         | text              |
 
 Dient der Verknüpfung von Collections mit ihren zugehörigen Assets, einschließlich der Angabe spezifischer Rollen. Dies ist nötig, da hier eine (n:n)-Beziehung vorliegt.
 
-#### collection:keywords
-- **collection_id**  
-- **keyword_id**  
+#### Tabelle: collection:keywords
+
+| Spalte        | Beschreibung / Inhalt                | Datentyp / Format |
+|----------------|--------------------------------------|-------------------|
+| **collection_id** | Referenz auf `collection.id`     | integer (FK)      |
+| **keyword_id**    | Referenz auf `keyword.id`        | integer (FK)      |
 
 Relationstabelle zur Mehrfachzuordnung von Keywords an Collections. Dadurch können Colletions gezielt über Schlagwörter gefiltert werden. Diese Tabelle wird benötigt, da hier eine (n:n)-Beziehung vorliegt.
 
-#### collection:stac_extension
-- **collection_id**  
-- **stac_extension_id**  
+#### Tabelle: collection:stac_extension
+
+| Spalte              | Beschreibung / Inhalt                 | Datentyp / Format |
+|----------------------|---------------------------------------|-------------------|
+| **collection_id**    | Referenz auf `collection.id`          | integer (FK)      |
+| **stac_extension_id**| Referenz auf `stac_extension.id`      | integer (FK)      |
 
 Relationstabelle zur Mehrfachzuordnung von stac_extension an Collections. Dadurch können Colletions gezielt über die stac_extension gefiltert werden. Diese Tabelle wird benötigt, da hier eine (n:n)-Beziehung vorliegt.
 
-#### collection:providers
-- **collection_id**  
-- **provider_id**  
-- collection_provider_roles  
+#### Tabelle: collection:providers
+
+| Spalte                  | Beschreibung / Inhalt                   | Datentyp / Format |
+|--------------------------|-----------------------------------------|-------------------|
+| **collection_id**        | Referenz auf `collection.id`            | integer (FK)      |
+| **provider_id**          | Referenz auf `provider.id`              | integer (FK)      |
+| collection_provider_roles| Rolle des Providers (z. B. *producer*)  | text              |
 
 Definiert die Zuordnung von Datenanbietern (Providern) zu einzelnen Collections. Über das Feld `collection_provider_roles` können die jeweiligen Rollen (z. B. „producer“, „licensor“) eindeutig beschrieben werden.
 
@@ -281,35 +310,50 @@ Definiert die Zuordnung von Datenanbietern (Providern) zu einzelnen Collections.
 
 Neben den spezifischen Tabellen für Catalogs und Collections existieren mehrere **nicht-spezifische Hilfstabellen**, die für eine einheitliche Referenzierung, Nachverfolgung und Filterung verwendet werden. Diese werden benötigt, da diese Tabellen mit den Tabellen `collections` und `catalogs` eine n:n-Beziehung haben und somit die datenbank unnötig viele Daten speichern würde wenn man diese Daten direkt in einer der beiden Tabellen referenzieren würde.
 
-#### providers
-- **id**  
-- provider  
+#### Tabelle: providers
+
+| Spalte | Beschreibung / Inhalt                 | Datentyp / Format |
+|---------|---------------------------------------|-------------------|
+| **id**  | Eindeutige ID des Providers           | integer (PK)      |
+| provider| Name oder Organisation des Providers  | text              |
 
 Speichert die Informationen zu Datenanbietern, Organisationen oder Institutionen.  
 
-#### keywords
-- **id**  
-- keyword  
+#### Tabelle: keywords
+
+| Spalte | Beschreibung / Inhalt          | Datentyp / Format |
+|---------|--------------------------------|-------------------|
+| **id**  | Eindeutige ID des Keywords     | integer (PK)      |
+| keyword | Bezeichnung des Schlagworts    | text              |
 
 Liste aller verwendeten Schlagwörter, die in unterschiedlichen Kontexten wiederverwendet werden können.  
 
-#### stac_extensions
-- **id**  
-- stac_extension  
+#### Tabelle: stac_extensions
+
+| Spalte | Beschreibung / Inhalt               | Datentyp / Format |
+|---------|-------------------------------------|-------------------|
+| **id**  | Eindeutige ID der Extension         | integer (PK)      |
+| stac_extension | Name oder URL der Erweiterung | text             |
 
 Verwaltet die in STAC definierten Erweiterungen, die sowohl von Catalogs als auch von Collections genutzt werden können.  
 
-#### crawllog_catalog
-- **id**  
-- catalog_id  
-- last_crawled  
+#### Tabelle: crawllog_catalog
+
+| Spalte       | Beschreibung / Inhalt                    | Datentyp / Format |
+|---------------|------------------------------------------|-------------------|
+| **id**        | Eindeutige ID des Crawlvorgangs          | integer (PK)      |
+| catalog_id    | Referenz auf `catalog.id`                | integer (FK)      |
+| last_crawled  | Zeitpunkt des letzten Crawls             | timestamp         | 
 
 Protokolliert die Zeitpunkte der letzten Crawling-Vorgänge für jeden Katalog.  
 
-#### crawllog_collection
-- **id**  
-- collection_id  
-- last_crawled  
+#### Tabelle: crawllog_collection
+
+| Spalte       | Beschreibung / Inhalt                    | Datentyp / Format |
+|---------------|------------------------------------------|-------------------|
+| **id**        | Eindeutige ID des Crawlvorgangs          | integer (PK)      |
+| collection_id | Referenz auf `collection.id`             | integer (FK)      |
+| last_crawled  | Zeitpunkt des letzten Crawls             | timestamp         |
 
 Analog zur vorherigen Tabelle dient `crawllog_collection` der Nachverfolgung der Crawling-Zyklen für Collections.  
 
