@@ -636,9 +636,7 @@ Die nachfolgenden Maßnahmen gewährleisten die Korrektheit, Wartbarkeit, Standa
   - Lessons Learned
 
 ## 9. Gliederung in Teilprodukte (Unterteilt)
-### 9.1 Crawler-Komponente
-<!-- Was kann jedes Teilprodukt, wo sind die Grenzen. Welche Aufgaben erfüllt es -->
-- Jede Komponente als eigenständiger Docker-Container
+
 ### 9.1 Crawler-Komponente <!-- Lenn -->
 Der Crawler durchsucht STAC Index nach STAC Kataloge und STAC APIs. Dabei sollen mehr als 95% der Collections erfolgreich erfasst werden.
 Das Crawling erfolgt rekursiv, sodass Collections in beliebiger Tiefe innerhalb verschachtelter Kataloge erkannt werden. Es werden ausschließlich Collections und keine Items erfasst. Die Crawling Vorgänge extrahieren die relevanten Metadaten jeder Collection (6.1.1.3) und speichern sie zusammen mit der Quell-URL, dem Katalognamen und dem Zeitstempel des letzten Crawls.
