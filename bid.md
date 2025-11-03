@@ -1,17 +1,26 @@
 # Pflichtenheft STAC Atlas
 
 ## 1. Zielbestimmung (ALLE)
+- Verwaltungvon Metadaten zu Geodaten
+- Ermöglicht Suche und Filterung
+- Verlinkt auf die echte Daten
+- Anwendung soll Geodaten verschiedener Anbieter automatisiert erfassen
+- werden in einer DB gespeichert 
+- sollen über eine standardisierte API sowie eine benutzerfreundliche Weboberfläche zugänglich sein
 
+Das Projekt besteht aus vier Hauptkomponenten:
+
+- Crawler – erfasst Daten aus STAC-Katalogen
+- Datenbank – speichert Metadaten
+- STAC API – ermöglicht standardisierten Zugriff
+- UI – bietet visuelle Suche und Kartenansicht
 
 ## 2. Anwendungsbereiche und Zielgruppen (ALLE)
-
-### 2.1 Zielgruppe <!-- Jakob -->
-- Data scientists and researchers
-- GIS professionals
-- Application developers
-- Data providers
-
-**Userstorys noch hinzufügen**
+STAC-Index website
+GIS-Fachleute
+Datenanbieter
+Entwickler
+Datenwissenschaftler
 
 ## 3. Produkt-Umgebung
 
@@ -130,6 +139,18 @@ Im folgenden werden die einzelnen Produktfunktionen einerseits nach den einzelne
 
 ## 6. Leistungsanforderungen (ALLE)
 
+## 6.3 STAC API
+Die STAC API-Komponente bildet die zentrale Datenschnittstelle des Systems und ermöglicht einen standardkonformen Zugriff auf die in der Datenbank gespeicherten STAC collections und catalogs. Sie erfüllt vollständig die Anforderungen der SpatioTemporal Asset Catalog (STAC) API sowie der Collection Search Extension und bietet erweiterte Such- und Filterfunktionen.
+
+Über die Endpunkte /collections und /search können Nutzer Collections nach Attributen wie Titel, Lizenz, Schlüsselwörtern sowie räumlicher und zeitlicher Ausdehnung durchsuchen, filtern und sortieren. Dabei wird die CQL2-Filterung unterstützt, um standardkonforme und einheitliche Datensuche zu ermöglichen. Dabei stehen logische Operatoren (AND, OR, NOT) und Vergleichsoperatoren (=, <, >, IN) zur Verfügung; optional sind auch erweiterte Funktionen wie LIKE, BETWEEN oder INTERSECTS vorgesehen.
+
+Die API bietet eine hohe Performance:
+Zugriff auf indizierte Daten mit Antwortzeiten unter 1 s,
+Verarbeitung von mindestens 100 parallelen Anfragen,
+Antwortzeiten unter 5 s für einfache Abfragen und unter 1 min für komplexe Filterabfragen.
+
+Damit stellt die STAC API eine leistungsfähige, flexible und erweiterbare Grundlage für die standardisierte Suche innerhalb der indizierten STAC Collections dar.
+
 ## 7. Qualitätsanforderungen (ALLE) <!-- Vincent -->
 Zur Sicherstellung einer hohen Code-, System- und Datenqualität werden im Projekt *STAC-Atlas* folgende Qualitätsanforderungen definiert.
 Sie betreffen alle drei Komponenten – Crawler, STAC API und Web UI – mit Schwerpunkt auf der API, da diese die Kernlogik des Gesamtsystems darstellt.
@@ -223,14 +244,7 @@ Die nachfolgenden Maßnahmen gewährleisten die Korrektheit, Wartbarkeit, Standa
 - Unterstützung inkrementeller Updates durch den Crawler.
 - gelöschte Datensätze bleiben erhalten und bekommen ein active=false
 
-- Unterteilung der Datenbank in verschiedene Tabellen
-    - collection
-    - catalog
-    - keywords
-    - source
-    - summaries
-    - last_crawled
-    => führt zu persistenter Speicherung der Daten und schnellen Abfragemöglichkeiten
+### 9.2 Datenbank-Komponente
 
 ### 9.3 STAC API-Komponente <!-- Vincent -->
 - Die STAC API-Komponente bildet das zentrale Bindeglied zwischen dem Crawler (Datenquelle) und der Web-UI (Frontend).
