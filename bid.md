@@ -42,17 +42,10 @@ Die STAC API-Komponente bildet die zentrale Datenschnittstelle des Systems und e
 
 Über die Endpunkte /collections und /search können Nutzer Collections nach Attributen wie Titel, Lizenz, Schlüsselwörtern sowie räumlicher und zeitlicher Ausdehnung durchsuchen, filtern und sortieren. Dabei wird die CQL2-Filterung unterstützt, um standardkonforme und einheitliche Datensuche zu ermöglichen. Dabei stehen logische Operatoren (AND, OR, NOT) und Vergleichsoperatoren (=, <, >, IN) zur Verfügung; optional sind auch erweiterte Funktionen wie LIKE, BETWEEN oder INTERSECTS vorgesehen.
 
-Die Architektur ist modular aufgebaut, sodass insbesondere die CQL2-Filterlogik als eigenständige Library wiederverwendet oder in andere Systeme integriert werden kann.
-
 Die API bietet eine hohe Performance:
-
-Zugriff auf indizierte Daten mit Antwortzeiten unter 100 ms,
-
+Zugriff auf indizierte Daten mit Antwortzeiten unter 1 s,
 Verarbeitung von mindestens 100 parallelen Anfragen,
-
-Antwortzeiten unter 1 s für einfache Abfragen und unter 5 s für komplexe Filterabfragen,
-
-maximale Anfragezeit: 1 Minute.
+Antwortzeiten unter 5 s für einfache Abfragen und unter 1 min für komplexe Filterabfragen.
 
 Damit stellt die STAC API eine leistungsfähige, flexible und erweiterbare Grundlage für die standardisierte Suche innerhalb der indizierten STAC Collections dar.
 ## 7. Qualitätsanforderungen (ALLE)
