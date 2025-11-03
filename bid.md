@@ -171,45 +171,262 @@ Querybare Attribute sind: (TO:DO)
 
 ## 5. Produktdaten (Crawler & Datenbank) <!-- Humam & Sönke -->
 
-### collection
+Die Datenbankkomponente bildet das zentrale Rückgrat der gesamten Datenverwaltung und dient zur strukturierten, effizienten und STAC-konformen Speicherung sämtlicher durch den Crawler erfassten (Meta-) Daten. Grundlage ist eine relationale PostgreSQL-Datenbank mit PostGIS-Erweiterung, um sowohl klassische als auch räumliche Abfragen performant verarbeiten zu können.  
+Die Struktur ist so aufgebaut, dass sie die in STAC definierten Entitäten (Catalog, Collection, Extensions, Keywords usw.) logisch und referenziell abbildet. Sämtliche Primär- und Fremdschlüsselbeziehungen gewährleisten dabei eine hohe Datenintegrität und ermöglichen zugleich schnelle Abfragen über verschiedene Zugriffspfade.  
+
+Für eine bessere Wartbarkeit und klare Trennung der logischen Einheiten ist die Datenbank in **mehrere thematisch abgegrenzte Tabellenbereiche** gegliedert: *Catalogs*, *Collections* sowie allgemeine, nicht spezifische Tabellen.  
+Die Tabellen enthalten jeweils Primärschlüssel zur eindeutigen Identifikation sowie Zeitstempel-Felder zur Nachvollziehbarkeit von Änderungen. Darüber hinaus sind alle textbasierten Felder, Geometrien und Zeitinformationen für effiziente Suchvorgänge indexiert.  
+
+---
+
+### Tabellenbereich „Catalogs“
+
+Der Bereich **Catalogs** bildet die hierarchische Struktur der STAC-Kataloge ab. Jeder Katalog speichert seine Metadaten inklusive Versionierung, Typ, Beschreibung und zugehöriger Links. Über Zwischentabellen werden Keywords sowie Erweiterungen (STAC Extensions) referenziert.  
+
+#### catalog
+- **id**  
+- stac_version  
+- type  
+- title  
+- description  
+- created_at  
+- updated_at  
+
+Die Haupttabelle `catalog` bildet den zentralen Einstiegspunkt der Kataloghierarchie. Sie speichert allgemeine Metadaten und dient als Ankerpunkt für die zugehörigen Relationen.
+
+#### catalog_links
+- **id**  
+- catalog_id  
+- rel  
+- href  
+- type  
+- title  
+
+Die Tabelle `catalog_links` beschreibt die Verknüpfungen zwischen einzelnen Katalogen oder externen Referenzen und implementiert damit die STAC-Link-Struktur.
+
+#### catalog:keywords
+- **catalog_id**  
+- **keyword_id**  
+
+Relationstabelle zur Mehrfachzuordnung von Keywords an Catalogs. Dadurch können Sammlungen gezielt über Schlagwörter gefiltert werden. Diese Tabelle wird benötigt, da hier eine (n:n)-Beziehung vorliegt.
+
+#### catalog:stac_extension
+- **catalog_id**  
+- **stac_extension_id**  
+
+Diese Relation beschreibt, welche STAC-Erweiterungen in einem bestimmten Katalog verwendet werden. Hier wird eine eigene Tabelle benötigt da hier eine (n:n)-Beziehung zwischen den beiden tabellen vorliegt.
+
+---
+
+### Tabellenbereich „Collections“
+
+Der Bereich **Collections** bildet die Sammlungen von Collections innerhalb eines Katalogs ab. Jede Collection enthält spezifische Metadaten, räumliche Ausdehnungen, zeitliche Intervalle sowie referenzierte Provider, Assets und Summaries.  
+
+#### collection
+- **id**  
+- stac_version  
+- type  
+- title  
+- description  
+- license  
+- created_at  
+- updated_at  
+- spatial_extend  
+- temporal_extend_start  
+- temporal_extend_end  
+
+Die `collection`-Tabelle dient als zentrales Objekt für die Speicherung der Sammlungsinformationen. Neben den textuellen Attributen werden hier räumliche und zeitliche Dimensionen gespeichert, die für Filter- und Suchoperationen entscheidend sind.  
+
+#### collection_summaries
+- **id**  
+- collection_id  
+- name  
+- kind  
+- range_min  
+- mange_max  
+- set_value  
+- json_schema  
+
+Diese Tabelle speichert statistische oder beschreibende Zusammenfassungen einzelner Collections. Über den Fremdschlüssel `collection_id` wird sichergestellt, dass alle Summary-Werte eindeutig zugeordnet werden können.  
+
+#### collection:assets
+- **collection_id**  
+- **asset_id**  
+- collection_asset_roles  
+
+Dient der Verknüpfung von Collections mit ihren zugehörigen Assets, einschließlich der Angabe spezifischer Rollen. Dies ist nötig, da hier eine (n:n)-Beziehung vorliegt.
+
+#### collection:keywords
+- **collection_id**  
+- **keyword_id**  
+
+Relationstabelle zur Mehrfachzuordnung von Keywords an Collections. Dadurch können Colletions gezielt über Schlagwörter gefiltert werden. Diese Tabelle wird benötigt, da hier eine (n:n)-Beziehung vorliegt.
+
+#### collection:stac_extension
+- **collection_id**  
+- **stac_extension_id**  
+
+Relationstabelle zur Mehrfachzuordnung von stac_extension an Collections. Dadurch können Colletions gezielt über die stac_extension gefiltert werden. Diese Tabelle wird benötigt, da hier eine (n:n)-Beziehung vorliegt.
+
+#### collection:providers
+- **collection_id**  
+- **provider_id**  
+- collection_provider_roles  
+
+Definiert die Zuordnung von Datenanbietern (Providern) zu einzelnen Collections. Über das Feld `collection_provider_roles` können die jeweiligen Rollen (z. B. „producer“, „licensor“) eindeutig beschrieben werden.
+
+---
+
+### Allgemeine und Hilfstabellen
+
+Neben den spezifischen Tabellen für Catalogs und Collections existieren mehrere **nicht-spezifische Hilfstabellen**, die für eine einheitliche Referenzierung, Nachverfolgung und Filterung verwendet werden. Diese werden benötigt, da diese Tabellen mit den Tabellen `collections` und `catalogs` eine n:n-Beziehung haben und somit die datenbank unnötig viele Daten speichern würde wenn man diese Daten direkt in einer der beiden Tabellen referenzieren würde.
+
+#### providers
+- **id**  
+- provider  
+
+Speichert die Informationen zu Datenanbietern, Organisationen oder Institutionen.  
+
+#### keywords
+- **id**  
+- keyword  
+
+Liste aller verwendeten Schlagwörter, die in unterschiedlichen Kontexten wiederverwendet werden können.  
+
+#### stac_extensions
+- **id**  
+- stac_extension  
+
+Verwaltet die in STAC definierten Erweiterungen, die sowohl von Catalogs als auch von Collections genutzt werden können.  
+
+#### crawllog_catalog
+- **id**  
+- catalog_id  
+- last_crawled  
+
+Protokolliert die Zeitpunkte der letzten Crawling-Vorgänge für jeden Katalog.  
+
+#### crawllog_collection
+- **id**  
+- collection_id  
+- last_crawled  
+
+Analog zur vorherigen Tabelle dient `crawllog_collection` der Nachverfolgung der Crawling-Zyklen für Collections.  
+
+---
+
+### Zusammenfassung
+
+Mit dieser Datenbankstruktur wird eine **vollständig STAC-kompatible, referenzielle und hochperformante Datenspeicherung** gewährleistet.  
+Durch den modularen Aufbau mit klar getrennten Tabellenbereichen, Mehrfachbeziehungen und Protokollierungseinheiten ist die Architektur sowohl **skalierbar als auch wartungsfreundlich**.  
+Indizes auf allen relevanten Attributen (IDs, Zeitstempel, Textfelder und Geometrien) sowie die Integration von PostgreSQL-TSVector und PostGIS stellen sicher, dass **alle Such-, Filter- und Analyseoperationen** in kurzer Zeit und mit minimalem Ressourcenverbrauch ausgeführt werden können.
+
+<!-->
+### bezüglich den catalogs
+
+#### catalog
+- **id**
+- stac_version
+- type
 - title
 - description
-- spatial extent
-- temporal extent (start-end)
-- provider names
-- license 
-- DOIs
-- created_timestamp
-- last_crawled
-- extracted collection metadata
+- created_at
+- updated_at
 
-- STAC extensions 
-- active boolean
-
-### catalog
+#### catalog_links
+- **id**
+- catalog_id
+- rel
+- href
+- type
 - title
-(- description)
-- catalog_parent 
 
-### keywords
+#### catalog:keywords
+- **catalog_id**
+- **keyword_id**
 
+#### catalog:stac_extension
+- **catalog_id**
+- **stac_extension_id**
+
+
+### bezüglich den collections
+
+#### collection
+- **id**
+- stac_version
+- type
+- title
+- description
+- license
+- created_at
+- updated_at
+- spatial_extend
+- temporal_extend_start
+- temporal_extend_end
+
+#### collection_summaries
+- **id**
+- collection_id
+- name
+- kind
+- range_min
+- mange_max
+- set_value
+- json_schema
+
+#### collection_assets
+- **collection_id**
+- **asset_id**
+- collection_asset_roles
+
+#### collection:keywords
+- **collection_id**
+- **keyword_id**
+
+#### collection:stac_extension
+- **collection_id**
+- **stac_extension_id**
+
+#### collection:providers
+- **collection_id**
+- **provider_id**
+- collection_provider_roles
+
+#### collection_links
+- **id**
+- collection_id
+- rel
+- href
+- type
+- title
+
+
+### nicht spezifische tabellen
+
+#### providers
+- **id**
+- provider
+
+#### keywords
+- **id**
 - keyword
 
-### source 
-- source_url
-- title
-- isApi
-- status
-- isPrivate
+#### stac_extensions
+- **id**
+- stac_extension
+
+#### crawllog_catalog
+- **id**
+- catalog_id
 - last_crawled
 
-### summaries
-- collection_id	
-- platform	TEXT	(z. B. „Sentinel-2“)
-- constellation	TEXT	(z. B. „Sentinel“)
-- gsd
-- processing_level
-- summary_json
+#### crawllog_collection
+- **id**
+- collection_id
+- last_crawled
+<-->
+
 
 ## 6. Leistungsanforderungen (ALLE)
 
@@ -240,6 +457,48 @@ Die Crawling-Durchläufe sollen über Logging und Metriken wie der Anzahl gecraw
 - Strukturierte Logs sind vorhanden.
 
 ### 6.2 Datenbank <!-- Sönke -->
+
+#### 6.2.1 Funktionale Leistungsanforderungen
+
+1. **Antwortzeiten der Datenbankabfragen**  
+   - Standardabfragen (z. B. Abruf einer Collection nach ID) müssen innerhalb von **< 5 Sekunde** beantwortet werden.  
+   - Komplexe Suchanfragen mit Filtern (z. B. Freitextsuche, räumliche und zeitliche Filterung) müssen innerhalb von **≤ 30 Sekunden** abgeschlossen sein.  
+   - Langlaufende Abfragen dürfen eine maximale Bearbeitungszeit von **≤ 60 Sekunden** nicht überschreiten.
+
+2. **Gleichzeitige Zugriffe (Concurrency)**  
+   - Das System muss mindestens **50 gleichzeitige Leseanfragen** und **10 gleichzeitige Schreibanfragen** ohne merkliche Leistungseinbußen (< 10 % längere Antwortzeit) verarbeiten können.  
+   - Gleichzeitige API-Anfragen dürfen keine Deadlocks oder Timeout-Fehler erzeugen.
+
+3. **Suchindex und Filterleistung**  
+   - Die Datenbank muss einen Volltextindex bereitstellen, der Suchabfragen über Metadatenfelder (`title`, `description`, `keywords`, `providers`) innerhalb von **≤ 3 Sekunden** ermöglicht.  
+   - CQL2-Filter (Basic) müssen vollständig innerhalb von **≤ 5 Sekunden** evaluiert werden können.  
+
+---
+
+#### 6.2.2 Nicht-funktionale Leistungsanforderungen
+
+1. **Skalierbarkeit**  
+   - Das System muss bei einer Verdopplung der Datensatzmenge (z. B. von 1 Mio. auf 2 Mio. Collections) einen **Leistungsabfall von höchstens 20 %** bei Abfragezeiten aufweisen.  
+   - Horizontales Skalieren (z. B. über mehrere Container/Instanzen) muss ohne Systemneustart möglich sein.
+
+2. **Datenpersistenz und Verfügbarkeit**  
+   - Die Datenbankverfügbarkeit (Uptime) muss im Dauerbetrieb bei **≥ 99 %** liegen.  
+   - Nach einem Systemausfall dürfen maximal **1 Minute an Datenverlust** (Write-Ahead-Log oder Transaktionsverlust) auftreten.
+
+3. **Datenintegrität und Fehlerbehandlung**  
+   - Transaktionen müssen atomar ausgeführt werden (ACID-konform).  
+   - Schreibfehler oder Integritätsverletzungen dürfen in **< 0,1 %** der Transaktionen auftreten.  
+
+4. **Speichereffizienz**  
+   - Der Speicherbedarf pro STAC-Collection (inkl. Metadaten und Indexeinträge) darf **50 kB** im Durchschnitt nicht überschreiten.  
+   - Die Datenbank muss mindestens **10 Millionen Collections** verwalten können, ohne dass die Antwortzeiten die unter Punkt 1 definierten Grenzwerte überschreiten.
+
+---
+
+#### 6.2.3 Zusammenfassung
+
+Die Datenbankkomponente muss somit nachweislich in der Lage sein, große Mengen an STAC-Kollektionen performant, skalierbar und zuverlässig zu speichern und zu durchsuchen. Die hier genannten Werte dienen als verbindliche, messbare Leistungsziele für die Implementierung, Abnahme und spätere Systemtests.
+
 
 ### 6.3 STAC API <!-- George -->
 
@@ -381,23 +640,23 @@ Außerdem werden alle Crawl-Aktivitäten protokolliert, um Transparenz und Nachv
 
 
 ### 9.2 Datenbank-Komponente <!-- Sönke -->
-- Bereitstellung effizienter Indizes für Such- und Filteroperationen
-- Vollständige Speicherung der vom Crawler gelieferten Metadaten (inkl. STAC JSON).
-- Ermöglicht Freitextsuche über Titel, Beschreibung, Keywords.
-- Nutzung von PostGIS-Geometrien zur Filterung nach Bounding Box.
-- Indexierung und Abfrage nach Start- und Endzeitpunkten.
-- Übersetzung von CQL2-Ausdrücken in SQL WHERE-Bedingungen.
-- Unterstützung inkrementeller Updates durch den Crawler.
-- gelöschte Datensätze bleiben erhalten und bekommen ein active=false
 
-- Unterteilung der Datenbank in verschiedene Tabellen
-    - collection
-    - catalog
-    - keywords
-    - source
-    - summaries
-    - last_crawled
-    => führt zu persistenter Speicherung der Daten und schnellen Abfragemöglichkeiten
+Die Datenbankkomponente stellt die zentrale Grundlage für die Speicherung, Verwaltung und Abfrage aller vom Crawler erfassten Metadaten dar. Sie dient der persistenten Ablage sämtlicher Inhalte, einschließlich der vollständigen STAC-JSON-Strukturen, und ermöglicht deren effiziente Weiterverarbeitung innerhalb der Gesamtarchitektur. Als Datenbanksystem wird **PostgreSQL** in Kombination mit der Erweiterung **PostGIS** eingesetzt, um sowohl relationale als auch geographische Abfragen performant unterstützen zu können.
+
+Die Struktur der Datenbank ist in mehrere logisch voneinander getrennte Teiltabellen gegliedert. Neben der Haupttabelle, in der alle grundlegenden Informationen abgelegt werden, existieren die Tabellen `collection`, `catalog`, `keywords`, `source` sowie `summaries`. Diese Unterteilung sorgt für eine klare Trennung der Metadatenbereiche und ermöglicht eine performante Abfrage durch gezielte Normalisierung. Über Primär- und Fremdschlüsselbeziehungen sind die Tabellen miteinander verknüpft, sodass alle relevanten Daten effizient referenziert werden können.
+
+Um eine schnelle und ressourcenschonende Datensuche zu gewährleisten, werden verschiedene Indizes eingerichtet. Neben klassischen **B-Tree-Indizes** für ID- und Zeitspalten kommen **GIN-** und **GiST-Indizes** zum Einsatz, um Text- und Geometrieabfragen zu optimieren. Dies betrifft insbesondere die Felder für Titel, Beschreibung, Keywords, zeitliche Angaben sowie die räumlichen Geometrien. Die Implementierung einer **Volltextsuche** auf Basis von **PostgreSQL-TSVector** ermöglicht zudem eine performante Freitextsuche über Titel, Beschreibungen und Schlagwörter, einschließlich Relevanzbewertung und optionaler Mehrsprachigkeit.
+
+Für die geographische Filterung wird die räumliche Ausdehnung eines Datensatzes als **PostGIS-Geometrieobjekt** gespeichert. Dadurch sind Abfragen nach Bounding Boxes, Überschneidungen, Entfernungen oder räumlichem Enthaltensein möglich. Zusätzlich werden Start- und Endzeitpunkte in separaten Spalten abgelegt, um zeitbasierte Filterungen zu unterstützen. Ein zusammengesetzter Index auf diesen Zeitfeldern gewährleistet eine effiziente Ausführung von Abfragen über Zeiträume hinweg.
+
+Ein zentrales Merkmal der Datenbankkomponente ist die **Übersetzung von CQL2-Ausdrücken** in entsprechende SQL-WHERE-Bedingungen. Diese Funktionalität erlaubt es, standardisierte Filterausdrücke (z. B. aus STAC-konformen API-Abfragen) direkt in SQL-Statements umzusetzen, wodurch eine hohe Kompatibilität und Erweiterbarkeit erreicht wird.
+
+Zur Unterstützung inkrementeller Updates ist die Datenbank so ausgelegt, dass der Crawler neue oder geänderte Datensätze erkennen und gezielt aktualisieren kann, ohne dass ein vollständiger Neuimport erforderlich ist. Änderungen werden anhand eindeutiger Identifikatoren identifiziert, wodurch sowohl die Datenintegrität als auch die Verarbeitungsgeschwindigkeit verbessert werden.
+
+Gelöschte Datensätze werden in der Datenbank **nicht physisch entfernt**, sondern erhalten das Attribut `active = false`. Auf diese Weise bleibt der historische Zustand der Datensätze erhalten, was eine revisionssichere Nachverfolgung und spätere Analyse ermöglicht. Dieses Vorgehen unterstützt zudem eine transparente Datenhaltung und erleichtert eventuelle Wiederherstellungen.
+
+Insgesamt ermöglicht die Datenbankkomponente eine robuste, skalierbare und abfrageoptimierte Verwaltung der Metadaten. Durch den Einsatz von Indizes, Geometrieunterstützung und standardisierten Filtermechanismen (CQL2) bildet sie die Grundlage für eine performante Bereitstellung der Daten innerhalb der gesamten Systemarchitektur.
+
 
 ### 9.3 STAC API-Komponente <!-- Vincent -->
 - implementiert die STAC API Specification und die Collection Search Extension
@@ -455,16 +714,48 @@ Die Architektur ist modular aufgebaut und besteht aus folgenden Komponenten: Der
 
 9. Monitoring: Der Crawler sammelt Metriken zu erfolgreich verarbeiteten Objekten, Fehlern, Laufzeiten und stellt einen Health‑Endpoint (/metrics) zur Verfügung, damit Monitoring‑Systeme (z. B. Prometheus/Grafana) diese Metriken abfragen können.
 
-#### Sprint‑Mapping (2‑Wochen Sprints)
+### 10.2 Implementierungsdetails der Datenbankkomponente <!-- Sönke -->
 
-- Sprint 1: Setup & Design (erste DB Modell)
-- Sprint 2: Crawler Engine
-- Sprint 3: Queueing + Basic fetcher
-- Sprint 4: Extractor/Migration + Validator + DB Writer
-- Sprint 5: Scheduler + Monitoring
-- Sprint 6: Tests + Deploy + Docs
+Die Implementierung der Datenbankkomponente erfolgt auf Basis von **JavaScript** unter Verwendung der **Node.js**-Laufzeitumgebung. Für die Interaktion mit der Datenbank wird ein objekt-relationales Mapping (ORM) eingesetzt, um den Zugriff auf die PostgreSQL-Datenbank zu abstrahieren und gleichzeitig die Konsistenz der Daten zu gewährleisten. Die Bibliothek **Prisma ORM** wird hierfür bevorzugt, da sie sowohl eine typsichere Datenmodellierung als auch automatisierte Migrationen unterstützt.
 
-### 10.2 Datenbank <!-- Sönke -->
+Der Datenbankzugriff erfolgt asynchron und wird durch Connection-Pooling optimiert, um parallele Abfragen effizient zu verarbeiten. Zur Unterstützung geographischer Abfragen wird die PostgreSQL-Erweiterung **PostGIS** integriert, die direkt über das ORM oder über native SQL-Befehle angesprochen werden kann.
+
+Die Implementierung folgt einem klar strukturierten Vorgehen in mehreren Phasen, die jeweils definierte Meilensteine umfassen und eine schrittweise Integration in das Gesamtsystem ermöglichen.
+
+#### Verwendete Technologien
+- **NodeJS 20**  
+- **PostgreSQL** als relationales Datenbanksystem  
+- **PostGIS** für Geometrie- und Raumdaten  
+- **Prisma ORM** zur Datenmodellierung und Migration  
+- **Express.js** als REST-Schnittstelle zur Integration mit dem Crawler  
+- **Jest** als Testumgebung
+- **Docker** zur Bereitstellung der Entwicklungs- und Testumgebung  
+
+#### Phasen und Meilensteine
+
+1. **Analyse- und Entwurfsphase (M1)**  
+   In dieser Phase werden das Datenmodell und die Schnittstellenanforderungen definiert. Die STAC-konformen Metadatenstrukturen werden analysiert und in ein relationales Schema überführt. Hierzu wird ein erstes **Prisma-Datenmodell** erstellt, das alle Tabellen (`collection`, `catalog`, `keywords`, `source`, `summaries`) sowie deren Beziehungen enthält.  
+   Ergebnis: Validiertes ER-Diagramm und initiales Datenmodell (`schema.prisma`).
+
+2. **Implementierungsphase (M2)**  
+   Aufbauend auf dem Datenmodell wird die Datenbank über Prisma-Migrationen aufgebaut. Dabei werden alle Tabellen und Fremdschlüsselbeziehungen erzeugt.  
+   Parallel werden erste API-Endpunkte über **Express.js** implementiert, um einfache CRUD-Operationen zu testen.  
+   Ergebnis: funktionierendes Datenbankschema mit Zugriff über ORM und API-Testendpunkte.
+
+3. **Integration mit dem Crawler (M3)**  
+   In dieser Phase wird eine Importkomponente entwickelt, die die vom Crawler gelieferten **STAC-JSON-Dateien** einliest, validiert und in die Datenbank einfügt.  
+   Der Importprozess erkennt über eindeutige URLs, ob Datensätze neu, geändert oder inaktiv sind, und führt inkrementelle Updates durch.  
+   Ergebnis: stabile Datenübernahme mit Differenzabgleich und Logging.
+
+4. **Abfrage- und Optimierungsphase (M4)**  
+   Anschließend werden die Such- und Filtermechanismen implementiert. Dazu gehört die Integration einer **Volltextsuche** auf Basis von PostgreSQL-TSVector, die Anbindung von **PostGIS** für Bounding-Box- und Distanzabfragen sowie die Umsetzung einer Übersetzungsschicht für **CQL2-Filterausdrücke**.  
+   Ergebnis: performante Such- und Filterfunktionen mit optimierten Indizes.
+
+5. **Deployment und Dokumentation (M6)**  
+   Die produktive Bereitstellung erfolgt über **Docker Compose** <!-- , wobei separate Umgebungen für Entwicklung und Produktion eingerichtet werden.-->
+   Das Prisma-Schema, die Migrationsdateien und die API-Routen werden versioniert und dokumentiert. Eine technische Dokumentation beschreibt die Struktur, Indexierung und Updateprozesse der Datenbank.  
+   Ergebnis: einsatzbereite, dokumentierte Datenbankkomponente.
+
 
 ### 10.3 STAC API <!-- Robin -->
 
