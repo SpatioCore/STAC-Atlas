@@ -678,7 +678,7 @@ Sie verbindet das Datenbank-Backend, in dem die Metadaten der Collections gespei
    - Details einzelner Collections abrufen, einschließlich Beschreibung, Lizenz, Provider und räumlicher Ausdehnung
    - die Ergebnisse als STAC-konformes JSON-Format abrufen, das auch von anderen STAC-fähigen Anwendungen weiterverarbeitet werden kann
 
-Damit bildet die API die zentrale Kommunikationsschnittstelle zwischen der Datenbank, dem Crawler und der Web-UI
+Damit bildet die API die zentrale Kommunikationsschnittstelle zwischen der Datenbank und der Web-UI
 und ermöglicht einen einheitlichen, standardkonformen Zugriff auf alle gespeicherten STAC-Daten.
 
 #### 9.3.2 Endpunkte
