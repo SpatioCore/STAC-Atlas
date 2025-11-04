@@ -662,7 +662,7 @@ Gelöschte Datensätze werden in der Datenbank **nicht physisch entfernt**, sond
 Insgesamt ermöglicht die Datenbankkomponente eine robuste, skalierbare und abfrageoptimierte Verwaltung der Metadaten. Durch den Einsatz von Indizes, Geometrieunterstützung und standardisierten Filtermechanismen (CQL2) bildet sie die Grundlage für eine performante Bereitstellung der Daten innerhalb der gesamten Systemarchitektur.
 
 ### 9.3 STAC API-Komponente <!-- Vincent -->
-- Die STAC API-Komponente bildet das zentrale Bindeglied zwischen dem Crawler (Datenquelle) und der Web-UI (Frontend).
+Die STAC API-Komponente bildet das zentrale Bindeglied zwischen der Datenbank und der Web-UI.
   Sie implementiert die SpatioTemporal Asset Catalog (STAC) API Specification in der jeweils aktuellen stabilen Version
   sowie die Collection Search Extension, um eine standardisierte und effiziente Abfrage der gespeicherten STAC Collections zu ermöglichen.
   
