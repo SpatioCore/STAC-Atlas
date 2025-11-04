@@ -850,6 +850,7 @@ Die Implementierung folgt einem klar strukturierten Vorgehen in mehreren Phasen,
 
 ### 10.4 UI <!-- Justin -->
 
+#### 10.4.1
 Die Implementierung der UI-Komponente erfolgt auf Basis moderner Webtechnologien, die eine hohe Performance, Wartbarkeit und Erweiterbarkeit gewährleisten.  
 Die folgende Übersicht fasst die wesentlichen Werkzeuge und Frameworks zusammen und erläutert ihre jeweilige Auswahlbegründung:
 
@@ -889,7 +890,7 @@ Die folgende Übersicht fasst die wesentlichen Werkzeuge und Frameworks zusammen
 - **Qualitätssicherung:** ESLint + Prettier, Lighthouse Performance Audits  
   Durch statische Codeanalyse (ESLint), automatische Formatierung (Prettier) und regelmäßige Lighthouse-Audits wird eine gleichbleibend hohe Codequalität und Performance sichergestellt.
 
-#### **Architektur und Aufbau** <!-- Justin -->
+#### 10.4.2 **Architektur und Aufbau** <!-- Justin -->
 
 Das Frontend folgt einer komponentenbasierten Architektur, um eine klare Trennung der Verantwortlichkeiten, Wiederverwendbarkeit und Wartbarkeit zu gewährleisten.  
 Zentrale Bestandteile sind:
@@ -912,7 +913,7 @@ Zentrale Bestandteile sind:
 Die Kommunikation mit der STAC-API erfolgt asynchron über HTTPS-Requests.  
 Filterparameter werden in den Anfragen nach dem CQL2-Standard übergeben.
 
-#### **WBS (Work Breakdown Structure)**  <!-- Justin -->
+#### 10.4.3 **WBS (Work Breakdown Structure)**  <!-- Justin -->
 
 1. **Workspace:** Aufbau der Projekt- und Ordnerstruktur  
 2. **Design:** Definition des Farbsystems und Erstellung eines Figma-Mockups der Hauptkomponenten  
