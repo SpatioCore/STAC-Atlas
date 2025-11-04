@@ -531,7 +531,6 @@ Sie visualisiert Metadaten und räumliche Extents der Collections und ermöglich
 
 ## 7. Qualitätsanforderungen <!-- Vincent -->
 Zur Sicherstellung einer hohen Code-, System- und Datenqualität werden im Projekt *STAC-Atlas* folgende Qualitätsanforderungen definiert.
-Sie betreffen alle drei Komponenten – Crawler, STAC API und Web UI – mit Schwerpunkt auf der API, da diese die Kernlogik des Gesamtsystems darstellt.
 Die nachfolgenden Maßnahmen gewährleisten die Korrektheit, Wartbarkeit, Standardkonformität und Zuverlässigkeit der entwickelten Software.
 
 ### 7.1 Code-Qualität und Tests
