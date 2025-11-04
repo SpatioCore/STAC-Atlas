@@ -293,6 +293,9 @@ Der Bereich **Collections** bildet die Sammlungen von Collections innerhalb eine
 | spatial_extend         | Räumliche Ausdehnung (Bounding Box)                     | bbox (geometry)    |
 | temporal_extend_start  | Startzeitpunkt des zeitlichen Gültigkeitsbereichs        | timestamp          |
 | temporal_extend_end    | Endzeitpunkt des zeitlichen Gültigkeitsbereichs          | timestamp          |
+| is_api?    | ist die collection in einem catalog oder api          | boolean          |
+| is_active?    | ist die collection noch aktuell, oder wurde diese gelöscht          | boolean          |
+| full_json    | Hier werden alle JSON-Daten einer collection gespeichert          | JSON          |
 
 Die `collection`-Tabelle dient als zentrales Objekt für die Speicherung der Sammlungsinformationen. Neben den textuellen Attributen werden hier räumliche und zeitliche Dimensionen gespeichert, die für Filter- und Suchoperationen entscheidend sind.  
 
