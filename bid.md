@@ -641,7 +641,7 @@ Die nachfolgenden Maßnahmen gewährleisten die Korrektheit, Wartbarkeit, Standa
 
 ### 9.1 Crawler-Komponente <!-- Lenn -->
 Der Crawler durchsucht STAC Index nach STAC Kataloge und STAC APIs. Dabei sollen mehr als 95% der Collections erfolgreich erfasst werden.
-Das Crawling erfolgt rekursiv, sodass Collections in nahezu beliebiger Tiefe (<1024 Ebenen) innerhalb verschachtelter Kataloge erkannt werden. Es werden ausschließlich Collections und keine Items erfasst. Die Crawling Vorgänge extrahieren die relevanten Metadaten jeder Collection (6.1.1.3) und speichern sie zusammen mit der Quell-URL, dem Katalognamen und dem Zeitstempel des letzten Crawls.
+Das Crawling erfolgt rekursiv, sodass Collections in nahezu beliebiger Tiefe (<1024 Ebenen) innerhalb verschachtelter Kataloge erkannt werden. Es werden ausschließlich Catalogs und Collections und keine Items erfasst. Die Crawling Vorgänge extrahieren die relevanten Metadaten jeder Collection (6.1.1.3), das vollständige JSON-Objekt jeder Kollektion und speichern sie zusammen mit der Quell-URL, dem Katalognamen und dem Zeitstempel des letzten Crawls. Zusätzlich wird auch ein Parameter, über die aktuelle Verfügbarkeit der Collection hinzugefügt.
 
 Es werden alle stabilen STAC-Versionen, durch Migration unterstützt. 
 Eine Crawling-Plan (Schedule) ermöglicht die zeitliche Steuerung einzelner Crawl-Vorgänge. Es soll eine wöchentliche Aktualisierungen des Indexes durchgeführt werden.
