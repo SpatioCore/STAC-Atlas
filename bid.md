@@ -938,6 +938,28 @@ Filterparameter werden in den Anfragen nach dem CQL2-Standard übergeben.
   - Qualitätssicherung durch Testing und Code Reviews  
 
 ## 11. Zeitplan
+**Projektlaufzeit (Implementierung):** Start **12.11.2025** · **Pre-Release 17.12.2025** · **Projektabschluss 28.01.2026**  
+**Hinweis:** Kalenderwochen (KW) entsprechen ISO-Wochen, angegeben mit **Montag–Sonntag**.
+**Roadmap nach Kalenderwochen**
+| Zeitraum (Mo–So) | KW  | Phase/Meilenstein                     | Hauptaktivitäten                                                                | Artefakte/Outputs |
+|---|:--:|---|---|---|---|
+| **12.11.2025** (Mi) | 46 | **Kick-off Implementierung**          | Projektstart, Scope & Schnittstellen finalisieren, Tooling/Standards festlegen                      | Kick-off-Protokoll, To-Do-Übersicht |
+| 10.11–16.11.2025   | 46 | **Struktur Repo**                      | Monorepo/Repos anlegen (`/api`, `/crawler`, `/frontend`, `/ops`, `/docs`), CI/Lint/Format einrichten | Repo-Struktur, CI-Baseline, CONTRIBUTING.md |
+| 10.11–16.11.2025   | 46 | **API-Endpoints (Core)**               | API-Skeleton, Routen `/`, `/conformance`, `/collections`, Stubs/Swagger                             | Laufende API-Instanz, OpenAPI-Draft |
+| 10.11–16.11.2025   | 46 | **DB-Modell (Entwurf)**                | Datenvertrag/Views, Queryables-Felder abstimmen (Collections-Suche)                                  | Datenmodell-Notiz, Queryables-Liste |
+| 17.11–23.11.2025   | 47 | **Beta Datenbank**                     | Staging-DB (Read-only) bereitstellen, Connection/ENV verteilen                                       | `DATABASE_URL` (staging), Read-Views |
+| 24.11–30.11.2025   | 48 | **Beta Crawler**                       | Erste Collection-Datensätze befüllen, Crawl-Protokolle/IDs testen                                   | Beispiel-Collections in Staging |
+| 01.12–07.12.2025   | 49 | **Beta API**                           | Collection-Search (Route, `q`, `filter` CQL2 Basic, `sort`, Paging), AST→SQL-Mapping                 | Funktionsfähige Suche (staging) |
+| 08.12–14.12.2025   | 50 | **Beta Frontend**                      | UI integriert API (BBox/Zeit/CQL2), Pagination/Fehlerflüsse prüfen                                   | Klickbarer Prototyp |
+| **17.12.2025** (Mi) | 51 | **Pre-Release v0.9**                  | Systemweiter Freeze light; **Abgleich Pflichtenheft** (Stand gegen Anforderungen prüfen)             | Pre-Release-Tag, Abgleich-Protokoll |
+| 15.12–21.12.2025   | 51 | **Einzelkomponenten Final**            | Komponenten auf „Final“ heben (Bugfixes, Kantenfälle, Fehlerformat, Logging)                         | Komponenten-Releases (final) |
+| 22.12–28.12.2025   | 52 | **Puffer**                             | Reserve/Bugfix/Feinschliff                                                                            | – |
+| 29.12–04.01.2026   | 01 | **Puffer**                             | Reserve/Bugfix/Feinschliff                                                                            | – |
+| 05.01–11.01.2026   | 02 | **Puffer**                             | Reserve/Bugfix/Feinschliff                                                                            | – |
+| 12.01–18.01.2026   | 03 | **Finaler Integrationstest**           | End-to-End: Crawler → DB → API → Frontend; **Abgleich Pflichtenheft** final                         | Testprotokolle, Abgleich-Checkliste |
+| 19.01–25.01.2026   | 04 | **Fixes**                              | Behebung aus Integrationstests, Stabilität/Performance nachziehen                                     | Fix-Liste, Release-Notes-Entwurf |
+| 26.01–01.02.2026   | 05 | **Finalisierung Doku & Bonus**         | Entwickler-/Betriebsdoku final, Übergabepaket; optionale Bonus-Features abschließen                  | Finale Doku, Übergabe-Bundle |
+| **28.01.2026** (Mi) | 05 | **Projektabschluss**                  | Finales Tagging/Release, Abgabe, Präsentationsvorbereitung                                           | Release v1.0, Abgabepaket |
 
 ## 12. Zuständigkeiten
 ### 12.1 Crawler-Komponente
