@@ -564,8 +564,8 @@ Die nachfolgenden Maßnahmen gewährleisten die Korrektheit, Wartbarkeit, Standa
    - beim erstmaligen Import (Crawler-Phase),
    - bei Änderungen oder Re-Crawls,
    - zusätzlich regelmäßig in der CI-Pipeline anhand von Stichproben.
-- Collections, die nicht den STAC-Spezifikationen (z. B. Version 1.1) entsprechen, werden protokolliert und nicht in den Index aufgenommen, bis sie korrigiert sind.
-- Die Validierungsergebnisse werden im Crawler-Log und in den CI-Reports dokumentiert.
+- Collections, die nicht vollständig dem aktuellen STAC-Standard entsprechen, werden automatisch angepasst oder konvertiert, bevor sie in den Index übernommen werden.
+- Die Validierungsergebnisse, sowie alle Anpassungen werden im Crawler-Log und in den CI-Reports dokumentiert.
 
 ### 7.4 STAC-API-Validator
 - Die implementierte STAC API wird mit dem offiziellen stac-api-validator
