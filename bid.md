@@ -539,7 +539,7 @@ Die nachfolgenden Maßnahmen gewährleisten die Korrektheit, Wartbarkeit, Standa
    - Für das Frontend werden Unit-Tests mit einem geeigneten Framework (Jest) erstellt.
    - Zielabdeckung: mindestens 80 % Branch- und Statement-Coverage.
    - Tests werden automatisiert bei jedem Commit und Merge-Request in der GitHub-Pipeline ausgeführt.
-   - Fehlgeschlagene Unit-Tests blockieren den Merge in den Haupt-Branch.
+   - Fehlgeschlagene Unit-Tests blockieren den Merge in den Haupt-Branch, um jederzeit lauffähigen Code in geteilten Systemen zu ermöglichen.
 
   #### 7.1.2 Integrationstests
    - Zusätzlich zu den Unit-Tests werden Integrationstests definiert, um das Zusammenspiel der Komponenten (STAC-API ↔ Crawler-DB ↔ Web UI) zu verifizieren.
