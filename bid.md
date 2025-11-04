@@ -179,7 +179,7 @@ Docker gewährleistet eine konsistente Laufzeitumgebung und erleichtert die Inte
 
 ## 4. Produktfunktionen (UNTERTEILT) <!-- Robin -->
 
-Im folgenden werden die einzelnen Produktfunktionen einerseits nach den einzelnen Komponenten unterteilt, nummeriert und beschrieben. Zusätzlich wird eine Priorität zur Orientierung in der Implementierung angegeben inkl. einer kurzen Beschreibung und einem groben Akzeptanzkriterium. Auf Basis der optionalen Elemente des Lastenhefts wurde auch eine Spalte "Optional" gefüllt, welche Features markiert, welche mit nachrangiger Priorität nach der Entwicklung der Hauptfunktionalitäten entwickelt werden, sollte dafür noch Zeit sein.
+Im folgenden werden die Produktfunktionen nach den einzelnen Komponenten unterteilt, nummeriert und beschrieben. Zusätzlich wird eine Priorität zur Orientierung in der Implementierung angegeben inkl. einer kurzen Beschreibung und einem groben Akzeptanzkriterium. Auf Basis der optionalen Elemente des Lastenhefts wurde auch eine Spalte "Optional" gefüllt, welche Features markiert, welche mit nachrangiger Priorität nach der Entwicklung der Hauptfunktionalitäten entwickelt werden, sollte dafür noch Zeit sein.
 
 | ID | Komponente | Funktion (Kurzbeschreibung) | Optional | Akzeptanzkriterium | Prio |
 |---|---|---|---|---|---|
