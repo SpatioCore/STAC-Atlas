@@ -810,7 +810,7 @@ Die Implementierung folgt einem klar strukturierten Vorgehen in mehreren Phasen,
 #### Phasen und Meilensteine
 
 1. **Analyse- und Entwurfsphase (M1)**  
-   In dieser Phase werden das Datenmodell und die Schnittstellenanforderungen definiert. Die STAC-konformen Metadatenstrukturen werden analysiert und in ein relationales Schema überführt. Hierzu wird ein erstes **Prisma-Datenmodell** erstellt, das alle Tabellen (`collection`, `catalog`, `keywords`, `source`, `summaries`) sowie deren Beziehungen enthält.  
+   In dieser Phase werden das Datenmodell und die Schnittstellenanforderungen definiert. Die STAC-konformen Metadatenstrukturen werden analysiert und in ein relationales Schema überführt. Hierzu wird ein erstes **Prisma-Datenmodell** erstellt, das alle Tabellen (z.B. `collection`, `catalog`, `keywords` usw.) sowie deren Beziehungen enthält.  
    Ergebnis: Validiertes ER-Diagramm und initiales Datenmodell (`schema.prisma`).
 
 2. **Implementierungsphase (M2)**  
