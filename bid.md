@@ -882,8 +882,8 @@ Die folgende Übersicht fasst die wesentlichen Werkzeuge und Frameworks zusammen
   Figma wird zur Erstellung interaktiver Prototypen, Farbschemata und UI-Komponenten eingesetzt.  
   Dadurch kann das Design frühzeitig mit Nutzenden und im Team abgestimmt werden, bevor die Implementierung erfolgt.
 
-- **Testing:** Vitest (Unit-Tests), Playwright (End-to-End-Tests)  
-  Vitest wird für Komponententests auf Funktionsebene eingesetzt, um die Logik einzelner Module zu prüfen.  
+- **Testing:** Jest (Unit-Tests), Playwright (End-to-End-Tests)  
+  Jest wird für Komponententests auf Funktionsebene eingesetzt, um die Logik einzelner Module zu prüfen.  
   Playwright dient der automatisierten End-to-End-Validierung der Benutzerinteraktionen über verschiedene Browser hinweg.  
   Diese Kombination gewährleistet eine stabile, reproduzierbare und testbare Benutzeroberfläche.
 
