@@ -431,7 +431,6 @@ Der Crawler darf im Normalbetrieb auf einer Standard-VM mit (2 vCPUs,8GB RAM) be
 Die Crawling-Durchläufe sollen über Logging und Metriken wie der Anzahl gecrawlter Quellen, Anzahl gecrawlter Collections und Laufzeit überwacht werden. Die Metriken werden nur über eine Lokale Datei von einem System-Admin abrufbar sein.
 
 #### Abnahmekriterien
-
 - Der Crawler kann mindestens einen realen STAC Katalog vollständig traversieren.
 - Collections werden in PostgreSQL mit PostGIS persistiert.
 - Die Validierung erfolgt gegen das STAC JSON Schema und auftretende Fehler werden protokolliert.
