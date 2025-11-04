@@ -1,6 +1,6 @@
 # Pflichtenheft STAC Atlas
 
-## 1. Zielbestimmung (ALLE) <!-- Jakob -->
+## 1. Zielbestimmung <!-- Jakob -->
 
 Das Projekt STAC Atlas zielt darauf ab, eine zentralisierte Plattform zur Verwaltung, Indexierung und Bereitstellung von STAC-Collection-Metadaten zu entwickeln. In der heutigen Geodaten-Landschaft existieren zahlreiche dezentrale STAC-Kataloge und -APIs verschiedener Datenanbieter, was die Auffindbarkeit und den Zugriff auf relevante Geodaten-Collections erschwert. STAC Atlas adressiert dieses Problem, indem es als zentrale Anlaufstelle fungiert, die Metadaten aus verschiedenen Quellen aggregiert und durchsuchbar macht.
 
@@ -100,7 +100,7 @@ Das System soll explizit **NICHT**:
 - Vollständige Historie aller Metadatenänderungen vorhalten
 - Real-time Synchronisation mit Quell-Katalogen garantieren
 
-## 2. Anwendungsbereiche und Zielgruppen (ALLE) <!-- Jakob -->
+## 2. Anwendungsbereiche und Zielgruppen <!-- Jakob -->
 
 Das System richtet sich an verschiedene Nutzergruppen mit unterschiedlichen Anforderungen und Anwendungsfällen:
 
@@ -177,14 +177,14 @@ Alle Komponenten werden einzeln mittels **Docker** containerisiert und als Kompl
 Dadurch kann das gesamte System mit einem einzigen Startbefehl (**Docker-Einzeiler**) ausgeführt werden und ist plattformunabhängig lauffähig.  
 Docker gewährleistet eine konsistente Laufzeitumgebung und erleichtert die Integration zwischen den Komponenten.
 
-## 4. Produktfunktionen (UNTERTEILT) <!-- Robin -->
+## 4. Produktfunktionen <!-- Robin -->
 
 Im folgenden werden die Produktfunktionen nach den einzelnen Komponenten unterteilt, nummeriert und beschrieben. Zusätzlich wird eine Priorität zur Orientierung in der Implementierung angegeben inkl. einer kurzen Beschreibung und einem groben Akzeptanzkriterium. Auf Basis der optionalen Elemente des Lastenhefts wurde auch eine Spalte "Optional" gefüllt, welche Features markiert, welche mit nachrangiger Priorität nach der Entwicklung der Hauptfunktionalitäten entwickelt werden, sollte dafür noch Zeit sein.
 
 | ID | Komponente | Funktion (Kurzbeschreibung) | Optional | Akzeptanzkriterium | Prio |
 |---|---|---|---|---|---|
 | PF-CR-01 | Crawler | Alle im STAC Index gelisteten statischen Kataloge und STAC-APIs nach Collections crawlen | – | Mind. 87 Quellen gecrawlt; Trefferquote ≥ 95 % | M |
-| PF-CR-02 | Crawler | Collections in beliebiger Verschachtelungstiefe erfassen (nested catalogs) | – | Nachweis Crawl über ≥ N  Ebenen <!-- @Mammutor bitte anpassen -->; keine Duplikate | M |
+| PF-CR-02 | Crawler | Collections in nahezu beliebiger Verschachtelungstiefe erfassen (nested catalogs) | – | Maximale Tiefe < 1024; keine Duplikate | M |
 | PF-CR-03 | Crawler | Metadaten extrahieren: id, title, description, spatial/temporal extent, keywords, provider, license, DOI, summaries(platform/constellation/gsd/processing:level) | – | ≥ 95 % Felder gefüllt bei Stichprobe n=50 | H |
 | PF-CR-04 | Crawler | Quell-URL, Quell-Titel, „zuletzt gecrawlt“ speichern | – | Felder in DB vorhanden und befüllt | M |
 | PF-CR-05 | Crawler | Alle stabilen STAC-Versionen unterstützen (alte Ressourcen werden automatisch auf 1.1 migriert) | – | Collections unterschiedl. Versionen werden gespeichert und ggf. migriert | M |
@@ -214,7 +214,7 @@ Im folgenden werden die Produktfunktionen nach den einzelnen Komponenten unterte
 | PF-UI-09 | Web-UI | Collections vergleichen (Mehrfachauswahl & Vergleich) | ✔ | Vergleichsansicht mit minimum 2 Collections | L |
 
 
-## 5. Produktdaten (Crawler & Datenbank) <!-- Humam & Sönke -->
+## 5. Produktdaten <!-- Humam & Sönke -->
 
 Die Datenbankkomponente bildet das zentrale Rückgrat der gesamten Datenverwaltung und dient zur strukturierten, effizienten und STAC-konformen Speicherung sämtlicher durch den Crawler erfassten (Meta-) Daten. Grundlage ist eine relationale PostgreSQL-Datenbank mit PostGIS-Erweiterung, um sowohl klassische als auch räumliche Abfragen performant verarbeiten zu können.  
 Die Struktur ist so aufgebaut, dass sie die in STAC definierten Entitäten (Catalog, Collection, Extensions, Keywords usw.) logisch und referenziell abbildet. Sämtliche Primär- und Fremdschlüsselbeziehungen gewährleisten dabei eine hohe Datenintegrität und ermöglichen zugleich schnelle Abfragen über verschiedene Zugriffspfade.  
@@ -413,27 +413,27 @@ Mit dieser Datenbankstruktur wird eine **vollständig STAC-kompatible, referenzi
 Durch den modularen Aufbau mit klar getrennten Tabellenbereichen, Mehrfachbeziehungen und Protokollierungseinheiten ist die Architektur sowohl **skalierbar als auch wartungsfreundlich**.  
 Indizes auf allen relevanten Attributen (IDs, Zeitstempel, Textfelder und Geometrien) sowie die Integration von PostgreSQL-TSVector und PostGIS stellen sicher, dass **alle Such-, Filter- und Analyseoperationen** in kurzer Zeit und mit minimalem Ressourcenverbrauch ausgeführt werden können.
 
-## 6. Leistungsanforderungen (ALLE)
+## 6. Leistungsanforderungen
 
 ### 6.1 Crawler <!-- Humam -->
 Die Crawler-Komponente soll eine hohe Effizienz, Stabilität und Skalierbar sein, um große Mengen an STAC-Katalogen und -APIs regelmäißg und zuverlässig zu erfassen.
 
-#### Crawling Leistung
+#### 6.1.1 Crawling Leistung
 Der Crawler soll in der Lage sein aus dem STAC-Index Quellen innerhalb einer Woche zu analysieren. In folge dessen soll auch die Aktualisierung aller bekannter und neuer Quellen maximal eine Woche betragen. Die einzelnen STAC-Collections sollen jeweils innerhalb von < 5 Sekunden abgerufen und verarbeitet werden. Zudem soll der Crawler alle vorgegebenen Rate-Limits einhalten, um die externen Dienste nicht zu überlasten (z.B. max. 5 Request/Sekunde pro Quelle).
 
-#### Crawling Parallelität und Skalierbarkeit
+#### 6.1.2 Crawling Parallelität und Skalierbarkeit
 Die Implementierung soll asynchrones und paralleles Crawling unterstützten. Es wird nur ein einzelene Crawler-Instanz sein, um die Komplexität mit Datenbankkonflikten zu vermeiden. Es wird darauf geachtet eine Modulare weise zu programmieren um in Zukunft horizontale Skalierung mit mehren Cralwern möglich zu machen.
 
-#### Crawling Zuverlässigkeit unf Fehlertoleranz
+#### 6.1.3 Crawling Zuverlässigkeit unf Fehlertoleranz
 Der Crawler darf bei fehlerhaften oder inaktiven Quellen nicht vollständig abbrechen. Die Quellen, die dreimal hintereinander fehlschlagen, sollen als inaktiv bis zum Crawling Event behandelt werden. Fehler und Wiederholungen müssen protokolliert werden.
 
-#### Ressourcenverbrauch
+#### 6.1.4 Ressourcenverbrauch
 Der Crawler darf im Normalbetrieb auf einer Standard-VM mit (2 vCPUs, 8GB RAM) betrieben werden. Dies ist der alleinstehende Verbrauch. Eine CPU-Auslastung von über 80% im Mittel einer Woche darf nicht überschritten werden. RAM Verbrauch ist maximal 4GB pro Crawler.
 
-#### Wartbarkeit und Monitoring
+#### 6.1.7 Wartbarkeit und Monitoring
 Die Crawling-Durchläufe sollen über Logging und Metriken wie der Anzahl gecrawlter Quellen, Anzahl gecrawlter Collections und Laufzeit überwacht werden. Die Metriken werden nur über eine Lokale Datei von einem System-Admin abrufbar sein.
 
-#### Abnahmekriterien
+#### 6.1.8 Abnahmekriterien
 - Der Crawler kann mindestens einen realen STAC Katalog vollständig traversieren.
 - Collections werden in PostgreSQL mit PostGIS persistiert.
 - Die Validierung erfolgt gegen das STAC JSON Schema und auftretende Fehler werden protokolliert.
@@ -529,7 +529,7 @@ Sie visualisiert Metadaten und räumliche Extents der Collections und ermöglich
 - **Pagination**: Bei umfangreichen Ergebnismengen erfolgt eine seitenweise Darstellung, um Performance und Übersichtlichkeit zu gewährleisten.  
 - **Asynchrones Laden**: Aufwändige Datenabfragen werden parallel und schrittweise geladen, um die Reaktionsfähigkeit der Oberfläche zu erhalten.  
 
-## 7. Qualitätsanforderungen (ALLE) <!-- Vincent -->
+## 7. Qualitätsanforderungen <!-- Vincent -->
 Zur Sicherstellung einer hohen Code-, System- und Datenqualität werden im Projekt *STAC-Atlas* folgende Qualitätsanforderungen definiert.
 Sie betreffen alle drei Komponenten – Crawler, STAC API und Web UI – mit Schwerpunkt auf der API, da diese die Kernlogik des Gesamtsystems darstellt.
 Die nachfolgenden Maßnahmen gewährleisten die Korrektheit, Wartbarkeit, Standardkonformität und Zuverlässigkeit der entwickelten Software.
@@ -586,7 +586,7 @@ Die nachfolgenden Maßnahmen gewährleisten die Korrektheit, Wartbarkeit, Standa
 ### 7.5 Dokumentations- und Wartungsqualität
 - Alle Module werden mit aussagekräftigen Kommentaren dokumentiert, entsprechend der jeweils verwendeten Programmiersprache (z. B. PyDoc für Python-Module oder JSDoc für JavaScript/Vue-Komponenten).
 
-## 8. Sonstige nichtfunktionale Anforderungen (ALLE) <!-- Jakob -->
+## 8. Sonstige nichtfunktionale Anforderungen <!-- Jakob -->
 
 ### 8.1 Dokumentation und Code-Qualität
 - Code-Dokumentation mit JSDoc (JavaScript/TypeScript)
@@ -637,11 +637,11 @@ Die nachfolgenden Maßnahmen gewährleisten die Korrektheit, Wartbarkeit, Standa
   - Zusammenspiel der Komponenten (Crawler, API, UI)
   - Lessons Learned
 
-## 9. Gliederung in Teilprodukte (Unterteilt)
+## 9. Gliederung in Teilprodukte
 
 ### 9.1 Crawler-Komponente <!-- Lenn -->
 Der Crawler durchsucht STAC Index nach STAC Kataloge und STAC APIs. Dabei sollen mehr als 95% der Collections erfolgreich erfasst werden.
-Das Crawling erfolgt rekursiv, sodass Collections in beliebiger Tiefe innerhalb verschachtelter Kataloge erkannt werden. Es werden ausschließlich Collections und keine Items erfasst. Die Crawling Vorgänge extrahieren die relevanten Metadaten jeder Collection (6.1.1.3) und speichern sie zusammen mit der Quell-URL, dem Katalognamen und dem Zeitstempel des letzten Crawls.
+Das Crawling erfolgt rekursiv, sodass Collections in nahezu beliebiger Tiefe (<1024 Ebenen) innerhalb verschachtelter Kataloge erkannt werden. Es werden ausschließlich Collections und keine Items erfasst. Die Crawling Vorgänge extrahieren die relevanten Metadaten jeder Collection (6.1.1.3) und speichern sie zusammen mit der Quell-URL, dem Katalognamen und dem Zeitstempel des letzten Crawls.
 
 Es werden alle stabilen STAC-Versionen, durch Migration unterstützt. 
 Eine Crawling-Plan (Schedule) ermöglicht die zeitliche Steuerung einzelner Crawl-Vorgänge. Es soll eine wöchentliche Aktualisierungen des Indexes durchgeführt werden.
@@ -755,22 +755,22 @@ Bereitstellung einer intuitiven Suchoberfläche:
 - Sprache: Alle Komponenten sind auf Englisch, alternativ auf Deutsch verfügbar.
 
 
-## 10. Implementierungsdetails (ALLE)
+## 10. Implementierungsdetails
 <!-- Hier bitte pro Gruppe eintragen, wie genau die Teilprodukte implementiert werden sollen.
 Also auch sowas wie verwendete Technologie, Teilschritte (Meilensteine?) etc.. WBS wäre auch nett-->
 ### 10.1 Crawler
 
 Ziel des Crawler‑Moduls ist die automatische Erfassung, Validierung und Speicherung von STAC‑Collections aus verteilten Quellen in einer PostgreSQL‑Datenbank mit PostGIS‑Erweiterung. Der Crawler soll robust gegenüber transienten Fehlern sein (konfigurierbare Retries mit Backoff), Monitoring‑Metriken liefern und idempotente Persistenz gewährleisten, damit wiederholte Crawls keine Duplikate erzeugen.
 
-#### Technologien
+#### 10.1.1 Technologien
 
 Der Crawler wird als Node.js‑Anwendung konzipiert wir werden JavaScript (vielleicht TypeScript) nutzten, um bessere Wartbarkeit und Weiternetwicklung innerhalb der Gruppe zu erreichen und die Probleme mit bestimmten Versionen von z.B. Python zu unterbinden. Für das STAC‑Handling kommen [stac-js](https://github.com/moregeo-it/stac-js) und [stac-migrate](https://github.com/stac-utils/stac-migrate) zum Migrieren älterer STAC‑Versionen zum Einsatz. Für HTTP‑Zugriffe eignen sich axios oder got (unterstützen Timeouts und Retries). Alternativ kann node‑fetch verwendet werden. Beim Crawling und Queueing sind für komplexe Szenarien Frameworks wie Crawlee (Apify) oder vergleichbare Lösungen mit integrierter Queue/Retry‑Logik empfehlenswert, für leichtere Implementierungen bieten sich p‑queue oder Bottleneck zur Steuerung von Parallelität und Rate‑Limits an. Zur zeitgesteuerten Ausführung kann lokal node‑cron genutzt werden. Die Validierung erfolgt via JSON‑Schema Validator (z. B. ajv) unter Verwendung der offiziellen STAC‑Schemas. Als Datenbank wird PostgreSQL mit PostGIS empfohlen. Die Anbindung kann mit node‑postgres (pg) erfolgen. Für Logging und Monitoring werden strukturierte Logs eingesetzt. Zur Auslieferung und Reproduzierbarkeit der Laufzeitumgebung wird Docker genutzt.
 
-#### Architektur
+#### 10.1.2 Architektur
 
 Die Architektur ist modular aufgebaut und besteht aus folgenden Komponenten: Der Source Manager persistiert Quellendaten (URL, Typ, Crawl‑Intervall, Status, letzte Ausführung) und stellt eine Admin‑API zum Aktivieren/Deaktivieren sowie für manuelle Trigger bereit. Der Scheduler plant die periodischen Crawls gemäß der konfigurierten Intervalle. Die Crawler Engine lädt STAC‑Kataloge und STAC‑APIs asynchron, folgt relevanten Link‑Relationen (child, catalog, collection) und beachtet dabei Rate‑Limits, mögliche robots.txt‑Regeln sowie Parallelitätsgrenzen. Der Metadata Extractor / Normalizer migriert STAC‑Versionen mit stac‑migrate, modelliert Objekte (z. B. mit stac‑js) und extrahiert die relevanten Felder. Der Validator prüft die Objekte gegen die STAC JSON‑Schemas (z. B. mit ajv) und protokolliert Validierungsfehler samt Persistenz der Rohdaten zur Analyse. Der Database Writer verwaltet Indizes und Transaktionen. Die Logger / Monitor‑Komponente erfasst Fehler, Durchsatz, Latenzen und stellt Health‑Checks bzw. Metriken bereit. Optional existiert eine Admin UI / API zur Anzeige von Quellen, Fehlerlogs und für manuelle Resets.
 
-#### Ablauf
+#### 10.1.3 Ablauf
 
 1. Initialisierung: Beim Start liest der Crawler die aktiven Quellen aus der Datenbank und plant die Crawls entsprechend der konfigurierten Intervalle.
 
@@ -928,9 +928,9 @@ Filterparameter werden in den Anfragen nach dem CQL2-Standard übergeben.
   - Design-Optimierung und kontinuierliche Verbesserung der Benutzerfreundlichkeit  
   - Qualitätssicherung durch Testing und Code Reviews  
 
-## 11. Zeitplan (ALLE)
+## 11. Zeitplan
 
-## 12. Zuständigkeiten (ALLE)
+## 12. Zuständigkeiten
 ### 12.1 Crawler-Komponente
 - Humam (Teamleiter)
 - Jakob
@@ -948,5 +948,3 @@ Filterparameter werden in den Anfragen nach dem CQL2-Standard übergeben.
 ### 12.4 UI
 - Justin (Teamleiter)
 - Simon
-
-## 13. Glossar (ALLE)
