@@ -150,7 +150,7 @@ Das Backend stellt eine API bereit, die vollständig mit der **STAC API-Spezifik
 
 ### 3.2 Backend
 Das Backend wird primär in **JavaScript / Node.js** umgesetzt und als dedizierter Backend‑Server betrieben. 
-Als API‑Framework wird **Express** (unter Verwendung von Node.js 20) empfohlen, um Anfragen zu verarbeiten und das Crawlen externer STAC‑Kataloge zu koordinieren. 
+Als API‑Framework wird **Express** (unter Verwendung von Node.js 20) verwendet, um Anfragen zu verarbeiten und das Crawlen externer STAC‑Kataloge zu koordinieren. 
 Für die Übersetzung und Auswertung von **CQL2**‑Abfragen wird die robuste Rust‑Implementierung **cql2‑rs** eingesetzt. 
 Die bevorzugte Integrationsvariante ist das Kompilieren von **cql2‑rs** zu **WebAssembly** und das direkte Einbinden in den Node‑Prozess (Vorteile: In‑Process‑Ausführung, geringere Latenz, einfache Containerisierung). 
 Als Fallback bleibt alternativ die Python‑Option mit **pycql2**, wird aber nicht als Primärvariante verwendet, um Konsistenz mit dem JavaScript‑Stack und der Team‑Expertise sicherzustellen. 
