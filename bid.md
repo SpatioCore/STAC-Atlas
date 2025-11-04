@@ -443,8 +443,8 @@ Die Crawling-Durchläufe sollen über Logging und Metriken wie der Anzahl gecraw
 
 1. **Antwortzeiten der Datenbankabfragen**  
    - Standardabfragen (z. B. Abruf einer Collection nach ID) müssen innerhalb von **< 5 Sekunde** beantwortet werden.  
-   - Komplexe Suchanfragen mit Filtern (z. B. Freitextsuche, räumliche und zeitliche Filterung) müssen innerhalb von **≤ 30 Sekunden** abgeschlossen sein.  
-   - Langlaufende Abfragen dürfen eine maximale Bearbeitungszeit von **≤ 60 Sekunden** nicht überschreiten.
+   - Komplexe Suchanfragen mit Filtern (z. B. Freitextsuche, räumliche und zeitliche Filterung) müssen innerhalb von **≤ 60 Sekunden** abgeschlossen sein.  
+   - Langlaufende Abfragen dürfen eine maximale Bearbeitungszeit von **≤ 90 Sekunden** nicht überschreiten.
 
 2. **Gleichzeitige Zugriffe (Concurrency)**  
    - Das System muss mindestens **50 gleichzeitige Leseanfragen** und **10 gleichzeitige Schreibanfragen** ohne merkliche Leistungseinbußen (< 10 % längere Antwortzeit) verarbeiten können.  
