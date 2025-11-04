@@ -545,7 +545,7 @@ Die nachfolgenden Maßnahmen gewährleisten die Korrektheit, Wartbarkeit, Standa
    - Zusätzlich zu den Unit-Tests werden Integrationstests definiert, um das Zusammenspiel der Komponenten (STAC-API ↔ Crawler-DB ↔ Web UI) zu verifizieren.
    - Diese Tests prüfen:
      - Korrektes Schreiben von Collection-Metadaten durch den Crawler in die Datenbank.
-     - Abrufbarkeit und Filterbarkeit dieser Daten über die STAC-API-Endpunkte (/collections, /collections/search).
+     - Abrufbarkeit und Filterbarkeit dieser Daten über die STAC-API-Endpunkte (/collections, /search).
      - Validität der API-Antworten im STAC-Standardformat.
      - Pagination-, Sortier- und Filterfunktionen (CQL2).
    - Die Integrationstests werden in einer getrennten Testumgebung ausgeführt, die der realen Systemarchitektur entspricht (wahlweise über ein separates Docker-Compose-Setup oder im Rahmen des regulären Setups).
@@ -554,10 +554,10 @@ Die nachfolgenden Maßnahmen gewährleisten die Korrektheit, Wartbarkeit, Standa
 - Es wird eine GitHub Actions-Pipeline eingerichtet, die alle wesentlichen Qualitätssicherungs-Schritte automatisiert:
    - Build – Installation aller Abhängigkeiten und Prüfung auf erfolgreiche Kompilierung.
    - Linting – Automatische Kontrolle der Codequalität (z. B. mit flake8 für Python und ESLint für JavaScript/Vue-Komponenten).
-   - Test – Ausführung sämtlicher Unit-Tests (pytest Backend) und Komponententests (Jest Frontend) sowie Integrationstests über die GitHub Actions-Pipeline.
+   - Test – Ausführung sämtlicher Unit-Tests und Komponententests (jest und pytest) sowie Integrationstests über die GitHub Actions-Pipeline.
    - Validation – Ausführung der STAC- und API-Validatoren (s. Abschnitte 7.3 und 7.4).
    - Coverage-Report – automatische Generierung und Veröffentlichung in den Pipeline-Logs.
-- Die CI-Pipeline wird bei jedem Push und Pull-Request gegen den Main-Branch ausgeführt.
+- Die CI-Pipeline wird bei jedem Push und Pull-Request gegen den head-Branch jeder Komponente ausgeführt.
 - Nur bei erfolgreicher Pipeline-Ausführung dürfen Änderungen in den stabilen Branch übernommen werden (Branch-Protection-Rule).
 
 ### 7.3 STAC-Validator
@@ -576,7 +576,7 @@ Die nachfolgenden Maßnahmen gewährleisten die Korrektheit, Wartbarkeit, Standa
 - Geprüfte Aspekte:
    - Gültigkeit der API-Antworten nach STAC API-Spezifikation (v1.x).
    - Unterstützung der Collection Search Extension und der CQL2-Query Language (Basic).
-   - Korrekte Implementierung der Endpoints (/collections, /collections/search, /conformance, /queryables).
+   - Korrekte Implementierung der Endpoints (/collections, /search, /conformance, /queryables).
 - Der Validator wird:
    - nach jedem erfolgreichen Build in der CI-Pipeline ausgeführt,
    - manuell vor der Endabgabe für einen vollständigen Compliance-Report verwendet.
