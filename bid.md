@@ -252,7 +252,7 @@ Die Haupttabelle `catalog` bildet den zentralen Einstiegspunkt der Kataloghierar
 
 Die Tabelle `catalog_links` beschreibt die Verknüpfungen zwischen einzelnen Katalogen oder externen Referenzen und implementiert damit die STAC-Link-Struktur.
 
-#### Tabelle: atalog:keywords
+#### Tabelle: catalog:keywords
 | Spalte        | Beschreibung / Inhalt                       | Datentyp / Format |
 |----------------|---------------------------------------------|-------------------|
 | **catalog_id** | Referenz auf `catalog.id`                   | integer (FK)      |
