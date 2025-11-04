@@ -591,14 +591,13 @@ Die nachfolgenden Maßnahmen gewährleisten die Korrektheit, Wartbarkeit, Standa
 - Bedienungsanleitung für Endnutzer
 - Linter: ESLint (JavaScript/TypeScript)
 - Code-Formatierung: Prettier (JavaScript/TypeScript)
-- Einhaltung von Coding-Standards
 - Modulare Architektur
 
 ### 8.2 Projektmanagement und Entwicklungsprozess
 - Traditionelles Projektmanagement über GitHub-Projekte (Kunde erhält Zugriff)
 - Versionskontrolle mit Git
 - GitHub-Pipeline für CI/CD
-- Code Reviews
+- Jeder Code wird vor einem Push reviewed (Vier-Augen-Prinzip)
 - Open Source unter Apache 2.0 Lizenz
 - Lizenzkonforme Verweise auf genutzte Software
 
@@ -631,7 +630,6 @@ Die nachfolgenden Maßnahmen gewährleisten die Korrektheit, Wartbarkeit, Standa
   - Bedienungsanleitung
   - Beschreibung der Anwendungsfälle und Lösungen
   - Zusammenspiel der Komponenten (Crawler, API, UI)
-  - Lessons Learned
 
 ## 9. Gliederung in Teilprodukte
 
