@@ -102,7 +102,7 @@ Das System soll explizit **NICHT**:
 
 Das System richtet sich an verschiedene Nutzergruppen mit unterschiedlichen Anforderungen und Anwendungsfällen:
 
-#### Data Scientists and Researchers
+#### 2.1 Data Scientists and Researchers
 Wissenschaftler und Datenanalysten, die für ihre Forschungsprojekte passende Geodaten-Collections finden müssen.
 
 **User Stories:**
@@ -111,7 +111,7 @@ Wissenschaftler und Datenanalysten, die für ihre Forschungsprojekte passende Ge
 - Als Klimaforscher möchte ich Collections nach spezifischen Attributen (z.B. Auflösung, Sensortyp) filtern, um geeignete Daten für meine Klimamodelle zu finden.
 - Als Researcher möchte ich über die API automatisiert nach Collections suchen, um sie in meine Analyse-Pipeline zu integrieren.
 
-#### GIS Professionals
+#### 2.2 GIS Professionals
 GIS-Experten und Geoinformatiker, die regelmäßig mit Geodaten arbeiten und diese in ihren Projekten einsetzen.
 
 **User Stories:**
@@ -120,16 +120,15 @@ GIS-Experten und Geoinformatiker, die regelmäßig mit Geodaten arbeiten und die
 - Als GIS-Consultant möchte ich die zeitliche Verfügbarkeit verschiedener Collections vergleichen, um meinen Kunden die beste Datenlösung empfehlen zu können.
 - Als Geoinformatiker möchte ich Collections nach Provider durchsuchen, um alle Datenquellen eines bestimmten Anbieters zu evaluieren.
 
-#### Application Developers
+#### 2.3 Application Developers
 Softwareentwickler, die Anwendungen mit Geodaten-Funktionalitäten erstellen und STAC-Collections programmatisch nutzen möchten.
 
 **User Stories:**
 - Als Entwickler möchte ich über eine standardkonforme STAC API auf Collections zugreifen, um diese in meine Anwendung zu integrieren.
-- Als Frontend-Entwicklerin möchte ich CQL2-Queries programmatisch erstellen und ausführen, um komplexe Suchfunktionen in meiner App zu implementieren.
 - Als Backend-Entwickler möchte ich automatisiert Collections nach bestimmten Kriterien abfragen, um meinen Nutzern relevante Datensätze vorzuschlagen.
 - Als Software-Architekt möchte ich die API-Dokumentation einsehen, um die Integration in unsere bestehende Geodaten-Infrastruktur zu planen.
 
-#### Data Providers
+#### 2.4 Data Providers
 Datenanbieter und -kuratoren, die ihre STAC-Kataloge bekannter machen und die Nutzung ihrer Daten fördern möchten.
 
 **User Stories:**
