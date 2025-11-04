@@ -595,7 +595,7 @@ Die nachfolgenden Maßnahmen gewährleisten die Korrektheit, Wartbarkeit, Standa
 - Modulare Architektur
 
 ### 8.2 Projektmanagement und Entwicklungsprozess
-- Agiles Projektmanagement über GitHub-Projekte (Kunde erhält Zugriff)
+- Traditionelles Projektmanagement über GitHub-Projekte (Kunde erhält Zugriff)
 - Versionskontrolle mit Git
 - GitHub-Pipeline für CI/CD
 - Code Reviews
