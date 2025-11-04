@@ -657,7 +657,7 @@ Ein zentrales Merkmal der Datenbankkomponente ist die **Übersetzung von CQL2-Au
 
 Zur Unterstützung inkrementeller Updates ist die Datenbank so ausgelegt, dass der Crawler neue oder geänderte Datensätze erkennen und gezielt aktualisieren kann, ohne dass ein vollständiger Neuimport erforderlich ist. Änderungen werden anhand eindeutiger Identifikatoren identifiziert, wodurch sowohl die Datenintegrität als auch die Verarbeitungsgeschwindigkeit verbessert werden.
 
-Gelöschte Datensätze werden in der Datenbank **nicht physisch entfernt**, sondern erhalten das Attribut `active = false`. Auf diese Weise bleibt der historische Zustand der Datensätze erhalten, was eine revisionssichere Nachverfolgung und spätere Analyse ermöglicht. Dieses Vorgehen unterstützt zudem eine transparente Datenhaltung und erleichtert eventuelle Wiederherstellungen.
+Gelöschte oder aktuell vom Crawler nicht mehr erreichbare Datensätze werden in der Datenbank **nicht physisch entfernt**, sondern erhalten das Attribut `active = false`. Auf diese Weise bleibt der historische Zustand der Datensätze erhalten, was eine revisionssichere Nachverfolgung und spätere Analyse ermöglicht. Dieses Vorgehen unterstützt zudem eine transparente Datenhaltung und erleichtert eventuelle Wiederherstellungen.
 
 Insgesamt ermöglicht die Datenbankkomponente eine robuste, skalierbare und abfrageoptimierte Verwaltung der Metadaten. Durch den Einsatz von Indizes, Geometrieunterstützung und standardisierten Filtermechanismen (CQL2) bildet sie die Grundlage für eine performante Bereitstellung der Daten innerhalb der gesamten Systemarchitektur.
 
