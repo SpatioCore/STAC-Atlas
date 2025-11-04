@@ -151,7 +151,7 @@ Als API‑Framework wird **Express** (unter Verwendung von Node.js 20) verwendet
 Für die Übersetzung und Auswertung von **CQL2**‑Abfragen wird die robuste Rust‑Implementierung **cql2‑rs** eingesetzt. 
 Die bevorzugte Integrationsvariante ist das Kompilieren von **cql2‑rs** zu **WebAssembly** und das direkte Einbinden in den Node‑Prozess (Vorteile: In‑Process‑Ausführung, geringere Latenz, einfache Containerisierung). 
 Als Fallback bleibt alternativ die Python‑Option mit **pycql2**, wird aber nicht als Primärvariante verwendet, um Konsistenz mit dem JavaScript‑Stack und der Team‑Expertise sicherzustellen. 
-Sollten sich große Schwierigkeiten mit der cql2-rs-Library ergeben, kann ein Backend in Python (z. B. mit FastAPI) implementiert werden, das die Anfrageverarbeitung und CQL2‑Übersetzung übernimmt.
+Sollten sich große Schwierigkeiten mit der cql2-rs-Library ergeben, wird ein Backend in Python (z. B. mit FastAPI) implementiert werden, das die Anfrageverarbeitung und CQL2‑Übersetzung übernimmt.
 
 ### 3.3 Crawler
 Der **Crawler** wird in **JavaScript** implementiert und ist zuständig für das automatische Auffinden und Einlesen von STAC Collections aus dem STAC Index.  
