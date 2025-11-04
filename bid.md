@@ -67,11 +67,8 @@ Die Abnahmekriterien definieren die zwingend erforderlichen Funktionalitäten de
 
 Die Wunschkriterien beschreiben optionale Funktionalitäten, die das System über die Grundanforderungen hinaus erweitern würden. Diese Features sind nicht zwingend erforderlich, würden aber den Nutzen und die Attraktivität der Plattform erheblich steigern. Ihre Implementierung erfolgt in Abhängigkeit von verfügbaren Ressourcen und Zeit.
 
-#### Erweiterte Funktionen
-- Vergleich zwischen Collections verschiedener Anbieter
+#### Allgemein
 - On-Demand Abruf von Items einer Collection (ohne persistente Speicherung)
-- Erweiterte CQL2-Filterung mit zusätzlichen Operatoren
-- CQL2-Filterung als eigenständige, wiederverwendbare Library
 - Integration der Lösung in das bestehende STAC Index API
 
 #### Crawler
@@ -84,6 +81,7 @@ Die Wunschkriterien beschreiben optionale Funktionalitäten, die das System übe
 - Visueller CQL2 Query Builder ("from scratch")
 - Erweiterte Visualisierungen und Diagramme
 - Export-Funktionen für Suchergebnisse
+- Vergleich zwischen Collections verschiedener Anbieter
 
 ### 1.3 Abgrenzungskriterien
 
