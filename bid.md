@@ -287,9 +287,9 @@ Der Bereich **Collections** bildet die Sammlungen von Collections innerhalb eine
 | license                | Lizenzinformation                                       | text               |
 | created_at             | Zeitpunkt der Erstellung                                 | timestamp          |
 | updated_at             | Zeitpunkt der letzten Änderung                           | timestamp          |
-| spatial_extend         | Räumliche Ausdehnung (Bounding Box)                     | bbox (geometry)    |
-| temporal_extend_start  | Startzeitpunkt des zeitlichen Gültigkeitsbereichs        | timestamp          |
-| temporal_extend_end    | Endzeitpunkt des zeitlichen Gültigkeitsbereichs          | timestamp          |
+| spatial_extent         | Räumliche Ausdehnung (Bounding Box)                     | bbox (geometry)    |
+| temporal_extent_start  | Startzeitpunkt des zeitlichen Gültigkeitsbereichs        | timestamp          |
+| temporal_extent_end    | Endzeitpunkt des zeitlichen Gültigkeitsbereichs          | timestamp          |
 | is_api?    | ist die collection in einem catalog oder api          | boolean          |
 | is_active?    | ist die collection noch aktuell, oder wurde diese gelöscht          | boolean          |
 | full_json    | Hier werden alle JSON-Daten einer collection gespeichert          | JSON          |
@@ -442,9 +442,9 @@ Die Crawling-Durchläufe sollen über Logging und Metriken wie der Anzahl gecraw
 #### 6.2.1 Funktionale Leistungsanforderungen
 
 1. **Antwortzeiten der Datenbankabfragen**  
-   - Standardabfragen (z. B. Abruf einer Collection nach ID) müssen innerhalb von **< 5 Sekunde** beantwortet werden.  
-   - Komplexe Suchanfragen mit Filtern (z. B. Freitextsuche, räumliche und zeitliche Filterung) müssen innerhalb von **≤ 60 Sekunden** abgeschlossen sein.  
-   - Langlaufende Abfragen dürfen eine maximale Bearbeitungszeit von **≤ 90 Sekunden** nicht überschreiten.
+   - Standardabfragen (z. B. Abruf einer Collection nach ID) müssen innerhalb von **< 1 Sekunde** beantwortet werden.  
+   - Komplexe Suchanfragen mit Filtern (z. B. Freitextsuche, räumliche und zeitliche Filterung) müssen innerhalb von **≤ 30 Sekunden** abgeschlossen sein.  
+   - Langlaufende Abfragen dürfen eine maximale Bearbeitungszeit von **≤ 60 Sekunden** nicht überschreiten.
 
 2. **Gleichzeitige Zugriffe (Concurrency)**  
    - Das System muss mindestens **50 gleichzeitige Leseanfragen** und **10 gleichzeitige Schreibanfragen** ohne merkliche Leistungseinbußen (< 10 % längere Antwortzeit) verarbeiten können.  
@@ -835,7 +835,7 @@ Die Implementierung folgt einem klar strukturierten Vorgehen in mehreren Phasen,
    Anschließend werden die Such- und Filtermechanismen implementiert. Dazu gehört die Integration einer **Volltextsuche** auf Basis von PostgreSQL-TSVector, die Anbindung von **PostGIS** für Bounding-Box- und Distanzabfragen sowie die Umsetzung einer Übersetzungsschicht für **CQL2-Filterausdrücke**.  
    Ergebnis: performante Such- und Filterfunktionen mit optimierten Indizes.
 
-5. **Deployment und Dokumentation (M6)**  
+5. **Deployment und Dokumentation (M5)**  
    Die produktive Bereitstellung erfolgt über **Docker Compose** <!-- , wobei separate Umgebungen für Entwicklung und Produktion eingerichtet werden.-->
    Das Prisma-Schema, die Migrationsdateien und die API-Routen werden versioniert und dokumentiert. Eine technische Dokumentation beschreibt die Struktur, Indexierung und Updateprozesse der Datenbank.  
    Ergebnis: einsatzbereite, dokumentierte Datenbankkomponente.
