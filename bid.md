@@ -245,7 +245,7 @@ Der Bereich **Catalogs** bildet die hierarchische Struktur der STAC-Kataloge ab.
 | created_at    | Zeitpunkt der Erstellung                | timestamp             |
 | updated_at    | Zeitpunkt der letzten Änderung          | timestamp             |
 
-Die Haupttabelle `catalog` bildet den zentralen Einstiegspunkt der Kataloghierarchie. Sie speichert allgemeine Metadaten und dient als Ankerpunkt für die zugehörigen Relationen.
+Die Haupttabelle `catalog` bildet den zentralen Einstiegspunkt der Kataloghierarchie. Sie speichert allgemeine Metadaten und dient als Ankerpunkt für die zugehörigen Relationen. Diese Tabelle ist notwenidg um zu schauen, ob der crawler die aktueller Version des `catalogs` gespeichert hat, oder diesen `catalog` erneut crawlen muss. Somit kann der crawler bei einem erneuten crawl effektiver und schneller arbeiten.
 
 #### Tabelle: `catalog_links`
 
