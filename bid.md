@@ -149,8 +149,9 @@ Die Produktumgebung beschreibt die technischen Rahmenbedingungen für Entwicklun
 Alle Komponenten werden in einer modernen, containerisierten Umgebung entwickelt und bereitgestellt, um eine einheitliche und reproduzierbare Laufzeitumgebung sicherzustellen.
 
 ### 3.1 Crawler
-Der Crawler wird in Python implementiert und ist zuständig für das automatische Auffinden und Einlesen von STAC Collections aus dem STAC Index sowie verlinkten Katalogen/APIs.  
-Er schreibt die Daten in die Datenbank und führt regelmäßige, inkrementelle Aktualisierungen durch, um eine aktuelle Indexierung sicherzustellen. Protokollierung (z. B. Zeitstempel/Status) stellt Nachvollziehbarkeit sicher.
+Der Crawler wird in Python implementiert und ist zuständig für das automatische Auffinden und Einlesen von STAC Collections aus dem STAC Index sowie verlinkten Katalogen/APIs (6.1.1.1, 6.1.1.2). (6.2.4.2)
+Er schreibt die Daten in die Datenbank (6.1.1.7, 6.1.1.3) und führt regelmäßige, inkrementelle Aktualisierungen durch, um eine aktuelle Indexierung sicherzustellen (6.1.1.6). 
+Protokollierung (z. B. Zeitstempel/Status) stellt Nachvollziehbarkeit sicher (6.1.1.4, 6.1.1.12). Dokumentation zu Build/Deployment/Testing wird pro Komponente bereitgestellt (6.2.4.3).
 
 ### 3.2 Datenbankmanagementsystem
 PostgreSQL in Kombination mit PostGIS bildet die zentrale Datengrundlage.  
@@ -161,15 +162,16 @@ CQL2-Filter werden serverseitig in SQL-WHERE-Klauseln übersetzt.
 Inkrementelle Updates und Soft-Deletes (active = false) sichern Integrität und Revisionsfähigkeit.
 
 ### 3.3 STAC API-konforme Schnittstelle
-Das Backend stellt eine API bereit, die vollständig mit der STAC API-Spezifikation kompatibel ist und standardisierte Zugriffe auf die gespeicherten STAC Collections ermöglicht, unter anderem die Endpunkte /collections, /collections/{id}, /search und /conformance.  
-Die API wird primär in JavaScript / Node.js (20) mit Express umgesetzt.  
-Für die Übersetzung und Auswertung von CQL2-Abfragen wird cql2-rs (Rust) zu WebAssembly kompiliert und in-process im Node-Prozess eingebunden (geringe Latenz, einfache Containerisierung).  
-Als Fallback bleibt alternativ pycql2; sollten sich gravierende Schwierigkeiten mit cql2-rs ergeben, kann optional ein Python-Backend (z. B. FastAPI) implementiert werden, das die Anfrageverarbeitung und CQL2-Übersetzung übernimmt.  
+Das Backend stellt eine API bereit, die vollständig mit der STAC API-Spezifikation kompatibel ist und standardisierte Zugriffe auf die gespeicherten STAC Collections ermöglicht, unter anderem die Endpunkte `/` (Landing), `/conformance`, `/collections`, `/collections/{id}` und `/queryables` (global und/oder pro Collection) (6.1.2.1, 6.1.2.2, 6.1.2.3). 
+Die API wird primär in JavaScript / Node.js (22) mit Express umgesetzt (6.2.4.2).  
+Für die Übersetzung und Auswertung von CQL2-Abfragen wird cql2-rs (Rust) zu WebAssembly kompiliert und in-process im Node-Prozess eingebunden (geringe Latenz, einfache Containerisierung) (6.1.2.4, 6.1.2.5, 6.1.2.6).  
+Als Fallback bleibt alternativ pycql2; sollten sich gravierende Schwierigkeiten mit cql2-rs ergeben, kann optional ein Python-Backend (z. B. FastAPI) implementiert werden, das die Anfrageverarbeitung und CQL2-Übersetzung übernimmt (6.1.2.7).  
 Die API ist klar vom Crawler getrennt und fokussiert auf Abfrage und Filterung der gespeicherten Collections.
 
 ### 3.4 UI (Web-Frontend)
-Das Web-Frontend wird mit Vue.js (Version 3) entwickelt und bietet eine benutzerfreundliche Oberfläche zur Suche, Filterung und Visualisierung der STAC Collections, inklusive Kartenansicht.  
-Die Kommunikation zwischen Frontend und Backend erfolgt ausschließlich über die STAC API.
+Das Web-Frontend wird mit Vue.js (Version 3) entwickelt (6.1.3.2) und bietet eine benutzerfreundliche Oberfläche zur Suche, Filterung und Visualisierung der STAC Collections, inklusive Kartenansicht (6.1.3.1, 6.1.3.3, 6.1.3.4, 6.1.3.5, 6.1.3.7, 6.1.3.8, 6.1.3.9).  
+Die Kommunikation zwischen Frontend und Backend erfolgt ausschließlich über die STAC API. Zusätzlich stellt die UI Links zur Originalquelle (STAC Catalog / API) bereit und kann optional Verweise zur Item-Search einer Collection zeigen (6.1.3.6). 
+Die UI und die zugehörigen Dokumentationen/Demos sollen so gestaltet sein, dass Schulungs- und Abnahmezwecke unterstützt werden (6.2.1.1, 6.2.1.2) und die Benutzererfahrung folgende Anforderungen erfüllt: intuitive/responsive UI, Accessibility, aussagekräftige Fehlerbehandlung und Sprachunterstützung (6.2.2.1, 6.2.2.2, 6.2.2.3, 6.2.2.4).
 
 ### 3.5 Containerisierung
 Alle Komponenten (Crawler, Datenbank, STAC-API, UI) werden einzeln mittels Docker containerisiert und als Komplett-Paket miteinander verknüpft, zum Beispiel via Docker Compose, um sowohl die getrennte Verwendung einzelner Komponenten als auch den Betrieb des vollständigen Systems zu ermöglichen.  
