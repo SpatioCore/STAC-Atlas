@@ -18,7 +18,7 @@ Die Abnahmekriterien definieren die zwingend erforderlichen Funktionalitäten de
 
 #### Crawler
 - Automatisches Crawlen und Indexieren von STAC Collections aus verschiedenen Quellen
-- Erfassung von mehr als 95% der Collections vom STAC Index
+- Erfassung aller Collections im STAC Index
 - Rekursive Navigation durch STAC-Kataloge
 - Wöchentliches Re-Crawling zur Aktualisierung der Daten
 - Robustes Error-Handling mit Retry-Logic
@@ -34,13 +34,17 @@ Die Abnahmekriterien definieren die zwingend erforderlichen Funktionalitäten de
 #### STAC API
 - Konforme Implementierung der STAC API Specification
 - Implementierung der Collection Search Extension
-- Bereitstellung von Collections (GET /collections)
 - Abruf einzelner Collections (GET /collections/{id})
-- Erweiterte Suchfunktion (GET /search) mit Filterung nach:
-  - Schlüsselwörtern
+- Erweiterte Suchfunktion (GET /colllections) mit Filterung nach:
+  - id
+  - Titel
+  - Beschreibung
   - Räumlicher Ausdehnung
-  - Zeitraum
-  - Provider und Lizenz
+  - Zeitlicher Ausdehnung
+  - Schlüsselwörtern
+  - Provider
+  - Lizenz
+  - DOIs
 - CQL2-Filterung für komplexe Abfragen
 - Parallele Verarbeitung von mindestens 100 Anfragen
 - Antwortzeiten: einfache Abfragen ≤ 1s, komplexe Abfragen ≤ 5s
@@ -52,6 +56,8 @@ Die Abnahmekriterien definieren die zwingend erforderlichen Funktionalitäten de
   - Bounding Box / räumlicher Ausdehnung
   - Zeitraum
   - Thema / Keywords
+  - Auswahlliste für Lizenzen
+  - Textsuche mit Vorschlägen für Provider 
 - Responsive Design für verschiedene Bildschirmgrößen
 - Sprache (Deutsch oder Englisch))
 - Barrierefreiheit (farbenblindentauglich)
@@ -609,6 +615,7 @@ Die nachfolgenden Maßnahmen gewährleisten die Korrektheit, Wartbarkeit, Standa
 - Sichere Datenbankverbindungen
 - Eingabevalidierung (SQL-Injection-Schutz)
 - Sanitization von Nutzereingaben
+- Gegen XSS abgesichert
 - Keine Exposition sensibler Daten in Logs
 - Protokollierung der Crawl-Aktivitäten
 - Strukturierte Error-Logs mit konfigurierbaren Log-Levels
@@ -630,7 +637,7 @@ Die nachfolgenden Maßnahmen gewährleisten die Korrektheit, Wartbarkeit, Standa
 ## 9. Gliederung in Teilprodukte
 
 ### 9.1 Crawler-Komponente <!-- Lenn -->
-Der Crawler durchsucht STAC Index nach STAC Kataloge und STAC APIs. Dabei sollen mehr als 95% der Collections erfolgreich erfasst werden.
+Der Crawler durchsucht STAC Index nach STAC Kataloge und STAC APIs. Dabei sollen sämtliche Collections erfolgreich erfasst werden.
 Das Crawling erfolgt rekursiv, sodass Collections in nahezu beliebiger Tiefe (<1024 Ebenen) innerhalb verschachtelter Kataloge erkannt werden. Es werden ausschließlich Catalogs und Collections und keine Items erfasst. Die Crawling Vorgänge extrahieren die relevanten Metadaten jeder Collection (6.1.1.3), das vollständige JSON-Objekt jeder Kollektion und speichern sie zusammen mit der Quell-URL, dem Katalognamen und dem Zeitstempel des letzten Crawls. Zusätzlich wird auch ein Parameter, über die aktuelle Verfügbarkeit der Collection hinzugefügt.
 
 Es werden alle stabilen STAC-Versionen, durch Migration unterstützt. 
