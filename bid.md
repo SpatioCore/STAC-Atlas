@@ -231,7 +231,7 @@ Die Tabellen enthalten jeweils Primärschlüssel zur eindeutigen Identifikation 
 
 ### Tabellenbereich „Catalogs“
 
-Der Bereich **Catalogs** bildet die hierarchische Struktur der STAC-Kataloge ab. Jeder Katalog speichert seine Metadaten inklusive Versionierung, Typ, Beschreibung und zugehöriger Links. Über Zwischentabellen werden Keywords sowie Erweiterungen (STAC Extensions) referenziert.  
+Der Bereich **Catalogs** bildet die hierarchische Struktur der STAC-Kataloge ab. Jeder Katalog speichert seine Metadaten inklusive Versionierung, Typ, Beschreibung und zugehöriger Links. Über Zwischentabellen werden Erweiterungen (STAC Extensions) referenziert.  
 
 #### Tabelle: `catalog`
 
@@ -259,14 +259,6 @@ Die Haupttabelle `catalog` bildet den zentralen Einstiegspunkt der Kataloghierar
 | title         | Titel oder Name des Links                   | text                  |
 
 Die Tabelle `catalog_links` beschreibt die Verknüpfungen zwischen einzelnen Katalogen oder externen Referenzen und implementiert damit die STAC-Link-Struktur.
-
-#### Tabelle: catalog:keywords
-| Spalte        | Beschreibung / Inhalt                       | Datentyp / Format |
-|----------------|---------------------------------------------|-------------------|
-| **catalog_id** | Referenz auf `catalog.id`                   | integer (FK)      |
-| **keyword_id** | Referenz auf `keyword.id`                   | integer (FK)      |
-
-Relationstabelle zur Mehrfachzuordnung von Keywords an Catalogs. Dadurch können Sammlungen gezielt über Schlagwörter gefiltert werden. Diese Tabelle wird benötigt, da hier eine (n:n)-Beziehung vorliegt.
 
 #### Tabelle: catalog:stac_extension
 
