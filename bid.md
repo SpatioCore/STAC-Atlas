@@ -145,6 +145,27 @@ Datenanbieter und -kuratoren, die ihre STAC-Kataloge bekannter machen und die Nu
 
 ## 3. Produkt-Umgebung
 
+```mermaid
+graph LR
+  Crawler
+  DB
+  API
+  UI
+  Docker
+
+  %% Datenfluss
+  Crawler --> DB
+  DB --> API
+  API --> UI
+  Crawler --> API
+
+  %% Deployment
+  Docker --> Crawler
+  Docker --> DB
+  Docker --> API
+  Docker --> UI
+```
+
 Die Produktumgebung beschreibt die technischen Rahmenbedingungen für Entwicklung, Betrieb und Integration der drei Hauptkomponenten des Projekts – **Crawler**, **STAC API** und **Frontend**.  
 Alle Komponenten werden in einer modernen, containerisierten Umgebung entwickelt und bereitgestellt, um eine einheitliche und reproduzierbare Laufzeitumgebung sicherzustellen.
 
