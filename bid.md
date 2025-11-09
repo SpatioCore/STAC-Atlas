@@ -587,7 +587,8 @@ Die nachfolgenden Maßnahmen gewährleisten die Korrektheit, Wartbarkeit, Standa
    - beim erstmaligen Import (Crawler-Phase),
    - bei Änderungen oder Re-Crawls,
    - zusätzlich regelmäßig in der CI-Pipeline anhand von Stichproben.
-- Collections, die nicht vollständig dem aktuellen STAC-Standard entsprechen, werden automatisch angepasst oder konvertiert, bevor sie in den Index übernommen werden.
+- Collections, die nicht vollständig dem aktuellen STAC-Standard entsprechen, werden automatisch strukturell angepasst oder konvertiert, bevor sie in den       Index übernommen werden.
+- Kann eine automatische Anpassung nicht durchgeführt werden, wird die betreffende Collection als inkompatibel markiert, nicht in den Index               aufgenommen und in einem separaten Fehlerprotokoll dokumentiert.
 - Die Validierungsergebnisse, sowie alle Anpassungen werden im Crawler-Log und in den CI-Reports dokumentiert.
 
 ### 7.4 STAC-API-Validator
