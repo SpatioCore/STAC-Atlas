@@ -597,11 +597,12 @@ Die nachfolgenden Maßnahmen gewährleisten die Korrektheit, Wartbarkeit, Standa
 - Geprüfte Aspekte:
    - Gültigkeit der API-Antworten nach STAC API-Spezifikation (v1.x).
    - Unterstützung der Collection Search Extension und der CQL2-Query Language (Basic).
-   - Korrekte Implementierung der Endpoints (/collections, /search, /conformance, /queryables).
+   - Korrekte Implementierung der Endpoints (`/`, `/conformance`, `/collections`, `/collections/{id}`).
+-Die Collection Search Extension wird zusätzlich durch eigene Integrationstests validiert, da der offizielle Validator derzeit keine automatisierte Prüfung dieser Erweiterung unterstützt. 
 - Der Validator wird:
    - nach jedem erfolgreichen Build in der CI-Pipeline ausgeführt,
    - manuell vor der Endabgabe für einen vollständigen Compliance-Report verwendet.
-- Ziel: 100 % bestehende STAC-Validator-Tests.
+- Ziel: 100 % bestehende STAC-Validator-Tests, sowie erfolgreiche interne Validierung der Collection Search Extension.
 
 ### 7.5 Dokumentations- und Wartungsqualität
 - Alle Module werden mit aussagekräftigen Kommentaren dokumentiert, entsprechend der jeweils verwendeten Programmiersprache (z. B. PyDoc für Python-Module oder JSDoc für JavaScript/Vue-Komponenten).
