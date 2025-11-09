@@ -718,9 +718,9 @@ und ermöglicht einen einheitlichen, standardkonformen Zugriff auf alle gespeich
    - `GET /collections/{id}` -> Liefert die vollständigen Metadaten einer einzelnen Collection
    
 3. Collection Search
-- `GET /search`
+- `GET /collections`
   und
-- `POST /search`
+- `POST /collections`
 - Ermöglicht die gezielte Filterung und Suche nach Collections innerhalb des Index.
 - Unterstützt wird sowohl die einfache Query-Parameter-Variante (GET) als auch komplexe CQL2-Abfragen (POST).
 
