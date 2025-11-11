@@ -168,9 +168,10 @@ graph LR
 
 Die Produktumgebung beschreibt die technischen Rahmenbedingungen für Entwicklung, Betrieb und Integration der drei Hauptkomponenten des Projekts – **Crawler**, **STAC API** und **Frontend**.  
 Alle Komponenten werden in einer modernen, containerisierten Umgebung entwickelt und bereitgestellt, um eine einheitliche und reproduzierbare Laufzeitumgebung sicherzustellen.
+[![](https://mermaid.ink/img/pako:eNptUsGO0zAQ_RVrTkVkS-K4JckBqWQLVCrQbVqQIBysZJoGErvYjlpo--_YYVOtBPJlZt6bN_OsOUMhS4QEdo08FnuuDFmuc0HIGyWFQVF-zWEIyehThyHZLp7l8M1xZquFhbPNLHUhGX2wUuPvmrwg89NBodYD8f615a2kNpXC7GFJnhOXvF1kj3i6nn1ezteWlCp-bFDdtAaF7ON2nc4zy5ifDCrBG9LPzWSnCtRk1GcLUeLJIyk3vJGV9siw26POU2Pk7u7V5d1ms8rIxVH-wdKHJb0hzp8ruu1_dqhq1Bdr68nyPbw9aLRfmMqmwcLUUvyXlUPhbJLRzvLkkTS1-OE2vAw2wYNK1SUkO95o9KBF1XKXw9lp5WD22GIOiQ3tE1fbcODii5QtJEZ1tkXJrtrfBLpDyQ3e17xSvL1VlbWKKpWdMJAEMWW9CiRnOEES0_HLCQ2jyPd9FkU08uAXJCwMxiGjIZsGccD8KZ1cPfjdz_XHUTil08mEsShgMY1DD7CsjVTv_55Yf2nXP1fHwN0?type=png)](https://mermaid.live/edit#pako:eNptUsGO0zAQ_RVrTkVkS-K4JckBqWQLVCrQbVqQIBysZJoGErvYjlpo--_YYVOtBPJlZt6bN_OsOUMhS4QEdo08FnuuDFmuc0HIGyWFQVF-zWEIyehThyHZLp7l8M1xZquFhbPNLHUhGX2wUuPvmrwg89NBodYD8f615a2kNpXC7GFJnhOXvF1kj3i6nn1ezteWlCp-bFDdtAaF7ON2nc4zy5ifDCrBG9LPzWSnCtRk1GcLUeLJIyk3vJGV9siw26POU2Pk7u7V5d1ms8rIxVH-wdKHJb0hzp8ruu1_dqhq1Bdr68nyPbw9aLRfmMqmwcLUUvyXlUPhbJLRzvLkkTS1-OE2vAw2wYNK1SUkO95o9KBF1XKXw9lp5WD22GIOiQ3tE1fbcODii5QtJEZ1tkXJrtrfBLpDyQ3e17xSvL1VlbWKKpWdMJAEMWW9CiRnOEES0_HLCQ2jyPd9FkU08uAXJCwMxiGjIZsGccD8KZ1cPfjdz_XHUTil08mEsShgMY1DD7CsjVTv_55Yf2nXP1fHwN0)
 
 ### 3.1 Crawler
-Der Crawler wird in Python implementiert und ist zuständig für das automatische Auffinden und Einlesen von STAC Collections aus dem STAC Index sowie verlinkten Katalogen/APIs (6.1.1.1, 6.1.1.2). (6.2.4.2)
+Der Crawler wird in JavaScript implementiert und ist zuständig für das automatische Auffinden und Einlesen von STAC Collections aus dem STAC Index sowie verlinkten Katalogen/APIs (6.1.1.1, 6.1.1.2). (6.2.4.2)
 Er schreibt die Daten in die Datenbank (6.1.1.7, 6.1.1.3) und führt regelmäßige, inkrementelle Aktualisierungen durch, um eine aktuelle Indexierung sicherzustellen (6.1.1.6). 
 Protokollierung (z. B. Zeitstempel/Status) stellt Nachvollziehbarkeit sicher (6.1.1.4, 6.1.1.12). Dokumentation zu Build/Deployment/Testing wird pro Komponente bereitgestellt (6.2.4.3).
 
@@ -439,10 +440,10 @@ Indizes auf allen relevanten Attributen (IDs, Zeitstempel, Textfelder und Geomet
 Die Crawler-Komponente soll eine hohe Effizienz, Stabilität und Skalierbar sein, um große Mengen an STAC-Katalogen und -APIs regelmäißg und zuverlässig zu erfassen.
 
 #### 6.1.1 Crawling Leistung
-Der Crawler soll in der Lage sein aus dem STAC-Index Quellen innerhalb einer Woche zu analysieren. In folge dessen soll auch die Aktualisierung aller bekannter und neuer Quellen maximal eine Woche betragen. Die einzelnen STAC-Collections sollen jeweils innerhalb von < 5 Sekunden abgerufen und verarbeitet werden. Zudem soll der Crawler alle vorgegebenen Rate-Limits einhalten, um die externen Dienste nicht zu überlasten (z.B. max. 5 Request/Sekunde pro Quelle).
+Der Crawler soll in der Lage sein aus dem STAC-Index Quellen innerhalb einer Woche zu analysieren. In folge dessen soll auch die Aktualisierung aller bekannter und neuer Quellen maximal eine Woche betragen. Die einzelnen STAC-Collections sollen jeweils innerhalb von < 5 Sekunden abgerufen und verarbeitet werden. Zudem soll der Crawler alle vorgegebenen Rate-Limits einhalten, um die externen Dienste nicht zu überlasten (z.B. max. 20 Request/Minute pro Quelle).
 
 #### 6.1.2 Crawling Parallelität und Skalierbarkeit
-Die Implementierung soll asynchrones und paralleles Crawling unterstützten. Es wird nur ein einzelene Crawler-Instanz sein, um die Komplexität mit Datenbankkonflikten zu vermeiden. Es wird darauf geachtet eine Modulare weise zu programmieren um in Zukunft horizontale Skalierung mit mehren Cralwern möglich zu machen.
+Die Implementierung soll asynchrones und paralleles Crawling unterstützten. Es wird nur ein einzelene Crawler-Instanz sein, um die Komplexität mit Datenbankkonflikten zu vermeiden. Es wird darauf geachtet so zu programmieren, um in Zukunft horizontale Skalierung mit mehren Crawlern möglich zu machen.
 
 #### 6.1.3 Crawling Zuverlässigkeit unf Fehlertoleranz
 Der Crawler darf bei fehlerhaften oder inaktiven Quellen nicht vollständig abbrechen. Die Quellen, die dreimal hintereinander fehlschlagen, sollen als inaktiv bis zum Crawling Event behandelt werden. Fehler und Wiederholungen müssen protokolliert werden. Alle ursprünglich erreichbaren STAC collections und catalogs sollen in der Datenbank dann als inaktiv gekennzeichnet werden.
@@ -660,13 +661,12 @@ Die nachfolgenden Maßnahmen gewährleisten die Korrektheit, Wartbarkeit, Standa
 ## 9. Gliederung in Teilprodukte
 
 ### 9.1 Crawler-Komponente <!-- Lenn -->
-Der Crawler durchsucht STAC Index nach STAC Kataloge und STAC APIs. Dabei sollen sämtliche Collections erfolgreich erfasst werden.
+Der Crawler bekommt über die STAC Index API, alle STAC Kataloge und STAC APIs die gecrawled werden müssen. Dabei sollen alle Collections erfolgreich erfasst werden.
 Das Crawling erfolgt rekursiv, sodass Collections in nahezu beliebiger Tiefe (<1024 Ebenen) innerhalb verschachtelter Kataloge erkannt werden. Es werden ausschließlich Catalogs und Collections und keine Items erfasst. Die Crawling Vorgänge extrahieren die relevanten Metadaten jeder Collection (6.1.1.3), das vollständige JSON-Objekt jeder Kollektion und speichern sie zusammen mit der Quell-URL, dem Katalognamen und dem Zeitstempel des letzten Crawls. Zusätzlich wird auch ein Parameter, über die aktuelle Verfügbarkeit der Collection hinzugefügt.
 
 Es werden alle stabilen STAC-Versionen, durch Migration unterstützt. 
 Eine Crawling-Plan (Schedule) ermöglicht die zeitliche Steuerung einzelner Crawl-Vorgänge. Es soll eine wöchentliche Aktualisierungen des Indexes durchgeführt werden.
-
-Für die Umsetzung werden PySTAC und asyncio zur Verarbeitung genutzt. Die Ergebnisse werden mittels PypgSTAC in einer PostgreSQL-Datenbank gespeichert.
+Die Ergebnisse werden in einer PostgreSQL-Datenbank gespeichert.
 
 ### 9.2 Datenbank-Komponente <!-- Sönke -->
 Die Datenbankkomponente stellt die zentrale Grundlage für die Speicherung, Verwaltung und Abfrage aller vom Crawler erfassten Metadaten dar. Sie dient der persistenten Ablage sämtlicher Inhalte, einschließlich der vollständigen STAC-JSON-Strukturen, und ermöglicht deren effiziente Weiterverarbeitung innerhalb der Gesamtarchitektur. Als Datenbanksystem wird **PostgreSQL** in Kombination mit der Erweiterung **PostGIS** eingesetzt, um sowohl relationale als auch geographische Abfragen performant unterstützen zu können.
@@ -785,7 +785,7 @@ Ziel des Crawler‑Moduls ist die automatische Erfassung, Validierung und Speich
 #### 10.1.1 Technologien
 
 Der Crawler wird als Node.js‑Anwendung konzipiert werden. Es wird JavaScript genutzt, um bessere Wartbarkeit und Weiterentwicklung innerhalb der Gruppe zu erreichen und die Probleme mit bestimmten Versionen von z.B. Python zu unterbinden.
-Für das STAC‑Handling kommen [stac-js](https://github.com/moregeo-it/stac-js) und [stac-migrate](https://github.com/stac-utils/stac-migrate) zum Migrieren älterer STAC‑Versionen zum Einsatz. Für HTTP‑Zugriffe eignen sich `axios` oder `got`, da beide Timeouts und Retries unterstützen. Alternativ kann `node‑fetch` verwendet werden. 
+Für das STAC‑Handling kommen [stac-js](https://github.com/moregeo-it/stac-js) und [stac-migrate](https://github.com/stac-utils/stac-migrate) zum Migrieren älterer STAC‑Versionen zum Einsatz. Für HTTP‑Zugriffe eignen sich `axios`, da es Timeouts und Retries unterstützt. Alternativ kann `node‑fetch` verwendet werden. 
 Beim Crawling und Queueing sind für komplexe Szenarien, Frameworks wie `Crawlee (Apify)` oder vergleichbare Lösungen mit integrierter Queue/Retry‑Logik empfehlenswert, für leichtere Implementierungen bieten sich `p‑queue` oder `Bottleneck` zur Steuerung von Parallelität und Rate‑Limits an. 
 Zur zeitgesteuerten Ausführung kann lokal `node‑cron` genutzt werden. Die Validierung erfolgt via JSON‑Schema Validator (z. B. `ajv`) unter Verwendung der offiziellen STAC‑Schemas. 
 Die Anbindung an die Datenbank kann mit `node‑postgres (pg)` erfolgen. 
@@ -811,7 +811,7 @@ Optional existiert eine Admin UI / API zur Anzeige von Quellen, Fehlerlogs und f
 
 3. Rekursives Crawling und Pagination: Die Engine folgt Link‑Rela‑Typen wie child, catalog und collection sowie paginiert bei STAC APIs; neue URLs/Tasks werden in die Queue aufgenommen und asynchron abgearbeitet, wobei Rate‑Limits und Parallelität berücksichtigt werden.
 
-4. Migration & Modeling: Gefundene STAC‑Objekte werden mit stac‑migrate in eine einheitliche STAC‑Version überführt und anschließend in ein internes Datenmodell (z. B. stac‑js‑Objekt oder DTO) umgewandelt.
+4. Migration: Gefundene STAC‑Objekte werden mit stac‑migrate in eine einheitliche STAC‑Version überführt und anschließend in ein internes Datenmodell für die Suche umgewandelt.
 
 5. Extraktion & Normalisierung: Aus den STAC‑Objekten werden Schlüsselattribute extrahiert (z. B. id, title, description, extent – bbox und temporal, providers, license, assets, HREFs). Die BBOX‑Angaben werden in eine PostGIS‑Geometrie konvertiert (z. B. Envelope/Polygon), zeitliche Angaben als TIMESTAMP abgelegt.
 
