@@ -144,28 +144,6 @@ Datenanbieter und -kuratoren, die ihre STAC-Kataloge bekannter machen und die Nu
 - Als Infrastrukturbetreiber möchte ich, dass mein STAC-Katalog automatisch gecrawlt wird, um ohne zusätzlichen Aufwand in der Plattform präsent zu sein.
 
 ## 3. Produkt-Umgebung
-
-```mermaid
-graph LR
-  Crawler
-  DB
-  API
-  UI
-  Docker
-
-  %% Datenfluss
-  Crawler --> DB
-  DB --> API
-  API --> UI
-  Crawler --> API
-
-  %% Deployment
-  Docker --> Crawler
-  Docker --> DB
-  Docker --> API
-  Docker --> UI
-```
-
 Die Produktumgebung beschreibt die technischen Rahmenbedingungen für Entwicklung, Betrieb und Integration der drei Hauptkomponenten des Projekts – **Crawler**, **STAC API** und **Frontend**.  
 Alle Komponenten werden in einer modernen, containerisierten Umgebung entwickelt und bereitgestellt, um eine einheitliche und reproduzierbare Laufzeitumgebung sicherzustellen.
 [![](https://mermaid.ink/img/pako:eNptUsGO0zAQ_RVrTkVkS-K4JckBqWQLVCrQbVqQIBysZJoGErvYjlpo--_YYVOtBPJlZt6bN_OsOUMhS4QEdo08FnuuDFmuc0HIGyWFQVF-zWEIyehThyHZLp7l8M1xZquFhbPNLHUhGX2wUuPvmrwg89NBodYD8f615a2kNpXC7GFJnhOXvF1kj3i6nn1ezteWlCp-bFDdtAaF7ON2nc4zy5ifDCrBG9LPzWSnCtRk1GcLUeLJIyk3vJGV9siw26POU2Pk7u7V5d1ms8rIxVH-wdKHJb0hzp8ruu1_dqhq1Bdr68nyPbw9aLRfmMqmwcLUUvyXlUPhbJLRzvLkkTS1-OE2vAw2wYNK1SUkO95o9KBF1XKXw9lp5WD22GIOiQ3tE1fbcODii5QtJEZ1tkXJrtrfBLpDyQ3e17xSvL1VlbWKKpWdMJAEMWW9CiRnOEES0_HLCQ2jyPd9FkU08uAXJCwMxiGjIZsGccD8KZ1cPfjdz_XHUTil08mEsShgMY1DD7CsjVTv_55Yf2nXP1fHwN0?type=png)](https://mermaid.live/edit#pako:eNptUsGO0zAQ_RVrTkVkS-K4JckBqWQLVCrQbVqQIBysZJoGErvYjlpo--_YYVOtBPJlZt6bN_OsOUMhS4QEdo08FnuuDFmuc0HIGyWFQVF-zWEIyehThyHZLp7l8M1xZquFhbPNLHUhGX2wUuPvmrwg89NBodYD8f615a2kNpXC7GFJnhOXvF1kj3i6nn1ezteWlCp-bFDdtAaF7ON2nc4zy5ifDCrBG9LPzWSnCtRk1GcLUeLJIyk3vJGV9siw26POU2Pk7u7V5d1ms8rIxVH-wdKHJb0hzp8ruu1_dqhq1Bdr68nyPbw9aLRfmMqmwcLUUvyXlUPhbJLRzvLkkTS1-OE2vAw2wYNK1SUkO95o9KBF1XKXw9lp5WD22GIOiQ3tE1fbcODii5QtJEZ1tkXJrtrfBLpDyQ3e17xSvL1VlbWKKpWdMJAEMWW9CiRnOEES0_HLCQ2jyPd9FkU08uAXJCwMxiGjIZsGccD8KZ1cPfjdz_XHUTil08mEsShgMY1DD7CsjVTv_55Yf2nXP1fHwN0)
