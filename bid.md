@@ -18,7 +18,7 @@ Die Abnahmekriterien definieren die zwingend erforderlichen Funktionalitäten de
 
 #### Crawler
 - Automatisches Crawlen und Indexieren von STAC Collections aus verschiedenen Quellen
-- Erfassung von mehr als 95% der Collections vom STAC Index
+- Erfassung aller Collections im STAC Index
 - Rekursive Navigation durch STAC-Kataloge
 - Wöchentliches Re-Crawling zur Aktualisierung der Daten
 - Robustes Error-Handling mit Retry-Logic
@@ -34,13 +34,17 @@ Die Abnahmekriterien definieren die zwingend erforderlichen Funktionalitäten de
 #### STAC API
 - Konforme Implementierung der STAC API Specification
 - Implementierung der Collection Search Extension
-- Bereitstellung von Collections (GET /collections)
 - Abruf einzelner Collections (GET /collections/{id})
-- Erweiterte Suchfunktion (GET /search) mit Filterung nach:
-  - Schlüsselwörtern
+- Erweiterte Suchfunktion (GET /colllections) mit Filterung nach:
+  - id
+  - Titel
+  - Beschreibung
   - Räumlicher Ausdehnung
-  - Zeitraum
-  - Provider und Lizenz
+  - Zeitlicher Ausdehnung
+  - Schlüsselwörtern
+  - Provider
+  - Lizenz
+  - DOIs
 - CQL2-Filterung für komplexe Abfragen
 - Parallele Verarbeitung von mindestens 100 Anfragen
 - Antwortzeiten: einfache Abfragen ≤ 1s, komplexe Abfragen ≤ 5s
@@ -52,6 +56,8 @@ Die Abnahmekriterien definieren die zwingend erforderlichen Funktionalitäten de
   - Bounding Box / räumlicher Ausdehnung
   - Zeitraum
   - Thema / Keywords
+  - Auswahlliste für Lizenzen
+  - Textsuche mit Vorschlägen für Provider 
 - Responsive Design für verschiedene Bildschirmgrößen
 - Sprache (Deutsch oder Englisch))
 - Barrierefreiheit (farbenblindentauglich)
@@ -139,13 +145,35 @@ Datenanbieter und -kuratoren, die ihre STAC-Kataloge bekannter machen und die Nu
 
 ## 3. Produkt-Umgebung
 
+```mermaid
+graph LR
+  Crawler
+  DB
+  API
+  UI
+  Docker
+
+  %% Datenfluss
+  Crawler --> DB
+  DB --> API
+  API --> UI
+  Crawler --> API
+
+  %% Deployment
+  Docker --> Crawler
+  Docker --> DB
+  Docker --> API
+  Docker --> UI
+```
+
 Die Produktumgebung beschreibt die technischen Rahmenbedingungen für Entwicklung, Betrieb und Integration der drei Hauptkomponenten des Projekts – **Crawler**, **STAC API** und **Frontend**.  
 Alle Komponenten werden in einer modernen, containerisierten Umgebung entwickelt und bereitgestellt, um eine einheitliche und reproduzierbare Laufzeitumgebung sicherzustellen.
 [![](https://mermaid.ink/img/pako:eNptUsGO0zAQ_RVrTkVkS-K4JckBqWQLVCrQbVqQIBysZJoGErvYjlpo--_YYVOtBPJlZt6bN_OsOUMhS4QEdo08FnuuDFmuc0HIGyWFQVF-zWEIyehThyHZLp7l8M1xZquFhbPNLHUhGX2wUuPvmrwg89NBodYD8f615a2kNpXC7GFJnhOXvF1kj3i6nn1ezteWlCp-bFDdtAaF7ON2nc4zy5ifDCrBG9LPzWSnCtRk1GcLUeLJIyk3vJGV9siw26POU2Pk7u7V5d1ms8rIxVH-wdKHJb0hzp8ruu1_dqhq1Bdr68nyPbw9aLRfmMqmwcLUUvyXlUPhbJLRzvLkkTS1-OE2vAw2wYNK1SUkO95o9KBF1XKXw9lp5WD22GIOiQ3tE1fbcODii5QtJEZ1tkXJrtrfBLpDyQ3e17xSvL1VlbWKKpWdMJAEMWW9CiRnOEES0_HLCQ2jyPd9FkU08uAXJCwMxiGjIZsGccD8KZ1cPfjdz_XHUTil08mEsShgMY1DD7CsjVTv_55Yf2nXP1fHwN0?type=png)](https://mermaid.live/edit#pako:eNptUsGO0zAQ_RVrTkVkS-K4JckBqWQLVCrQbVqQIBysZJoGErvYjlpo--_YYVOtBPJlZt6bN_OsOUMhS4QEdo08FnuuDFmuc0HIGyWFQVF-zWEIyehThyHZLp7l8M1xZquFhbPNLHUhGX2wUuPvmrwg89NBodYD8f615a2kNpXC7GFJnhOXvF1kj3i6nn1ezteWlCp-bFDdtAaF7ON2nc4zy5ifDCrBG9LPzWSnCtRk1GcLUeLJIyk3vJGV9siw26POU2Pk7u7V5d1ms8rIxVH-wdKHJb0hzp8ruu1_dqhq1Bdr68nyPbw9aLRfmMqmwcLUUvyXlUPhbJLRzvLkkTS1-OE2vAw2wYNK1SUkO95o9KBF1XKXw9lp5WD22GIOiQ3tE1fbcODii5QtJEZ1tkXJrtrfBLpDyQ3e17xSvL1VlbWKKpWdMJAEMWW9CiRnOEES0_HLCQ2jyPd9FkU08uAXJCwMxiGjIZsGccD8KZ1cPfjdz_XHUTil08mEsShgMY1DD7CsjVTv_55Yf2nXP1fHwN0)
 
 ### 3.1 Crawler
-Der Crawler wird in JavaScript implementiert und ist zuständig für das automatische Auffinden und Einlesen von STAC Collections aus dem STAC Index sowie verlinkten Katalogen/APIs.  
-Er schreibt die Daten in die Datenbank und führt regelmäßige, inkrementelle Aktualisierungen durch, um eine aktuelle Indexierung sicherzustellen. Protokollierung (z. B. Zeitstempel/Status) stellt Nachvollziehbarkeit sicher.
+Der Crawler wird in JavaScript implementiert und ist zuständig für das automatische Auffinden und Einlesen von STAC Collections aus dem STAC Index sowie verlinkten Katalogen/APIs (6.1.1.1, 6.1.1.2). (6.2.4.2)
+Er schreibt die Daten in die Datenbank (6.1.1.7, 6.1.1.3) und führt regelmäßige, inkrementelle Aktualisierungen durch, um eine aktuelle Indexierung sicherzustellen (6.1.1.6). 
+Protokollierung (z. B. Zeitstempel/Status) stellt Nachvollziehbarkeit sicher (6.1.1.4, 6.1.1.12). Dokumentation zu Build/Deployment/Testing wird pro Komponente bereitgestellt (6.2.4.3).
 
 ### 3.2 Datenbankmanagementsystem
 PostgreSQL in Kombination mit PostGIS bildet die zentrale Datengrundlage.  
@@ -156,15 +184,16 @@ CQL2-Filter werden serverseitig in SQL-WHERE-Klauseln übersetzt.
 Inkrementelle Updates und Soft-Deletes (active = false) sichern Integrität und Revisionsfähigkeit.
 
 ### 3.3 STAC API-konforme Schnittstelle
-Das Backend stellt eine API bereit, die vollständig mit der STAC API-Spezifikation kompatibel ist und standardisierte Zugriffe auf die gespeicherten STAC Collections ermöglicht, unter anderem die Endpunkte /collections, /collections/{id}, /search und /conformance.  
-Die API wird primär in JavaScript / Node.js (20) mit Express umgesetzt.  
-Für die Übersetzung und Auswertung von CQL2-Abfragen wird cql2-rs (Rust) zu WebAssembly kompiliert und in-process im Node-Prozess eingebunden (geringe Latenz, einfache Containerisierung).  
-Als Fallback bleibt alternativ pycql2; sollten sich gravierende Schwierigkeiten mit cql2-rs ergeben, kann optional ein Python-Backend (z. B. FastAPI) implementiert werden, das die Anfrageverarbeitung und CQL2-Übersetzung übernimmt.  
+Das Backend stellt eine API bereit, die vollständig mit der STAC API-Spezifikation kompatibel ist und standardisierte Zugriffe auf die gespeicherten STAC Collections ermöglicht, unter anderem die Endpunkte `/` (Landing), `/conformance`, `/collections`, `/collections/{id}` und `/queryables` (global und/oder pro Collection) (6.1.2.1, 6.1.2.2, 6.1.2.3). 
+Die API wird primär in JavaScript / Node.js (22) mit Express umgesetzt (6.2.4.2).  
+Für die Übersetzung und Auswertung von CQL2-Abfragen wird cql2-rs (Rust) zu WebAssembly kompiliert und in-process im Node-Prozess eingebunden (geringe Latenz, einfache Containerisierung) (6.1.2.4, 6.1.2.5, 6.1.2.6).  
+Als Fallback bleibt alternativ pycql2; sollten sich gravierende Schwierigkeiten mit cql2-rs ergeben, kann optional ein Python-Backend (z. B. FastAPI) implementiert werden, das die Anfrageverarbeitung und CQL2-Übersetzung übernimmt (6.1.2.7).  
 Die API ist klar vom Crawler getrennt und fokussiert auf Abfrage und Filterung der gespeicherten Collections.
 
 ### 3.4 UI (Web-Frontend)
-Das Web-Frontend wird mit Vue.js (Version 3) entwickelt und bietet eine benutzerfreundliche Oberfläche zur Suche, Filterung und Visualisierung der STAC Collections, inklusive Kartenansicht.  
-Die Kommunikation zwischen Frontend und Backend erfolgt ausschließlich über die STAC API.
+Das Web-Frontend wird mit Vue.js (Version 3) entwickelt (6.1.3.2) und bietet eine benutzerfreundliche Oberfläche zur Suche, Filterung und Visualisierung der STAC Collections, inklusive Kartenansicht (6.1.3.1, 6.1.3.3, 6.1.3.4, 6.1.3.5, 6.1.3.7, 6.1.3.8, 6.1.3.9).  
+Die Kommunikation zwischen Frontend und Backend erfolgt ausschließlich über die STAC API. Zusätzlich stellt die UI Links zur Originalquelle (STAC Catalog / API) bereit und kann optional Verweise zur Item-Search einer Collection zeigen (6.1.3.6). 
+Die UI und die zugehörigen Dokumentationen/Demos sollen so gestaltet sein, dass Schulungs- und Abnahmezwecke unterstützt werden (6.2.1.1, 6.2.1.2) und die Benutzererfahrung folgende Anforderungen erfüllt: intuitive/responsive UI, Accessibility, aussagekräftige Fehlerbehandlung und Sprachunterstützung (6.2.2.1, 6.2.2.2, 6.2.2.3, 6.2.2.4).
 
 ### 3.5 Containerisierung
 Alle Komponenten (Crawler, Datenbank, STAC-API, UI) werden einzeln mittels Docker containerisiert und als Komplett-Paket miteinander verknüpft, zum Beispiel via Docker Compose, um sowohl die getrennte Verwendung einzelner Komponenten als auch den Betrieb des vollständigen Systems zu ermöglichen.  
@@ -175,38 +204,44 @@ Docker gewährleistet eine konsistente Laufzeitumgebung und erleichtert die Inte
 
 Im folgenden werden die Produktfunktionen nach den einzelnen Komponenten unterteilt, nummeriert und beschrieben. Zusätzlich wird eine Priorität zur Orientierung in der Implementierung angegeben inkl. einer kurzen Beschreibung und einem groben Akzeptanzkriterium. Auf Basis der optionalen Elemente des Lastenhefts wurde auch eine Spalte "Optional" gefüllt, welche Features markiert, welche mit nachrangiger Priorität nach der Entwicklung der Hauptfunktionalitäten entwickelt werden, sollte dafür noch Zeit sein.
 
-| ID | Komponente | Funktion (Kurzbeschreibung) | Optional | Akzeptanzkriterium | Prio |
+Komponente | Funktion (Kurzbeschreibung) | Optionale Umsetzung | Akzeptanzkriterium | Prio | Lastenheft-Referenz |
 |---|---|---|---|---|---|
-| PF-CR-01 | Crawler | Alle im STAC Index gelisteten statischen Kataloge und STAC-APIs nach Collections crawlen | – | Mind. 87 Quellen gecrawlt; Trefferquote ≥ 95 % | M |
-| PF-CR-02 | Crawler | Collections in nahezu beliebiger Verschachtelungstiefe erfassen (nested catalogs) | – | Maximale Tiefe < 1024; keine Duplikate | M |
-| PF-CR-03 | Crawler | Metadaten extrahieren: id, title, description, spatial/temporal extent, keywords, provider, license, DOI, summaries(platform/constellation/gsd/processing:level) | – | ≥ 95 % Felder gefüllt bei Stichprobe n=50 | H |
-| PF-CR-04 | Crawler | Quell-URL, Quell-Titel, „zuletzt gecrawlt“ speichern | – | Felder in DB vorhanden und befüllt | M |
-| PF-CR-05 | Crawler | Alle stabilen STAC-Versionen unterstützen (alte Ressourcen werden automatisch auf 1.1 migriert) | – | Collections unterschiedl. Versionen werden gespeichert und ggf. migriert | M |
-| PF-CR-06 | Crawler | Inkrementelle Updates und periodisches Re-Crawling | – | Änderungen können ohne vollständige Neuindexierung hinzugefügt werden | H |
-| PF-CR-07 | Crawler | Vollständige STAC-Collection + extrahierte Suchfelder persistent ablegen | – | ≥ 95 % Felder identisch zwischen Quelle und Datenbank bei Stichprobe n=50 | H |
-| PF-CR-08 | Crawler | Erweiterbares DB-Design für zusätzliche Felder vorschlagen (siehe 5. Produktdaten) | – | Schema-Entwurf dokumentiert & abgenommen | M |
-| PF-CR-09 | Crawler | Rate-Limiting einhalten (Quellen nicht überlasten) | – | Keine 429-Antworten/Blockings in Testlauf über 12 h | M |
-| PF-CR-10 | Crawler | Konfigurierbare Crawl-Zeitpläne/Frequenzen | ✔ | CRON/Intervall vom Anwender frei konfigurierbar | L |
-| PF-CR-11 | Crawler | Fehlerbehandlung + Retry; problematische Quellen überspringen | ✔ | Backoff/Retry-Logik; Fehlerbericht vorhanden | M |
-| PF-CR-12 | Crawler | Logging & Monitoring der Crawl-Aktivitäten | ✔ | Dashboards/Metriken (Rate, Fehler, Status) | M |
-| PF-CR-13 | Crawler | Version-agnostische STAC-Extensions erkennen und als Tags speichern (EO, SAR, Point Cloud) | ✔ | Extensions-Tags in DB & Queryables sichtbar | L |
-| PF-API-01 | STAC-API | API gemäß relevanten Spezifikationen gültig (STAC API und Collection Search Extension) | – | `/conformance` enthält zutreffende URIs | H |
-| PF-API-02 | STAC-API | Erweiterung der bestehenden STAC Index API; bleibt selbst gültige STAC-API | – | Root/Collections gültig - Getestet durch `STAC Validator` und `STAC API Validator` | H |
-| PF-API-03 | STAC-API | Collection Search: Freitext `q`, Filter, Sortierung | – | Beispiel-Queries liefern erwartete Treffer | H |
-| PF-API-04 | STAC-API | CQL2-Filtering (Basic CQL2 (`AND`, `OR`, `NOT`, `=`, `<>`, `<`, `<=`, `>`, `>=`, `IS NULL`)) für Collection-Eigenschaften | – | Gültige Filter → 200 Antworten; ungültige → 400 Antworten mit Fehlerbeschreibung | H |
-| PF-API-05 | STAC-API | Zusätzliche CQL2-Fähigkeiten (Advanced Comparison Operators (`LIKE/BETWEEN/IN`, `casei/accenti`, `Spatial/Temporal`, `Arrays`)) | ✔ | Conformance-URIs ergänzt; Tests grün | M |
-| PF-API-06 | STAC-API | CQL2 als Standalone-Library bereitstellen | ✔ | Lib mit Parser/Validation + README | L |
-| PF-API-07 | STAC-API | Integration der neuen Funktionen in bestehende STAC Index API | ✔ | End-to-End-Tests (Crawler→API→UI) grün | M |
-| PF-UI-01 | Web-UI | Intuitive Suchoberfläche für Collections | – | Usability-Test: Kernflows bestehen | H |
-| PF-UI-02 | Web-UI | Implementierung in Vue (v3) zur Einbindung in STAC Index | – | Build integriert; Routing/State funktionsfähig | M |
-| PF-UI-03 | Web-UI | Interaktive Auswahl von Bounding Box und Zeitintervall | – | BBox/Datetime erzeugen korrekte Parameter | H |
-| PF-UI-04 | Web-UI | Composable Queryables in der UI → generiert CQL2-Ausdruck | – | UI-Builder erzeugt valide CQL2 (Server-OK) | H |
-| PF-UI-05 | Web-UI | Kartenansicht mit Visualisierung räumlicher Extents | – | Extents werden auf interaktiver Karte dargestellt | M |
-| PF-UI-06 | Web-UI | Links zur Originalquelle (Katalog/API) und optional zur Item Search | – | Links korrekt & erreichbar | M |
-| PF-UI-07 | Web-UI | Inspection-Ansicht für Collections (Details) | – | Detailseite zeigt alle Kernfelder | M |
-| PF-UI-08 | Web-UI | Items der Collections inspizieren können | ✔ | Item-Liste/Detail aufrufbar | L |
-| PF-UI-09 | Web-UI | Collections vergleichen (Mehrfachauswahl & Vergleich) | ✔ | Vergleichsansicht mit minimum 2 Collections | L |
+| Crawler | Alle im STAC Index gelisteten statischen Kataloge und STAC-APIs nach Collections crawlen | – | Mind. 87 Quellen gecrawlt; Trefferquote ≥ 95 % | M | 6.1.1 1. |
+| Crawler | Collections in nahezu beliebiger Verschachtelungstiefe erfassen (nested catalogs) | – | Maximale Tiefe < 1024 | M | 6.1.1 2. |
+| Crawler | Metadaten extrahieren: id, title, description, spatial/temporal extent, keywords, provider, license, DOI, summaries(platform/constellation/gsd/processing:level) | – | ≥ 95 % Felder gefüllt bei Stichprobe n=50 | H | 6.1.1 3. |
+| Crawler | Quell-URL, Quell-Titel, „zuletzt gecrawlt“ speichern | – | Felder in DB vorhanden und befüllt | M | 6.1.1 4. |
+| Crawler | Alle stabilen STAC-Versionen unterstützen (alte Ressourcen werden automatisch auf 1.1 migriert) | – | Collections unterschiedl. Versionen werden gespeichert und ggf. migriert | M | 6.1.1 5. |
+| Crawler | Inkrementelle Updates und periodisches Re-Crawling | – | Änderungen können ohne vollständige Neuindexierung hinzugefügt werden | H | 6.1.1 6. |
+| Crawler | Vollständige STAC-Collection + extrahierte Suchfelder persistent ablegen | – | ≥ 95 % Felder identisch zwischen Quelle und Datenbank bei Stichprobe n=50 | H | 6.1.1 7. |
+| Crawler | Erweiterbares DB-Design für zusätzliche Felder vorschlagen (siehe 5. Produktdaten) | – | Schema-Entwurf dokumentiert & abgenommen | M | 6.1.1 8. |
+| Crawler | Rate-Limiting einhalten (Quellen nicht überlasten) | – | Keine 429-Antworten/Blockings in Testlauf über 12 h | M | 6.1.1 9. |
+| Crawler | Konfigurierbare Crawl-Zeitpläne/Frequenzen | % | CRON/Intervall vom Anwender frei konfigurierbar | L | 6.1.1 10. |
+| Crawler | Fehlerbehandlung + Retry; problematische Quellen überspringen | % | Backoff/Retry-Logik; Fehlerbericht vorhanden | M | 6.1.1 11. |
+| Crawler | Logging & Monitoring der Crawl-Aktivitäten | % | Dashboards/Metriken (Rate, Fehler, Status) | M | 6.1.1 12. |
+| Crawler | Version-agnostische STAC-Extensions erkennen und als Tags speichern (EO, SAR, Point Cloud) | ✔ | Extensions-Tags in DB & Queryables sichtbar | $ | 6.1.1 13. |
+| STAC-API | API gemäß relevanten Spezifikationen gültig (STAC API und Collection Search Extension) | – | GET `/` und `/conformance` enthält zutreffende URIs | H | 6.1.2 1. |
+| STAC-API | Erweiterung der bestehenden STAC Index API; bleibt selbst gültige STAC-API | – | Root/Collections gültig - Getestet durch `STAC Validator` und `STAC API Validator` und Jest-Tests für die Collection Search Extension | H | 6.1.2 2. |
+| STAC-API | Collection Search: Freitext `q`, Filter, Sortierung | – | Beispiel-Queries liefern erwartete Treffer | H | 6.1.2 3. |
+| STAC-API | CQL2-Filtering (Basic CQL2 (`AND`, `OR`, `NOT`, `=`, `<>`, `<`, `<=`, `>`, `>=`, `IS NULL`)) für Collection-Eigenschaften | – | Gültige Filter → 200 Antworten; ungültige → 400 Antworten mit Fehlerbeschreibung | H | 6.1.2 4. |
+| STAC-API | Zusätzliche CQL2-Fähigkeiten (Advanced Comparison Operators (`LIKE/BETWEEN/IN`, `casei/accenti`, `Spatial/Temporal`, `Arrays`)) | % | Conformance-URIs ergänzt; Tests erfolgreich | M | 6.1.2 5. (optional) |
+| STAC-API | CQL2 als Standalone-Library bereitstellen | $ | Lib mit Parser/Validation + README | L | 6.1.2 6. (optional) |
+| STAC-API | Integration der neuen Funktionen in bestehende STAC Index API | $ | End-to-End-Tests (Crawler→API→UI) grün | M | 6.1.2 7. |
+| Web-UI | Intuitive Suchoberfläche für Collections | – | Usability-Test: Kernflows bestehen | H | 6.1.3 1. |
+| Web-UI | Implementierung in Vue (v3) zur Einbindung in STAC Index | – | Build integriert; Routing/State funktionsfähig | M | 6.1.3 2. |
+| Web-UI | Interaktive Auswahl von Bounding Box und Zeitintervall | – | BBox/Datetime erzeugen korrekte Parameter | H | 6.1.3 3. |
+| Web-UI | Composable Queryables in der UI → generiert CQL2-Ausdruck | – | UI-Builder erzeugt valide CQL2 (Server-OK) | H | 6.1.3 4. |
+| Web-UI | Kartenansicht mit Visualisierung räumlicher Extents | – | Extents werden auf interaktiver Karte dargestellt | M | 6.1.3 5. |
+| Web-UI | Links zur Originalquelle (Katalog/API) und optional zur Item Search | – | Links korrekt & erreichbar | M | 6.1.3 6. |
+| Web-UI | Inspection-Ansicht für Collections (Details) | – | Detailseite zeigt alle Kernfelder | M | 6.1.3 7. |
+| Web-UI | Items der Collections inspizieren können | % | Item-Liste/Detail aufrufbar | L | 6.1.3 8. (optional) |
+| Web-UI | Collections vergleichen (Mehrfachauswahl & Vergleich) | % | Vergleichsansicht mit minimum 2 Collections | L | 6.1.3 9. (optional) |
 
+Legende Spalte "Umsetzung"
+| Zeichen | Bedeutung |
+| ------- | --------- |
+| -       | Diese Funtion ist vom Lastenheft verpflichtend vorgegeben und wird umgesetzt |
+| %       | Dieses Funktion ist vom Lastenheft optinal vorgegeben und wird umgesetzt    |
+| $       | Diese Funktion ist vom Lastenheft optional vorgegeben und es ist nicht geplant dieses umzusetzen|
 
 ## 5. Produktdaten <!-- Humam & Sönke -->
 
@@ -220,7 +255,7 @@ Die Tabellen enthalten jeweils Primärschlüssel zur eindeutigen Identifikation 
 
 ### Tabellenbereich „Catalogs“
 
-Der Bereich **Catalogs** bildet die hierarchische Struktur der STAC-Kataloge ab. Jeder Katalog speichert seine Metadaten inklusive Versionierung, Typ, Beschreibung und zugehöriger Links. Über Zwischentabellen werden Keywords sowie Erweiterungen (STAC Extensions) referenziert.  
+Der Bereich **Catalogs** bildet die hierarchische Struktur der STAC-Kataloge ab. Jeder Katalog speichert seine Metadaten inklusive Versionierung, Typ, Beschreibung und zugehöriger Links. Über Zwischentabellen werden Erweiterungen (STAC Extensions) referenziert.  
 
 #### Tabelle: `catalog`
 
@@ -234,7 +269,7 @@ Der Bereich **Catalogs** bildet die hierarchische Struktur der STAC-Kataloge ab.
 | created_at    | Zeitpunkt der Erstellung                | timestamp             |
 | updated_at    | Zeitpunkt der letzten Änderung          | timestamp             |
 
-Die Haupttabelle `catalog` bildet den zentralen Einstiegspunkt der Kataloghierarchie. Sie speichert allgemeine Metadaten und dient als Ankerpunkt für die zugehörigen Relationen.
+Die Haupttabelle `catalog` bildet den zentralen Einstiegspunkt der Kataloghierarchie. Sie speichert allgemeine Metadaten und dient als Ankerpunkt für die zugehörigen Relationen. Diese Tabelle ist notwenidg um zu schauen, ob der crawler die aktueller Version des `catalogs` gespeichert hat, oder diesen `catalog` erneut crawlen muss. Somit kann der crawler bei einem erneuten crawl effektiver und schneller arbeiten.
 
 #### Tabelle: `catalog_links`
 
@@ -248,14 +283,6 @@ Die Haupttabelle `catalog` bildet den zentralen Einstiegspunkt der Kataloghierar
 | title         | Titel oder Name des Links                   | text                  |
 
 Die Tabelle `catalog_links` beschreibt die Verknüpfungen zwischen einzelnen Katalogen oder externen Referenzen und implementiert damit die STAC-Link-Struktur.
-
-#### Tabelle: catalog:keywords
-| Spalte        | Beschreibung / Inhalt                       | Datentyp / Format |
-|----------------|---------------------------------------------|-------------------|
-| **catalog_id** | Referenz auf `catalog.id`                   | integer (FK)      |
-| **keyword_id** | Referenz auf `keyword.id`                   | integer (FK)      |
-
-Relationstabelle zur Mehrfachzuordnung von Keywords an Catalogs. Dadurch können Sammlungen gezielt über Schlagwörter gefiltert werden. Diese Tabelle wird benötigt, da hier eine (n:n)-Beziehung vorliegt.
 
 #### Tabelle: catalog:stac_extension
 
@@ -284,9 +311,9 @@ Der Bereich **Collections** bildet die Sammlungen von Collections innerhalb eine
 | license                | Lizenzinformation                                       | text               |
 | created_at             | Zeitpunkt der Erstellung                                 | timestamp          |
 | updated_at             | Zeitpunkt der letzten Änderung                           | timestamp          |
-| spatial_extend         | Räumliche Ausdehnung (Bounding Box)                     | bbox (geometry)    |
-| temporal_extend_start  | Startzeitpunkt des zeitlichen Gültigkeitsbereichs        | timestamp          |
-| temporal_extend_end    | Endzeitpunkt des zeitlichen Gültigkeitsbereichs          | timestamp          |
+| spatial_extent         | Räumliche Ausdehnung (Bounding Box)                     | bbox (geometry)    |
+| temporal_extent_start  | Startzeitpunkt des zeitlichen Gültigkeitsbereichs        | timestamp          |
+| temporal_extent_end    | Endzeitpunkt des zeitlichen Gültigkeitsbereichs          | timestamp          |
 | is_api?    | ist die collection in einem catalog oder api          | boolean          |
 | is_active?    | ist die collection noch aktuell, oder wurde diese gelöscht          | boolean          |
 | full_json    | Hier werden alle JSON-Daten einer collection gespeichert          | JSON          |
@@ -439,9 +466,9 @@ Die Crawling-Durchläufe sollen über Logging und Metriken wie der Anzahl gecraw
 #### 6.2.1 Funktionale Leistungsanforderungen
 
 1. **Antwortzeiten der Datenbankabfragen**  
-   - Standardabfragen (z. B. Abruf einer Collection nach ID) müssen innerhalb von **< 5 Sekunde** beantwortet werden.  
-   - Komplexe Suchanfragen mit Filtern (z. B. Freitextsuche, räumliche und zeitliche Filterung) müssen innerhalb von **≤ 60 Sekunden** abgeschlossen sein.  
-   - Langlaufende Abfragen dürfen eine maximale Bearbeitungszeit von **≤ 90 Sekunden** nicht überschreiten.
+   - Standardabfragen (z. B. Abruf einer Collection nach ID) müssen innerhalb von **< 1 Sekunde** beantwortet werden.  
+   - Komplexe Suchanfragen mit Filtern (z. B. Freitextsuche, räumliche und zeitliche Filterung) müssen innerhalb von **≤ 30 Sekunden** abgeschlossen sein.  
+   - Langlaufende Abfragen dürfen eine maximale Bearbeitungszeit von **≤ 60 Sekunden** nicht überschreiten.
 
 2. **Gleichzeitige Zugriffe (Concurrency)**  
    - Das System muss mindestens **50 gleichzeitige Leseanfragen** und **10 gleichzeitige Schreibanfragen** ohne merkliche Leistungseinbußen (< 10 % längere Antwortzeit) verarbeiten können.  
@@ -561,7 +588,8 @@ Die nachfolgenden Maßnahmen gewährleisten die Korrektheit, Wartbarkeit, Standa
    - beim erstmaligen Import (Crawler-Phase),
    - bei Änderungen oder Re-Crawls,
    - zusätzlich regelmäßig in der CI-Pipeline anhand von Stichproben.
-- Collections, die nicht vollständig dem aktuellen STAC-Standard entsprechen, werden automatisch angepasst oder konvertiert, bevor sie in den Index übernommen werden.
+- Collections, die nicht vollständig dem aktuellen STAC-Standard entsprechen, werden automatisch strukturell angepasst oder konvertiert, bevor sie in den       Index übernommen werden.
+- Kann eine automatische Anpassung nicht durchgeführt werden, wird die betreffende Collection als inkompatibel markiert, nicht in den Index               aufgenommen und in einem separaten Fehlerprotokoll dokumentiert.
 - Die Validierungsergebnisse, sowie alle Anpassungen werden im Crawler-Log und in den CI-Reports dokumentiert.
 
 ### 7.4 STAC-API-Validator
@@ -570,11 +598,12 @@ Die nachfolgenden Maßnahmen gewährleisten die Korrektheit, Wartbarkeit, Standa
 - Geprüfte Aspekte:
    - Gültigkeit der API-Antworten nach STAC API-Spezifikation (v1.x).
    - Unterstützung der Collection Search Extension und der CQL2-Query Language (Basic).
-   - Korrekte Implementierung der Endpoints (/collections, /search, /conformance, /queryables).
+   - Korrekte Implementierung der Endpoints (`/`, `/conformance`, `/collections`, `/collections/{id}`).
+-Die Collection Search Extension wird zusätzlich durch eigene Integrationstests validiert, da der offizielle Validator derzeit keine automatisierte Prüfung dieser Erweiterung unterstützt. 
 - Der Validator wird:
    - nach jedem erfolgreichen Build in der CI-Pipeline ausgeführt,
    - manuell vor der Endabgabe für einen vollständigen Compliance-Report verwendet.
-- Ziel: 100 % bestehende STAC-Validator-Tests.
+- Ziel: 100 % bestehende STAC-Validator-Tests, sowie erfolgreiche interne Validierung der Collection Search Extension.
 
 ### 7.5 Dokumentations- und Wartungsqualität
 - Alle Module werden mit aussagekräftigen Kommentaren dokumentiert, entsprechend der jeweils verwendeten Programmiersprache (z. B. PyDoc für Python-Module oder JSDoc für JavaScript/Vue-Komponenten).
@@ -610,6 +639,7 @@ Die nachfolgenden Maßnahmen gewährleisten die Korrektheit, Wartbarkeit, Standa
 - Sichere Datenbankverbindungen
 - Eingabevalidierung (SQL-Injection-Schutz)
 - Sanitization von Nutzereingaben
+- Gegen XSS abgesichert
 - Keine Exposition sensibler Daten in Logs
 - Protokollierung der Crawl-Aktivitäten
 - Strukturierte Error-Logs mit konfigurierbaren Log-Levels
@@ -631,7 +661,7 @@ Die nachfolgenden Maßnahmen gewährleisten die Korrektheit, Wartbarkeit, Standa
 ## 9. Gliederung in Teilprodukte
 
 ### 9.1 Crawler-Komponente <!-- Lenn -->
-Der Crawler bekommt über den STAC Index alle STAC Kataloge und STAC APIs die gecrawled werden müssen. Dabei sollen alle Collections erfolgreich erfasst werden.
+Der Crawler bekommt über die STAC Index API, alle STAC Kataloge und STAC APIs die gecrawled werden müssen. Dabei sollen alle Collections erfolgreich erfasst werden.
 Das Crawling erfolgt rekursiv, sodass Collections in nahezu beliebiger Tiefe (<1024 Ebenen) innerhalb verschachtelter Kataloge erkannt werden. Es werden ausschließlich Catalogs und Collections und keine Items erfasst. Die Crawling Vorgänge extrahieren die relevanten Metadaten jeder Collection (6.1.1.3), das vollständige JSON-Objekt jeder Kollektion und speichern sie zusammen mit der Quell-URL, dem Katalognamen und dem Zeitstempel des letzten Crawls. Zusätzlich wird auch ein Parameter, über die aktuelle Verfügbarkeit der Collection hinzugefügt.
 
 Es werden alle stabilen STAC-Versionen, durch Migration unterstützt. 
@@ -688,9 +718,9 @@ und ermöglicht einen einheitlichen, standardkonformen Zugriff auf alle gespeich
    - `GET /collections/{id}` -> Liefert die vollständigen Metadaten einer einzelnen Collection
    
 3. Collection Search
-- `GET /search`
+- `GET /collections`
   und
-- `POST /search`
+- `POST /collections`
 - Ermöglicht die gezielte Filterung und Suche nach Collections innerhalb des Index.
 - Unterstützt wird sowohl die einfache Query-Parameter-Variante (GET) als auch komplexe CQL2-Abfragen (POST).
 
@@ -830,7 +860,7 @@ Die Implementierung folgt einem klar strukturierten Vorgehen in mehreren Phasen,
    Anschließend werden die Such- und Filtermechanismen implementiert. Dazu gehört die Integration einer **Volltextsuche** auf Basis von PostgreSQL-TSVector, die Anbindung von **PostGIS** für Bounding-Box- und Distanzabfragen sowie die Umsetzung einer Übersetzungsschicht für **CQL2-Filterausdrücke**.  
    Ergebnis: performante Such- und Filterfunktionen mit optimierten Indizes.
 
-5. **Deployment und Dokumentation (M6)**  
+5. **Deployment und Dokumentation (M5)**  
    Die produktive Bereitstellung erfolgt über **Docker Compose** <!-- , wobei separate Umgebungen für Entwicklung und Produktion eingerichtet werden.-->
    Das Prisma-Schema, die Migrationsdateien und die API-Routen werden versioniert und dokumentiert. Eine technische Dokumentation beschreibt die Struktur, Indexierung und Updateprozesse der Datenbank.  
    Ergebnis: einsatzbereite, dokumentierte Datenbankkomponente.
@@ -839,10 +869,10 @@ Die Implementierung folgt einem klar strukturierten Vorgehen in mehreren Phasen,
 ### 10.3 STAC API <!-- Robin -->
 | ID | Arbeitspaket | Ziel/Output | Schritte (Stichpunkte) | Reuse/Technologien |
 |----|--------------|-------------|-------------------------|--------------------|
-| AP-01 | Projekt-Skeleton & Infrastruktur | Lauffähiges API-Grundgerüst mit Konfiguration & Logging | Repo-Struktur (`/api`, `/docs`, `/ops`); Apache-2.0 LICENSE; ENV-Konfig (Port, DB-URL vom DB-Team); strukturierte Logs; einfache Health-Route `GET /` | Python+FastAPI *oder* Node+Fastify/Express; uvicorn/node pm2; dotenv |
+| AP-01 | Projekt-Skeleton & Infrastruktur | Lauffähiges API-Grundgerüst mit Konfiguration & Logging | Repo-Struktur (`/api`, `/docs`); Apache-2.0 LICENSE; ENV-Konfig (Port, DB-URL vom DB-Team); strukturierte Logs; einfache Health-Route `GET /` | Python+FastAPI *oder* Node+Fastify/Express; uvicorn/node pm2; dotenv |
 | AP-02 | Daten-Vertrag & Queryables (API-Seite) | Konsistentes Feld-Set & ` /queryables` für die UI | Such-/Filterfelder festlegen (id, title, description, extent, keywords, providers.name, license, doi, `summaries.platform/constellation/gsd/processing:level`); Datentypen (CQL2-kompatibel) definieren; `GET /queryables` (global/optional pro Collection); Dokumentation für UI | STAC Collections/Queryables Best Practices; CQL2 Typen |
 | AP-03 | STAC-Core Endpunkte | STAC-konforme Basisrouten bereitstellen | `GET /` (Landing + Links), `GET /conformance` (Core+Collections vorerst), `GET /collections`, `GET /collections/{id}`; Link-Relationen & Service-Doku referenzieren | OpenAPI/Swagger-UI; STAC API Core/Collections |
-| AP-04 | Collection Search – Routen & Parameter | Collection-Search-Schnittstelle mit `q`, `filter`, `sort`, Paging | Route definieren (`/collections/search` oder Parametrisierung von `/collections`); Request-Validierung; Paging-Links | STAC Collection Search Extension; API Framework Middleware |
+| AP-04 | Collection Search – Routen & Parameter | Collection-Search-Schnittstelle mit `q`, `filter`, `sort`, Paging | Route definieren (Parametrisierung von `/collections`); Request-Validierung; Paging-Links | STAC Collection Search Extension; API Framework Middleware |
 | AP-05 | CQL2 Basic – Parsing & Validierung | Gültige CQL2-Basic-Filter erkennen & valide/klare Fehlermeldungen liefern | Bestehende Parser/Validator-Lib einbinden; Request-Modelle (JSON/Text); Fehlermeldungen standardisieren | *cql2-rs* oder *pycql2* |
 | AP-06 | CQL2-Ausführung – AST → SQL | CQL2-AST in effiziente SQL-Where-Klauseln übersetzen | Visitor/Mapper je Knotentyp (Vergleich, Logik, `IS NULL`, optional `LIKE/IN/BETWEEN`); Parametrisiertes SQL; Schutz vor teuren Scans (Zeit/Seite begrenzen) | — |
 | AP-07 | Freitext `q` & Sortierung | Relevanzbasierte Freitextsuche + stabile Sortierung | Felder für `q` bestimmen (title, description, keywords, providers); Whitelist für `sortby`; Validierung bei nicht unterstützten Feldern → 400 | API-seitige Param-Validierung |
