@@ -3,7 +3,7 @@ const express = require('express');
 const router = express.Router();
 
 
-/* In-Memory "DB" (nur für frühe Tests) — später durch echte SQL ersetzen     */
+// In-Memory "DB" (nur für frühe Tests) — später durch echte SQL ersetzen     
 
 const SAMPLE = [
   {
@@ -63,7 +63,7 @@ const SAMPLE = [
 ];
 
 
-/* Helpers (Parsing, Fehler, Paging, Filter)                                  */
+// Helpers (Parsing, Fehler, Paging, Filter)                              
 
 const ALLOWED_SORT_FIELDS = ['title', 'id', 'temporal_extent_start', 'license', 'provider'];
 
