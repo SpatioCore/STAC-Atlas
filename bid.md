@@ -534,7 +534,7 @@ Die nachfolgenden Maßnahmen gewährleisten die Korrektheit, Wartbarkeit, Standa
 
 ### 7.1 Code-Qualität und Tests
   #### 7.1.1 Unit-Tests 
-   - Für alle zentralen Backend-Module (insbesondere STAC-API-Routen, CQL2-Parser, Datenbank-Abfrage-Logik und Crawler-Importfunktionen) werden Unit-Tests mit einem geeigneten Framework (jest and pytest) erstellt.
+   - Für alle zentralen Backend-Module (insbesondere STAC-API-Routen, CQL2-Parser, Datenbank-Abfrage-Logik und Crawler-Importfunktionen) werden Unit-Tests mit einem geeigneten Framework (jest) erstellt.
    - Für das Frontend werden Unit-Tests mit einem geeigneten Framework (Jest) erstellt.
    - Zielabdeckung: mindestens 80 % Branch- und Statement-Coverage.
    - Tests werden automatisiert bei jedem Commit und Merge-Request in der GitHub-Pipeline ausgeführt.
