@@ -522,7 +522,8 @@ Sie visualisiert Metadaten und räumliche Extents der Collections und ermöglich
   - Die API-Kommunikation erfolgt in Englisch.  
   - Das Frontend wird zweisprachig (Englisch / Deutsch) bereitgestellt.  
 - **Reaktionszeiten**:
-  - Benutzerinteraktionen (außer Suchanfragen) sollen innerhalb von 1 Sekunde eine sichtbare Rückmeldung liefern.  
+  - Benutzerinteraktionen (außer Suchanfragen) sollen innerhalb von 1 Sekunde eine sichtbare Rückmeldung liefern.
+    - Dies kann z. B. durch einen Ladeindikator, Fortschrittsbalken oder ähnliches visuelles Feedback erfolgen.  
   - Einfache Suchanfragen (z. B. Freitextsuche nach Keywords) müssen in unter 5 Sekunden abgeschlossen sein.  
   - Komplexe geometrische oder kombinierte CQL2-Filter dürfen maximal 1 Minute dauern.  
 - **Pagination**: Bei umfangreichen Ergebnismengen erfolgt eine seitenweise Darstellung, um Performance und Übersichtlichkeit zu gewährleisten.  
