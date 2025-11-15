@@ -1,0 +1,368 @@
+openapi: 3.0.0
+info:
+  title: STAC Atlas API
+  description: A centralized platform for managing, indexing, and providing STAC Collection metadata from distributed catalogs and APIs
+  version: 1.0.0
+  contact:
+    name: SpatioCore Team
+  license:
+    name: MIT
+
+servers:
+  - url: http://localhost:3000
+    description: Development server
+  - url: https://api.stac-atlas.example.com
+    description: Production server
+
+tags:
+  - name: Core
+    description: Core STAC API endpoints
+  - name: Collections
+    description: STAC Collections management
+  - name: Queryables
+    description: Queryable properties for advanced search
+
+paths:
+  /:
+    get:
+      summary: STAC Landing Page
+      description: Returns the landing page with information about the API and available endpoints
+      operationId: getLandingPage
+      tags:
+        - Core
+      responses:
+        '200':
+          description: Landing page with API information
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  type:
+                    type: string
+                    example: Catalog
+                  id:
+                    type: string
+                    example: stac-atlas
+                  title:
+                    type: string
+                  description:
+                    type: string
+                  stac_version:
+                    type: string
+                    example: "1.0.0"
+                  conformsTo:
+                    type: array
+                    items:
+                      type: string
+                  links:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Link'
+
+  /conformance:
+    get:
+      summary: Conformance Classes
+      description: Returns the list of conformance classes this API implements
+      operationId: getConformance
+      tags:
+        - Core
+      responses:
+        '200':
+          description: List of implemented conformance classes
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  conformsTo:
+                    type: array
+                    items:
+                      type: string
+                      example: "https://api.stacspec.org/v1.0.0/core"
+
+  /collections:
+    get:
+      summary: Get all Collections
+      description: Returns a paginated list of all available STAC Collections with optional filtering and sorting
+      operationId: getCollections
+      tags:
+        - Collections
+      parameters:
+        - name: limit
+          in: query
+          description: Number of results to return (default 10, max 100)
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+            maximum: 100
+        - name: offset
+          in: query
+          description: Number of results to skip for pagination (default 0)
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+        - name: bbox
+          in: query
+          description: Bounding box filter in format minX,minY,maxX,maxY or minX,minY,minZ,maxX,maxY,maxZ
+          schema:
+            type: string
+            example: "-180,-90,180,90"
+        - name: datetime
+          in: query
+          description: Temporal filter using ISO 8601 format (start/end or start/.. or ../end)
+          schema:
+            type: string
+            example: "2020-01-01/2023-12-31"
+        - name: sortby
+          in: query
+          description: Sort results by field(s) using format field:asc or field1:asc,field2:desc
+          schema:
+            type: string
+            example: "title:asc"
+        - name: q
+          in: query
+          description: Free text search query
+          schema:
+            type: string
+        - name: provider
+          in: query
+          description: Filter by provider name
+          schema:
+            type: string
+        - name: license
+          in: query
+          description: Filter by license
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of collections with pagination information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CollectionsResponse'
+        '400':
+          description: Invalid query parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /collections/{id}:
+    get:
+      summary: Get single Collection by ID
+      description: Returns detailed metadata for a specific STAC Collection
+      operationId: getCollectionById
+      tags:
+        - Collections
+      parameters:
+        - name: id
+          in: path
+          description: Collection identifier
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Collection metadata in STAC format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Collection'
+        '404':
+          description: Collection not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /queryables:
+    get:
+      summary: Available Queryable Properties
+      description: Returns a JSON Schema describing all queryable properties for collections
+      operationId: getQueryables
+      tags:
+        - Queryables
+      responses:
+        '200':
+          description: JSON Schema of queryable fields
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  $schema:
+                    type: string
+                  $id:
+                    type: string
+                  type:
+                    type: string
+                  title:
+                    type: string
+                  description:
+                    type: string
+                  properties:
+                    type: object
+                    additionalProperties: true
+
+components:
+  schemas:
+    Link:
+      type: object
+      required:
+        - rel
+        - href
+      properties:
+        rel:
+          type: string
+          description: Link relationship type
+          example: self
+        href:
+          type: string
+          description: Absolute or relative URL
+          example: "http://localhost:3000/collections"
+        type:
+          type: string
+          description: IANA media type
+          example: "application/json"
+        title:
+          type: string
+          description: Human-readable link title
+          example: "This document"
+
+    Collection:
+      type: object
+      required:
+        - id
+        - type
+        - stac_version
+        - description
+        - license
+        - extent
+        - links
+      properties:
+        id:
+          type: string
+          description: Unique collection identifier
+        type:
+          type: string
+          enum:
+            - Collection
+        stac_version:
+          type: string
+          example: "1.0.0"
+        title:
+          type: string
+        description:
+          type: string
+        keywords:
+          type: array
+          items:
+            type: string
+        license:
+          type: string
+        providers:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              roles:
+                type: array
+                items:
+                  type: string
+              url:
+                type: string
+        extent:
+          type: object
+          required:
+            - spatial
+            - temporal
+          properties:
+            spatial:
+              type: object
+              properties:
+                bbox:
+                  type: array
+                  items:
+                    type: array
+                    items:
+                      type: number
+            temporal:
+              type: object
+              properties:
+                interval:
+                  type: array
+                  items:
+                    type: array
+        links:
+          type: array
+          items:
+            $ref: '#/components/schemas/Link'
+        summaries:
+          type: object
+          additionalProperties: true
+        assets:
+          type: object
+          additionalProperties: true
+
+    CollectionsResponse:
+      type: object
+      required:
+        - type
+        - collections
+        - links
+        - context
+      properties:
+        type:
+          type: string
+          enum:
+            - FeatureCollection
+        collections:
+          type: array
+          items:
+            $ref: '#/components/schemas/Collection'
+        links:
+          type: array
+          items:
+            $ref: '#/components/schemas/Link'
+        context:
+          type: object
+          properties:
+            returned:
+              type: integer
+              description: Number of results returned in this page
+            limit:
+              type: integer
+              description: Maximum number of results per page
+            matched:
+              type: integer
+              description: Total number of matched results
+
+    ErrorResponse:
+      type: object
+      required:
+        - code
+        - description
+      properties:
+        code:
+          type: string
+          description: Error code
+          example: BadRequest
+        description:
+          type: string
+          description: Human-readable error message
+        details:
+          type: object
+          description: Additional error details
+          additionalProperties: true

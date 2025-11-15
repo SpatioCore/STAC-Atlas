@@ -12,6 +12,9 @@ const conformanceRouter = require('./routes/conformance');
 const collectionsRouter = require('./routes/collections');
 const queryablesRouter = require('./routes/queryables');
 
+// Import error handler
+const { errorHandler } = require('./middleware/errorHandler');
+
 const app = express();
 
 // Middleware
@@ -38,32 +41,30 @@ app.use('/conformance', conformanceRouter);
 app.use('/collections', collectionsRouter);
 app.use('/queryables', queryablesRouter);
 
-// Swagger/OpenAPI documentation (if openapi.yaml exists)
+// Swagger/OpenAPI documentation (if openapi.yaml exists) 
+// Swagger-ui-express automatically generates a swagger-ui-init.js file 
 try {
   const swaggerDocument = YAML.load(path.join(__dirname, 'docs', 'openapi.yaml'));
   app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+  
+  // Serve the OpenAPI YAML file directly
+  app.get('/openapi.yaml', (req, res) => {
+    res.type('application/yaml').sendFile(path.join(__dirname, 'docs', 'openapi.yaml'));
+  });
 } catch (err) {
-  console.log('OpenAPI documentation not found. Create docs/openapi.yaml to enable Swagger UI.');
+  console.error('Error loading OpenAPI documentation:', err.message);
+  // OpenAPI documentation not found. Create docs/openapi.yaml to enable Swagger UI.
 }
 
 // 404 handler
-app.use((req, res, next) => {
+app.use((req, res, _next) => {
   res.status(404).json({
     code: 'NotFound',
     description: `The requested resource '${req.url}' was not found on this server.`
   });
 });
 
-// Error handler
-app.use((err, req, res, next) => {
-  // Set locals, only providing error in development
-  const isDev = req.app.get('env') === 'development';
-  
-  res.status(err.status || 500).json({
-    code: err.code || 'InternalServerError',
-    description: err.message || 'An internal server error occurred',
-    ...(isDev && { stack: err.stack })
-  });
-});
+// Error handler middleware (MUST be last)
+app.use(errorHandler);
 
 module.exports = app;
