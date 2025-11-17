@@ -2,16 +2,16 @@ const express = require('express');
 const router = express.Router();
 
 /**
- * GET /queryables
+ * GET /collections/queryables
  * Returns the list of queryable properties for collections
  */
 router.get('/', (req, res) => {
   res.json({
     $schema: 'https://json-schema.org/draft/2019-09/schema',
-    $id: `${req.protocol}://${req.get('host')}/queryables`,
+    $id: `${req.protocol}://${req.get('host')}/collections/queryables`,
     type: 'object',
-    title: 'STAC Atlas Queryables',
-    description: 'Queryable properties for STAC Collections',
+    title: 'STAC Atlas Collections Queryables',
+    description: 'Queryable properties for STAC Collection Search',
     properties: {
       id: {
         title: 'Collection ID',
@@ -36,17 +36,10 @@ router.get('/', (req, res) => {
         title: 'License',
         type: 'string'
       },
-      providers: {
-        title: 'Providers',
-        type: 'array',
-        items: {
-          type: 'object',
-          properties: {
-            name: {
-              type: 'string'
-            }
-          }
-        }
+	  //adjusted, so that it fits to the filter ?provider=... in collections.js
+      provider: {
+       title: 'Provider Name',
+       type: 'string'
       },
       'extent.spatial.bbox': {
         title: 'Spatial Extent (Bounding Box)',

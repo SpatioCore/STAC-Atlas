@@ -67,7 +67,7 @@ npm run format
 | GET | `/collections` | Liste aller Collections (mit Filterung) |
 | POST | `/collections` | Collection Search mit CQL2 |
 | GET | `/collections/:id` | Einzelne Collection abrufen |
-| GET | `/queryables` | Queryable Properties Schema |
+| GET | `/collections/queryables` | Queryable Properties for Collection Search |
 
 ### API Dokumentation
 

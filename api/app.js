@@ -10,7 +10,7 @@ const path = require('path');
 const indexRouter = require('./routes/index');
 const conformanceRouter = require('./routes/conformance');
 const collectionsRouter = require('./routes/collections');
-const queryablesRouter = require('./routes/queryables');
+const collectionsQueryablesRouter = require('./routes/queryables');
 
 const app = express();
 
@@ -36,7 +36,7 @@ app.use((req, res, next) => {
 app.use('/', indexRouter);
 app.use('/conformance', conformanceRouter);
 app.use('/collections', collectionsRouter);
-app.use('/queryables', queryablesRouter);
+app.use('/collections/queryables', collectionsQueryablesRouter);
 
 // Swagger/OpenAPI documentation (if openapi.yaml exists)
 try {
