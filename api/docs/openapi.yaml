@@ -185,11 +185,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
-  /queryables:
+  /collection/queryables:
     get:
       summary: Available Queryable Properties
       description: Returns a JSON Schema describing all queryable properties for collections
-      operationId: getQueryables
+      operationId: getCollectionsQueryables # Maybe wrong 
       tags:
         - Queryables
       responses:

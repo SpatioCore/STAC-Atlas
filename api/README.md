@@ -67,7 +67,7 @@ npm run format
 | GET | `/collections` | Liste aller Collections (mit Filterung) |
 | POST | `/collections` | Collection Search mit CQL2 |
 | GET | `/collections/:id` | Einzelne Collection abrufen |
-| GET | `/queryables` | Queryable Properties Schema |
+| GET | `/collections/queryables` | Queryable Properties Schema |
 
 ### API Dokumentation
 
@@ -80,15 +80,24 @@ npm run format
 api/
 ├── bin/
 │   └── www                 # Server-Startskript
+├── middleware/
+│   ├── errorHandler.js    # Handles and displays application errors
+│   ├──queryValidation.js  # Parse + validate query parameters
+├── mocks/
+│   ├── mocks-collections  # Mock collections + helper search/get functions for local dev and tests
 ├── routes/
 │   ├── index.js           # Landing Page (/)
 │   ├── conformance.js     # Conformance Classes
 │   ├── collections.js     # Collections Endpoints
 │   └── queryables.js      # Queryables Schema
+├── utils/
+│   ├── queryParser.js     # Parse and normalize query parameters (limit, offset, bbox, datetime, sortby)
+│   ├── responseBuilder.js # Build STAC-compliant JSON responses and pagination links
+│   ├── validation.js      # Validate parsed parameters (pagination, bbox, datetime, sortby, ids)
 ├── __tests__/
 │   └── api.test.js        # API Tests
 ├── docs/
-│   └── openapi.yaml       # OpenAPI Specification (TODO)
+│   └── openapi.yaml       # OpenAPI Specification (TODO)    ✅
 ├── app.js                 # Express App Setup
 ├── package.json
 ├── .env.example           # Beispiel-Umgebungsvariablen
