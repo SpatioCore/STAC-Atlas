@@ -3,7 +3,7 @@ const router = express.Router();
 const { validateQueryParams } = require('../middleware/queryValidation');
 const { asyncHandler, NotFoundError } = require('../middleware/errorHandler');
 const responseBuilder = require('../utils/responseBuilder');
-const mockCollections = require('../mocks/collections');
+const mockCollections = require('../mocks/mocks-collections');
 
 // Apply query parameter validation to all collection routes
 router.use(validateQueryParams);
