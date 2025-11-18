@@ -20,7 +20,17 @@ const targetUrl = 'https://www.stacindex.org/api/catalogs';
 const crawler = async () => {
     try {
         const response = await axios.get(targetUrl);
-        splitCatalogs(response.data);
+        const catalogs = splitCatalogs(response.data);
+        
+        // Crawl collections and nested catalogs for each catalog
+        console.log('\n Crawling collections and nested catalogs...\n');
+        let totalCollections = 0;
+        for (const catalog of response.data.slice(0, 10)) { // Limit to first 10 catalogs
+            const stats = await crawlCatalogRecursive(catalog);
+            totalCollections += stats.collections;
+        }
+        
+        console.log(`\n Total collections found across all catalogs: ${totalCollections}`);
     } catch (error) {
         console.error(`Error fetching ${targetUrl}: ${error.message}`);
     }
@@ -102,6 +112,147 @@ function splitCatalogs(catalogs) {
     }
 
     return elements;
+}
+
+/**
+ * Fetches and processes collections from a catalog
+ * @async
+ * @param {Object} catalog - Catalog object with url property
+ * @returns {Promise<Array>} Array of collections formatted as arrays
+ */
+async function getCollections(catalog) {
+    try {
+        // Try common STAC collection endpoints
+        const collectionUrls = [
+            `${catalog.url}/collections`,
+            `${catalog.url}/collections/`,
+            `${catalog.url}/api/v1/collections`
+        ];
+
+        for (const url of collectionUrls) {
+            try {
+                const response = await axios.get(url, { timeout: 5000 });
+                const collectionsData = Array.isArray(response.data) 
+                    ? response.data 
+                    : response.data.collections || [];
+                
+                if (collectionsData.length > 0) {
+                    console.log(`\n Catalog: ${catalog.id}`);
+                    console.log(`   Found ${collectionsData.length} collections`);
+                    
+                    // Convert collections to array format similar to catalogs
+                    const collections = collectionsData.map((col, index) => {
+                        return [
+                            index,
+                            col.id || 'Unknown',
+                            col.url || col.links?.find(l => l.rel === 'self')?.href || 'N/A',
+                            col.title || 'N/A',
+                            col.description || col.summary || 'N/A',
+                            col.extent?.spatial?.bbox?.[0] || 'N/A',
+                            col.extent?.temporal?.interval?.[0] || 'N/A',
+                            col.license || 'N/A',
+                            col.keywords || []
+                        ];
+                    });
+
+                    // Display collection details
+                    if (collections.length > 0) {
+                        console.log('   Collection details:');
+                        collections.forEach((col, idx) => {
+                            console.log(`     [${idx}] ${col[1]} - ${col[3]}`);
+                        });
+                    }
+                    
+                    return collections;
+                }
+            } catch (e) {
+                // Try next URL
+                continue;
+            }
+        }
+        
+        console.log(`\n No collections found for catalog: ${catalog.id}`);
+        return [];
+        
+    } catch (error) {
+        console.error(`Error fetching collections for ${catalog.id}: ${error.message}`);
+        return [];
+    }
+}
+
+/**
+ * Fetches nested catalogs within a catalog
+ * @async
+ * @param {Object} catalog - Catalog object with url property
+ * @returns {Promise<Array>} Array of nested catalogs
+ */
+async function getNestedCatalogs(catalog) {
+    try {
+        // Try common STAC nested catalog endpoints
+        const catalogUrls = [
+            `${catalog.url}/catalogs`,
+            `${catalog.url}/catalogs/`,
+            `${catalog.url}/api/v1/catalogs`
+        ];
+
+        for (const url of catalogUrls) {
+            try {
+                const response = await axios.get(url, { timeout: 5000 });
+                const catalogsData = Array.isArray(response.data) 
+                    ? response.data 
+                    : response.data.catalogs || [];
+                
+                if (catalogsData.length > 0) {
+                    return catalogsData;
+                }
+            } catch (e) {
+                // Try next URL
+                continue;
+            }
+        }
+        
+        return [];
+        
+    } catch (error) {
+        console.error(`Error fetching nested catalogs for ${catalog.id}: ${error.message}`);
+        return [];
+    }
+}
+
+/**
+ * Recursively crawls a catalog, its collections, and nested catalogs
+ * @async
+ * @param {Object} catalog - Catalog object to crawl
+ * @param {number} depth - Current depth level (for indentation)
+ * @returns {Promise<Object>} Stats object with collections count
+ */
+async function crawlCatalogRecursive(catalog, depth = 0) {
+    const indent = '  '.repeat(depth);
+    let stats = { collections: 0 };
+    
+    try {
+        // First, try to get collections from this catalog
+        const collections = await getCollections(catalog);
+        stats.collections = collections.length;
+        
+        // Then, try to get nested catalogs
+        const nestedCatalogs = await getNestedCatalogs(catalog);
+        
+        if (nestedCatalogs.length > 0) {
+            console.log(`${indent} Nested catalogs found: ${nestedCatalogs.length}`);
+            
+            // Recursively crawl each nested catalog
+            for (const nestedCatalog of nestedCatalogs.slice(0, 5)) { // Limit to first 5 nested
+                const nestedStats = await crawlCatalogRecursive(nestedCatalog, depth + 1);
+                stats.collections += nestedStats.collections;
+            }
+        }
+        
+    } catch (error) {
+        console.error(`Error in recursive crawl for ${catalog.id}: ${error.message}`);
+    }
+    
+    return stats;
 }
 
 /**
