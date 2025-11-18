@@ -185,7 +185,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
-  /collection/queryables:
+  /collections/queryables:
     get:
       summary: Available Queryable Properties
       description: Returns a JSON Schema describing all queryable properties for collections
@@ -319,15 +319,10 @@ components:
     CollectionsResponse:
       type: object
       required:
-        - type
         - collections
         - links
         - context
       properties:
-        type:
-          type: string
-          enum:
-            - FeatureCollection
         collections:
           type: array
           items:
