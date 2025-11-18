@@ -945,7 +945,7 @@ Filterparameter werden in den Anfragen nach dem CQL2-Standard übergeben.
 **Hinweis:** Kalenderwochen (KW) entsprechen ISO-Wochen, angegeben mit **Montag–Sonntag**.
 **Roadmap nach Kalenderwochen**
 | Zeitraum (Mo–So) | KW  | Phase/Meilenstein                     | Hauptaktivitäten                                                                | Artefakte/Outputs |
-|---|:--:|---|---|---|---|
+|---|:--:|---|---|---|
 | **12.11.2025** (Mi) | 46 | **Kick-off Implementierung**          | Projektstart, Scope & Schnittstellen finalisieren, Tooling/Standards festlegen                      | Kick-off-Protokoll, To-Do-Übersicht |
 | 10.11–16.11.2025   | 46 | **Struktur Repo**                      | Monorepo/Repos anlegen (`/api`, `/crawler`, `/frontend`, `/ops`, `/docs`), CI/Lint/Format einrichten | Repo-Struktur, CI-Baseline, CONTRIBUTING.md |
 | 10.11–16.11.2025   | 46 | **API-Endpoints (Core)**               | API-Skeleton, Routen `/`, `/conformance`, `/collections`, Stubs/Swagger                             | Laufende API-Instanz, OpenAPI-Draft |
