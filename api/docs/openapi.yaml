@@ -319,10 +319,15 @@ components:
     CollectionsResponse:
       type: object
       required:
+        - type
         - collections
         - links
         - context
       properties:
+       type:
+          type: string
+          enum:
+            - FeatureCollection
         collections:
           type: array
           items:
@@ -361,4 +366,5 @@ components:
           type: object
           description: Additional error details
           additionalProperties: true
+
 
