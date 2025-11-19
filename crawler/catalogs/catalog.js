@@ -4,6 +4,7 @@
  */
 
 const axios = require('axios');
+const { default: create } = require('stac-js');
 
 /**
  * Splits an array of catalogs into individual elements where each element is an array of its properties
@@ -29,10 +30,21 @@ function splitCatalogs(catalogs) {
     const elements = catalogs.map((catalog, index) => {
         
         // Create object with all properties
-        const elementObj = {
+        let elementObj = {
             index: index,
             ...catalog,
         };
+
+        // Validate and migrate STAC catalog using stac-js if it has STAC properties
+        if (catalog.url && typeof catalog.url === 'string') {
+            try {
+                // For STAC Index catalogs, we don't validate against STAC spec
+                // as they are metadata about STAC catalogs, not STAC objects themselves
+                // This is just for potential future enhancement
+            } catch (error) {
+                console.warn(`STAC validation skipped for catalog ${catalog.id}: ${error.message}`);
+            }
+        }
 
         // Get all property names
         const allProperties = Object.keys(elementObj);
@@ -82,7 +94,7 @@ function splitCatalogs(catalogs) {
 }
 
 /**
- * Fetches and processes collections from a catalog
+ * Fetches and processes collections from a catalog using stac-js
  * @async
  * @param {Object} catalog - Catalog object with url property
  * @returns {Promise<Array>} Array of collections formatted as arrays
@@ -99,26 +111,76 @@ async function getCollections(catalog) {
         for (const url of collectionUrls) {
             try {
                 const response = await axios.get(url, { timeout: 5000 });
-                const collectionsData = Array.isArray(response.data) 
-                    ? response.data 
-                    : response.data.collections || [];
+                
+                // Parse response with stac-js for validation and enhanced metadata extraction
+                let stacObj;
+                try {
+                    stacObj = create(response.data, url);
+                } catch (parseError) {
+                    // If stac-js cannot parse, skip this catalog (non-compliant STAC)
+                    console.warn(`   Skipping non-compliant STAC at ${url}: ${parseError.message}`);
+                    continue;
+                }
+                
+                let collectionsData = [];
+                
+                // Check if this is a CollectionCollection (STAC API response)
+                if (stacObj && typeof stacObj.getAll === 'function') {
+                    collectionsData = stacObj.getAll();
+                } else if (Array.isArray(response.data)) {
+                    // Handle array of collections
+                    collectionsData = response.data.map(col => {
+                        try {
+                            return create(col, url);
+                        } catch {
+                            return null;
+                        }
+                    }).filter(Boolean);
+                } else if (response.data.collections) {
+                    // Handle nested collections property
+                    collectionsData = response.data.collections.map(col => {
+                        try {
+                            return create(col, url);
+                        } catch {
+                            return null;
+                        }
+                    }).filter(Boolean);
+                }
                 
                 if (collectionsData.length > 0) {
                     console.log(`\n Catalog: ${catalog.id}`);
                     console.log(`   Found ${collectionsData.length} collections`);
                     
-                    // Convert collections to array format similar to catalogs
-                    const collections = collectionsData.map((col, index) => {
+                    // Convert collections using stac-js methods for metadata extraction
+                    const collections = collectionsData.map((colObj, index) => {
+                        // Use stac-js methods for robust metadata extraction
+                        const bbox = typeof colObj.getBoundingBox === 'function' 
+                            ? colObj.getBoundingBox() 
+                            : (colObj.extent?.spatial?.bbox?.[0] || 'N/A');
+                        
+                        const temporal = typeof colObj.getTemporalExtent === 'function'
+                            ? colObj.getTemporalExtent()
+                            : (colObj.extent?.temporal?.interval?.[0] || 'N/A');
+                        
+                        // Get self URL using stac-js link navigation
+                        let selfUrl = 'N/A';
+                        if (typeof colObj.getAbsoluteUrl === 'function') {
+                            selfUrl = colObj.getAbsoluteUrl();
+                        } else if (colObj.links) {
+                            const selfLink = colObj.links.find(l => l.rel === 'self');
+                            selfUrl = selfLink?.href || 'N/A';
+                        }
+                        
                         return [
                             index,
-                            col.id || 'Unknown',
-                            col.url || col.links?.find(l => l.rel === 'self')?.href || 'N/A',
-                            col.title || 'N/A',
-                            col.description || col.summary || 'N/A',
-                            col.extent?.spatial?.bbox?.[0] || 'N/A',
-                            col.extent?.temporal?.interval?.[0] || 'N/A',
-                            col.license || 'N/A',
-                            col.keywords || []
+                            colObj.id || 'Unknown',
+                            selfUrl,
+                            colObj.title || 'N/A',
+                            colObj.description || colObj.summary || 'N/A',
+                            bbox,
+                            temporal,
+                            colObj.license || 'N/A',
+                            colObj.keywords || []
                         ];
                     });
 
@@ -148,14 +210,41 @@ async function getCollections(catalog) {
 }
 
 /**
- * Fetches nested catalogs within a catalog
+ * Fetches nested catalogs within a catalog using stac-js link navigation
  * @async
  * @param {Object} catalog - Catalog object with url property
+ * @param {Object} [stacCatalog] - Optional stac-js catalog object for link extraction
  * @returns {Promise<Array>} Array of nested catalogs
  */
-async function getNestedCatalogs(catalog) {
+async function getNestedCatalogs(catalog, stacCatalog = null) {
     try {
-        // Try common STAC nested catalog endpoints
+        // If we have a stac-js catalog object, use its link navigation methods
+        if (stacCatalog && typeof stacCatalog.getChildLinks === 'function') {
+            const childLinks = stacCatalog.getChildLinks();
+            
+            if (childLinks.length > 0) {
+                console.log(`   Found ${childLinks.length} child catalog links via stac-js`);
+                
+                // Fetch each child catalog
+                const nestedCatalogs = [];
+                for (const link of childLinks) {
+                    try {
+                        const childUrl = typeof link.getAbsoluteUrl === 'function'
+                            ? link.getAbsoluteUrl()
+                            : link.href;
+                        
+                        const response = await axios.get(childUrl, { timeout: 5000 });
+                        nestedCatalogs.push(response.data);
+                    } catch (e) {
+                        console.warn(`   Failed to fetch child catalog: ${e.message}`);
+                    }
+                }
+                
+                return nestedCatalogs;
+            }
+        }
+        
+        // Fallback: Try common STAC nested catalog endpoints
         const catalogUrls = [
             `${catalog.url}/catalogs`,
             `${catalog.url}/catalogs/`,
@@ -187,36 +276,69 @@ async function getNestedCatalogs(catalog) {
 }
 
 /**
- * Recursively crawls a catalog, its collections, and nested catalogs
+ * Recursively crawls a catalog using stac-js for parsing and navigation
  * @async
  * @param {Object} catalog - Catalog object to crawl
  * @param {number} depth - Current depth level (for indentation)
- * @returns {Promise<Object>} Stats object with collections count
+ * @returns {Promise<Object>} Stats object with collections count and STAC compliance
  */
 async function crawlCatalogRecursive(catalog, depth = 0) {
     const indent = '  '.repeat(depth);
-    let stats = { collections: 0 };
+    let stats = { collections: 0, stacCompliant: false };
     
     try {
+        let stacCatalog = null;
+        
+        // Try to fetch and parse the catalog with stac-js
+        if (catalog.url) {
+            try {
+                const response = await axios.get(catalog.url, { timeout: 5000 });
+                
+                try {
+                    stacCatalog = create(response.data, catalog.url);
+                    stats.stacCompliant = true;
+                    
+                    // Log STAC object type
+                    if (typeof stacCatalog.isCatalog === 'function' && stacCatalog.isCatalog()) {
+                        console.log(`${indent} STAC Catalog validated: ${catalog.id}`);
+                    } else if (typeof stacCatalog.isCollection === 'function' && stacCatalog.isCollection()) {
+                        console.log(`${indent} STAC Collection validated: ${catalog.id}`);
+                    }
+                } catch (parseError) {
+                    console.warn(`${indent} Non-compliant STAC catalog ${catalog.id}, skipping: ${parseError.message}`);
+                    return stats; // Skip non-compliant catalogs as per requirement
+                }
+            } catch (fetchError) {
+                console.warn(`${indent} Failed to fetch catalog ${catalog.id}: ${fetchError.message}`);
+                return stats;
+            }
+        }
+        
         // First, try to get collections from this catalog
         const collections = await getCollections(catalog);
         stats.collections = collections.length;
         
-        // Then, try to get nested catalogs
-        const nestedCatalogs = await getNestedCatalogs(catalog);
+        // Then, try to get nested catalogs using stac-js if available
+        const nestedCatalogs = await getNestedCatalogs(catalog, stacCatalog);
         
         if (nestedCatalogs.length > 0) {
             console.log(`${indent} Nested catalogs found: ${nestedCatalogs.length}`);
             
             // Recursively crawl each nested catalog
             for (const nestedCatalog of nestedCatalogs.slice(0, 5)) { // Limit to first 5 nested
-                const nestedStats = await crawlCatalogRecursive(nestedCatalog, depth + 1);
+                // Convert nested catalog to expected format
+                const nestedCatalogObj = {
+                    id: nestedCatalog.id || 'unknown',
+                    url: nestedCatalog.links?.find(l => l.rel === 'self')?.href || nestedCatalog.url
+                };
+                
+                const nestedStats = await crawlCatalogRecursive(nestedCatalogObj, depth + 1);
                 stats.collections += nestedStats.collections;
             }
         }
         
     } catch (error) {
-        console.error(`Error in recursive crawl for ${catalog.id}: ${error.message}`);
+        console.error(`${indent}Error in recursive crawl for ${catalog.id}: ${error.message}`);
     }
     
     return stats;
