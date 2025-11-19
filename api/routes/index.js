@@ -47,7 +47,7 @@ router.get('/', (req, res) => {
       },
       {
         rel: 'queryables',
-        href: `${baseUrl}/collections/queryables`,
+        href: `${baseUrl}/collections-queryables`,
         type: 'application/schema+json',
         title: 'Queryables'
       },

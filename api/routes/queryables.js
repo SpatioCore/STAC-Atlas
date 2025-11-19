@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 
 /**
- * GET /collections/queryables
+ * GET /collections-queryables
  * Returns the list of queryable properties for collections
  */
 router.get('/', (req, res) => {
