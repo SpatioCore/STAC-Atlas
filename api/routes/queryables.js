@@ -8,7 +8,7 @@ const router = express.Router();
 router.get('/', (req, res) => {
   res.json({
     $schema: 'https://json-schema.org/draft/2019-09/schema',
-    $id: `${req.protocol}://${req.get('host')}/collections/queryables`,
+    $id: `${req.protocol}://${req.get('host')}/collections-queryables`,
     type: 'object',
     title: 'STAC Atlas Collections Queryables',
     description: 'Queryable properties for STAC Collection Search',
