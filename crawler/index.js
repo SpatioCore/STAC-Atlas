@@ -4,6 +4,7 @@
  */
 
 const axios = require('axios');
+const db = require('./db');
 
 /**
  * URL of the STAC Index API endpoint
@@ -19,10 +20,13 @@ const targetUrl = 'https://www.stacindex.org/api/catalogs';
  */
 const crawler = async () => {
     try {
+        await db.initDb();
         const response = await axios.get(targetUrl);
-        splitCatalogs(response.data);
+        await splitCatalogs(response.data);
     } catch (error) {
         console.error(`Error fetching ${targetUrl}: ${error.message}`);
+    } finally {
+        // keep DB open for now; close on process exit
     }
 };
 
@@ -35,7 +39,7 @@ const crawler = async () => {
  *   [11] = accessInfo, [12] = categories, ... (followed by any other dynamic properties)
  * @throws {Error} Throws error if input is not an array
  */
-function splitCatalogs(catalogs) {
+async function splitCatalogs(catalogs) {
     if (!Array.isArray(catalogs)) {
         throw new Error('Expected an array');
     }
@@ -99,6 +103,20 @@ function splitCatalogs(catalogs) {
         console.log(`  elements[0][1] (id): ${elements[0][1]}`);
         console.log(`  elements[0][2] (url): ${elements[0][2]}`);
         console.log(`  elements[0][7] (created): ${elements[0][7]}`);
+    }
+
+    // Persist catalogs into DB
+    try {
+        await Promise.all(catalogs.map(async (catalog) => {
+            try {
+                await db.insertOrUpdateCatalog(catalog);
+            } catch (err) {
+                console.error('DB write error for catalog', catalog && (catalog.id || catalog.slug), err && err.message);
+            }
+        }));
+        console.log('Finished writing catalogs to DB');
+    } catch (e) {
+        console.error('Unexpected error while saving catalogs to DB', e && e.message);
     }
 
     return elements;
