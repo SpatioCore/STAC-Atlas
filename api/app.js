@@ -39,7 +39,7 @@ app.use((req, res, next) => {
 app.use('/', indexRouter);
 app.use('/conformance', conformanceRouter);
 app.use('/collections', collectionsRouter);
-app.use('/collections/queryables', queryablesRouter);
+app.use('/collections-queryables', queryablesRouter);
 
 // Swagger/OpenAPI documentation (if openapi.yaml exists) 
 // Swagger-ui-express automatically generates a swagger-ui-init.js file 
