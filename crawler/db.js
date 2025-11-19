@@ -15,34 +15,11 @@ const pool = new Pool({
 });
 
 async function initDb() {
+  // Test database connection
   const client = await pool.connect();
   try {
-    // create table if missing and add useful indexes
-    await client.query(`
-      CREATE TABLE IF NOT EXISTS catalogs (
-        id SERIAL PRIMARY KEY,
-        catalog_id TEXT UNIQUE,
-        url TEXT,
-        title TEXT,
-        metadata JSONB,
-        created_at TIMESTAMPTZ DEFAULT now(),
-        updated_at TIMESTAMPTZ DEFAULT now()
-      );
-    `);
-
-    // create GIN index on metadata for JSONB queries
-    await client.query(`
-      CREATE INDEX IF NOT EXISTS idx_catalogs_metadata_gin ON catalogs USING GIN (metadata jsonb_path_ops);
-    `);
-
-    // try enabling PostGIS 
-    try {
-      await client.query(`CREATE EXTENSION IF NOT EXISTS postgis;`);
-    } catch (e) {
-      // ignore extension permission errors
-    }
-
-    console.log('DB initialized (catalogs table present)');
+    await client.query('SELECT 1');
+    console.log('DB connection established successfully');
   } finally {
     client.release();
   }
@@ -80,32 +57,3 @@ async function close() {
 module.exports = { initDb, insertOrUpdateCatalog, close, pool };
 
 
-
-/**
-
-const createConnectionPool = require('@databases/pg');
-const {sql} = require('@databases/pg');
-
-async function run() {
-  // N.B. you will need to replace this connection
-  // string with the correct string for your database.
-  const db = createConnectionPool(
-    'postgres://test-user@localhost:5432/test-db',
-  );
-
-  const results = await db.query(sql`
-    SELECT 1 + 1 as result;
-  `);
-
-  console.log(results);
-  // => [{result: 2}]
-
-  await db.dispose();
-}
-
-run().catch((err) => {
-  console.error(err);
-  process.exit(1);
-});
-
-*/
