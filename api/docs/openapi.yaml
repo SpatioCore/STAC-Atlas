@@ -324,7 +324,7 @@ components:
         - links
         - context
       properties:
-       type:
+        type:
           type: string
           enum:
             - FeatureCollection
@@ -366,5 +366,3 @@ components:
           type: object
           description: Additional error details
           additionalProperties: true
-
-
