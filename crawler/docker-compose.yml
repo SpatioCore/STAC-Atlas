@@ -1,0 +1,12 @@
+services:
+  crawler:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: stac-crawler
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+    # Optional: Add volume to persist data
+    # volumes:
+    #   - ./data:/app/data
