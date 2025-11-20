@@ -5,6 +5,7 @@
 
 const axios = require('axios');
 const { splitCatalogs, crawlCatalogRecursive } = require('./catalogs/catalog');
+const { crawlApis } = require('./apis/api');
 
 /**
  * URL of the STAC Index API endpoint
@@ -32,6 +33,30 @@ const crawler = async () => {
         }
         
         console.log(`\n Total collections found across all catalogs: ${totalCollections}`);
+
+        // Extract API URLs and crawl them
+        console.log('\n Crawling APIs...');
+        const apiUrls = catalogs
+            .filter(cat => cat[10] === true) // isApi is at index 10
+            .map(cat => cat[2]); // url is at index 2
+            
+        if (apiUrls.length > 0) {
+            console.log(`Found ${apiUrls.length} APIs. Starting crawl...`);
+            // Limit to first 5 APIs for demonstration/performance
+            const collections = await crawlApis(apiUrls.slice(0, 5), true);
+            console.log(`\nFetched ${collections.length} collections from APIs (sorted by URL).`);
+            
+            if (collections.length > 0) {
+                console.log('First 3 collections found:');
+                collections.slice(0, 3).forEach(c => {
+                    const selfLink = c.links?.find(l => l.rel === 'self')?.href;
+                    console.log(` - ${c.id}: ${selfLink}`);
+                });
+            }
+        } else {
+            console.log('No APIs found to crawl.');
+        }
+
     } catch (error) {
         console.error(`Error fetching ${targetUrl}: ${error.message}`);
     }
