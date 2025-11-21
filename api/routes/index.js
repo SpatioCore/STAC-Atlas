@@ -8,8 +8,35 @@ const router = express.Router();
  */
 router.get('/', (req, res) => {
   const baseUrl = `${req.protocol}://${req.get('host')}`;
-  
-  res.json({
+
+  // Prefer HTML for browsers, JSON for API clients. Use Express's accepts() to
+  // determine the best response type.
+  const preferred = req.accepts(['html', 'json']);
+  if (preferred === 'html') {
+    // Simple landing page
+    return res.send(`<!doctype html>
+    <html lang="de">
+    <head>
+      <meta charset="utf-8" />
+      <meta name="viewport" content="width=device-width,initial-scale=1" />
+      <title>STAC Atlas</title>
+      <style>body{font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;margin:2rem}a{color:#0366d6}</style>
+    </head>
+    <body>
+      <h1>STAC Atlas</h1>
+      <p>Willkommen bei der STAC Atlas API. Nützliche Endpunkte:</p>
+      <ul>
+        <li><a href="/conformance">/conformance</a> — Conformance classes</li>
+        <li><a href="/collections">/collections</a> — Collections</li>
+        <li><a href="/queryables">/queryables</a> — Queryables (schema)</li>
+      </ul>
+      <p>Für Maschinen: <code>curl -H "Accept: application/json" {{BASE}}</code></p>
+    </body>
+    </html>`);
+  }
+
+  // Default: machine-readable JSON (existing behaviour)
+  return res.json({
     type: 'Catalog',
     id: 'stac-atlas',
     title: 'STAC Atlas',

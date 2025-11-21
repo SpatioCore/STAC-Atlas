@@ -26,11 +26,9 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
-// Content-Type header for all JSON responses
-app.use((req, res, next) => {
-  res.setHeader('Content-Type', 'application/json');
-  next();
-});
+// Do not force a global Content-Type header here. Let individual handlers
+// (res.json, res.send, etc.) set the appropriate Content-Type so HTML
+// responses render correctly in browsers.
 
 // STAC API routes
 app.use('/', indexRouter);
