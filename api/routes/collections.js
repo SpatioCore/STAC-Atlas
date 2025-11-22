@@ -71,19 +71,31 @@ router.get('/', (req, res) => {
 
 /**
  * GET /collections/:id
- * Returns a single collection by ID
+ * Returns a single collection by ID. Includes all STAC Collection fields
+ * (stac_version, type, title, description, license, extent, links, etc).
+ * 
+ * Returns:
+ * - 200 OK with full Collection object if found
+ * - 404 NotFound with proper error format if collection does not exist
  */
 router.get('/:id', (req, res) => {
   const { id } = req.params;
   
-  // TODO: Fetch collection from database
-  // TODO: Return 404 if not found
+  // Look up the collection in the data store by ID
+  // When connected to a DB, replace this with a SQL query (SELECT * FROM collections WHERE id = ?)
+  const collection = collectionsStore.find(c => c.id === id);
   
-  res.status(404).json({
-    code: 'NotFound',
-    description: `Collection with id '${id}' not found`,
-    id: id
-  });
+  if (!collection) {
+    // Return 404 with standardized error format
+    return res.status(404).json({
+      code: 'NotFound',
+      description: `Collection with id '${id}' not found`,
+      id: id
+    });
+  }
+  
+  // Return the full STAC Collection object
+  res.json(collection);
 });
 
 module.exports = router;
