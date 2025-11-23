@@ -31,7 +31,26 @@ describe('STAC API Core Endpoints', () => {
       expect(linkRels).toContain('data');
     });
 
-    // TODO: Add a test which checks if the /conformance endpoint URL is using the same conformance-classes as linked in the landing page (conformsTo array)
+	it('should expose the same conformance classes as the /conformance endpoint', async () => {
+	  const [landingRes, confRes] = await Promise.all([
+		request(app).get('/').expect(200),
+		request(app).get('/conformance').expect(200)
+	  ]);
+
+	  const landingConformance = landingRes.body.conformsTo;
+	  const endpointConformance = confRes.body.conformsTo;
+
+	  // beide müssen Arrays sein
+	  expect(Array.isArray(landingConformance)).toBe(true);
+	  expect(Array.isArray(endpointConformance)).toBe(true);
+
+	  // Hilfsfunktion: sortieren, damit die Reihenfolge egal ist
+	  const sortStrings = arr => [...arr].sort();
+
+	  expect(sortStrings(landingConformance)).toEqual(
+		sortStrings(endpointConformance)
+	  );
+	});
   });
 
   describe('GET /conformance', () => {
