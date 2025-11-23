@@ -6,6 +6,7 @@ describe('STAC API Core Endpoints', () => {
     it('should return the landing page with STAC catalog structure', async () => {
       const response = await request(app).get('/').expect(200);
 
+      // Make sure the response has the correct structure of a STAC Catalog
       expect(response.body).toHaveProperty('type', 'Catalog');
       expect(response.body).toHaveProperty('id');
       expect(response.body).toHaveProperty('title');
@@ -24,9 +25,13 @@ describe('STAC API Core Endpoints', () => {
 
       expect(linkRels).toContain('self');
       expect(linkRels).toContain('root');
+      expect(linkRels).toContain('service-doc');
+      expect(linkRels).toContain('service-desc');
       expect(linkRels).toContain('conformance');
       expect(linkRels).toContain('data');
     });
+
+    // TODO: Add a test which checks if the /conformance endpoint URL is using the same conformance-classes as linked in the landing page (conformsTo array)
   });
 
   describe('GET /conformance', () => {
