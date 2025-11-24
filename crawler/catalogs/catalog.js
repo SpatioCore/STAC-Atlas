@@ -3,8 +3,8 @@
  * @module catalogs/catalog
  */
 
-const axios = require('axios');
-const { default: create } = require('stac-js');
+import axios from 'axios';
+import create from 'stac-js';
 
 /**
  * Checks if a catalog is STAC API compliant by validating conformance classes
@@ -485,7 +485,7 @@ function deriveCategories(catalog) {
     return [];
 }
 
-module.exports = {
+export {
     splitCatalogs,
     getCollections,
     getNestedCatalogs,

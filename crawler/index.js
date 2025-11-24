@@ -3,9 +3,9 @@
  * @module crawler
  */
 
-const axios = require('axios');
-const { splitCatalogs, crawlCatalogRecursive } = require('./catalogs/catalog');
-const { crawlApis } = require('./apis/api');
+import axios from 'axios';
+import { splitCatalogs, crawlCatalogRecursive } from './catalogs/catalog.js';
+import { crawlApis } from './apis/api.js';
 
 /**
  * URL of the STAC Index API endpoint
