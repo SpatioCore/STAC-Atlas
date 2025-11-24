@@ -31,6 +31,7 @@ describe('STAC API Core Endpoints', () => {
       expect(linkRels).toContain('data');
     });
 
+	
 	it('should expose the same conformance classes as the /conformance endpoint', async () => {
 	  const [landingRes, confRes] = await Promise.all([
 		request(app).get('/').expect(200),
@@ -40,11 +41,11 @@ describe('STAC API Core Endpoints', () => {
 	  const landingConformance = landingRes.body.conformsTo;
 	  const endpointConformance = confRes.body.conformsTo;
 
-	  // beide müssen Arrays sein
+	  // both must be arrays
 	  expect(Array.isArray(landingConformance)).toBe(true);
 	  expect(Array.isArray(endpointConformance)).toBe(true);
 
-	  // Hilfsfunktion: sortieren, damit die Reihenfolge egal ist
+	  // support function: sort, so that the order doesn't matter
 	  const sortStrings = arr => [...arr].sort();
 
 	  expect(sortStrings(landingConformance)).toEqual(
