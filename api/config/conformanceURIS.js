@@ -18,7 +18,7 @@ const CONFORMANCE_URIS = [
       "http://www.opengis.net/spec/cql2/1.0/conf/cql2-json",                // CQL2 JSON-Querys
       "http://www.opengis.net/spec/cql2/1.0/conf/cql2-text",                // CQL2 Text-Querys
       "http://www.opengis.net/spec/cql2/1.0/conf/basic-spatial-functions"   // Basic Spatial Functions
-    ]];
+    ];
 
 module.exports = {
   CONFORMANCE_URIS

@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { CONFORMANCE_URIS } = require('../config/conformance');
+const { CONFORMANCE_URIS } = require('../config/conformanceURIS');
 
 /**
  * GET /conformance
