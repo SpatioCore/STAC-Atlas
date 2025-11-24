@@ -1,13 +1,13 @@
 const express = require('express');
 const router = express.Router();
-const collectionsStore = require('../data/collections');
+const collectionsStore = require('../data/collections'); // change with the real  collections when we have them
 
 /**
  * GET /collections
  * Returns a paginated list of collections (basic version)
  * Query params:
  *   - limit: number of collections to return (default 10, max 100)
- *   - offset: start index (default 0)
+ *   - token : start index (default 0)
  */
 router.get('/', (req, res) => {
   // Total available collections in the current data source
@@ -15,35 +15,35 @@ router.get('/', (req, res) => {
 
   // Parse pagination params; fallback to sensible defaults
   let limit = parseInt(req.query.limit, 10);
-  let offset = parseInt(req.query.offset, 10);
+  let token  = parseInt(req.query.token , 10);
 
   // Validate and normalise inputs
   if (Number.isNaN(limit) || limit <= 0) limit = 10;
-  if (Number.isNaN(offset) || offset < 0) offset = 0;
+  if (Number.isNaN(token ) || token  < 0) token  = 0;
   if (limit > 100) limit = 100; // protect against very large requests
 
   // Compute slice indexes
-  const start = offset;
+  const start = token ;
   const end = Math.min(start + limit, total);
 
-  // Slice the in-memory store. When connected to a DB, use LIMIT/OFFSET instead.
+  // Slice the in-memory store. When connected to a DB, use LIMIT/token  instead.
   const collections = collectionsStore.slice(start, end);
 
   // Base URL used for building pagination links
   const baseUrl = `${req.protocol}://${req.get('host')}/collections`;
 
   // Helper to build a single pagination link. We keep query params simple
-  // (limit/offset) so clients can follow them easily. A token-based paging
+  // (limit/token ) so clients can follow them easily. A token-based paging
   // scheme can be introduced later if needed for large datasets.
   const buildLink = (rel, offs) => ({
     rel,
-    href: `${baseUrl}?limit=${limit}&offset=${offs}`,
+    href: `${baseUrl}?limit=${limit}&token =${offs}`,
     type: 'application/json'
   });
 
   // Always include a self and root link. Add next/prev when applicable.
   const links = [
-    { rel: 'self', href: `${baseUrl}?limit=${limit}&offset=${offset}`, type: 'application/json' },
+    { rel: 'self', href: `${baseUrl}?limit=${limit}&token =${token }`, type: 'application/json' },
     { rel: 'root', href: `${req.protocol}://${req.get('host')}`, type: 'application/json' }
   ];
 
@@ -52,8 +52,8 @@ router.get('/', (req, res) => {
   }
 
   if (start > 0) {
-    const prevOffset = Math.max(0, start - limit);
-    links.push(buildLink('prev', prevOffset));
+    const prevtoken  = Math.max(0, start - limit);
+    links.push(buildLink('prev', prevtoken ));
   }
 
   // Final response: STAC-like FeatureCollection wrapper
@@ -61,9 +61,9 @@ router.get('/', (req, res) => {
     collections,
     links,
     context: {
-      returned: collections.length,
-      limit: limit,
-      matched: total
+      returned: collections.length, // Count of returned collections by this request
+      limit: limit,                             // Requested site-limit
+      matched: total                      // Number of all available collections
     }
   });
 });
