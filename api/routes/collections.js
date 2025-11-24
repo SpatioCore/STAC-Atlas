@@ -58,7 +58,6 @@ router.get('/', (req, res) => {
 
   // Final response: STAC-like FeatureCollection wrapper
   res.json({
-    type: 'FeatureCollection',
     collections,
     links,
     context: {
