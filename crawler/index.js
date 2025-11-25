@@ -47,7 +47,7 @@ const crawler = async () => {
         if (apiUrls.length > 0) {
             console.log(`Found ${apiUrls.length} APIs. Starting crawl...`);
             // Limit to first 5 APIs for demonstration/performance
-            const collections = await crawlApis(apiUrls.slice(0, 5), true);
+            const collections = await crawlApis(apiUrls, true);
             console.log(`\nFetched ${collections.length} collections from APIs (sorted by URL).`);
             
             if (collections.length > 0) {
