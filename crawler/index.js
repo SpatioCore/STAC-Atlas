@@ -27,7 +27,11 @@ const crawler = async () => {
         // Crawl collections and nested catalogs for each catalog
         console.log('\n Crawling collections and nested catalogs...\n');
         let totalCollections = 0;
-        for (const catalog of response.data.slice(0, 10)) { // Limit to first 10 catalogs
+        for (const catalogData of catalogs.slice(0, 10)) { // Limit to first 10 catalogs
+            const catalog = {
+                id: catalogData[1],
+                url: catalogData[2]
+            };
             const stats = await crawlCatalogRecursive(catalog);
             totalCollections += stats.collections;
         }
