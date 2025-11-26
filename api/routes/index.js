@@ -1,10 +1,12 @@
 const express = require('express');
 const router = express.Router();
+const { CONFORMANCE_URIS } = require('../config/conformanceURIS');
 
 /**
  * GET /
  * STAC API Landing Page
  * Returns basic information about the API and available endpoints
+ * Source: https://docs.ogc.org/cs/25-005/25-005.html
  */
 router.get('/', (req, res) => {
   const baseUrl = `${req.protocol}://${req.get('host')}`;
@@ -15,50 +17,46 @@ router.get('/', (req, res) => {
     title: 'STAC Atlas',
     description: 'A centralized platform for managing, indexing, and providing STAC Collection metadata from distributed catalogs and APIs.',
     stac_version: '1.0.0',
-    conformsTo: [
-      'https://api.stacspec.org/v1.0.0/core',
-      'https://api.stacspec.org/v1.0.0/collections',
-      'https://api.stacspec.org/v1.0.0/collection-search'
-    ],
+    conformsTo: CONFORMANCE_URIS,
     links: [
       {
         rel: 'self',
         href: baseUrl,
         type: 'application/json',
-        title: 'This document'
+        title: 'STAC Atlas Landing Page'
       },
       {
         rel: 'root',
         href: baseUrl,
         type: 'application/json',
-        title: 'Root catalog'
+        title: 'STAC Atlas root catalog'
       },
       {
         rel: 'conformance',
         href: `${baseUrl}/conformance`,
         type: 'application/json',
-        title: 'Conformance classes'
+        title: 'STAC/OGC conformance classes'
       },
       {
         rel: 'data',
         href: `${baseUrl}/collections`,
         type: 'application/json',
-        title: 'Collections'
+        title: 'STAC Collections'
       },
       {
         rel: 'queryables',
-        href: `${baseUrl}/collections-queryables`,
+        href: `${baseUrl}/collection-queryables`, // TODO: Check with Mohr if this is the correct endpoint
         type: 'application/schema+json',
-        title: 'Queryables'
+        title: 'Queryables for Collections'
       },
       {
-        rel: 'service-desc',
+        rel: 'service-doc', // This should be the Swagger UI or similar
         href: `${baseUrl}/api-docs`,
         type: 'text/html',
         title: 'API documentation'
       },
       {
-        rel: 'service-doc',
+        rel: 'service-desc', // This should point to the OpenAPI spec (machine-readable)
         href: `${baseUrl}/openapi.yaml`,
         type: 'application/vnd.oai.openapi+json;version=3.0',
         title: 'OpenAPI specification'
