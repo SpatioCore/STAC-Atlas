@@ -57,8 +57,8 @@ Comprehensive indexing for optimal query performance:
 ### Starting the Database
 
 ```bash
+cd ./db/
 docker-compose up
-```
 
 ### Connection Details
 
