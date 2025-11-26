@@ -5,6 +5,7 @@
 
 import axios from 'axios';
 import create from 'stac-js';
+import { withTimeout } from '../utils/config.js';
 
 /**
  * Splits an array of catalogs into individual elements where each element is an array of its properties
@@ -96,10 +97,14 @@ function splitCatalogs(catalogs) {
  * Fetches and processes collections from a catalog using stac-js
  * @async
  * @param {Object} catalog - Catalog object with url property
+ * @param {Object} config - Configuration object with timeout settings
  * @returns {Promise<Array>} Array of collections formatted as arrays
  */
-async function getCollections(catalog) {
+async function getCollections(catalog, config = {}) {
     try {
+        const timeoutMs = config.timeout || 30000;
+        const axiosTimeout = timeoutMs === Infinity ? 0 : Math.min(5000, timeoutMs);
+        
         // Try common STAC collection endpoints
         const collectionUrls = [
             `${catalog.url}/collections`,
@@ -109,7 +114,11 @@ async function getCollections(catalog) {
 
         for (const url of collectionUrls) {
             try {
-                const response = await axios.get(url, { timeout: 5000 });
+                const response = await withTimeout(
+                    axios.get(url, { timeout: axiosTimeout }),
+                    timeoutMs,
+                    `Fetching collections from ${url}`
+                );
                 
                 // Parse response with stac-js for validation and enhanced metadata extraction
                 let stacObj;
@@ -213,10 +222,14 @@ async function getCollections(catalog) {
  * @async
  * @param {Object} catalog - Catalog object with url property
  * @param {Object} [stacCatalog] - Optional stac-js catalog object for link extraction
+ * @param {Object} config - Configuration object with timeout settings
  * @returns {Promise<Array>} Array of nested catalogs
  */
-async function getNestedCatalogs(catalog, stacCatalog = null) {
+async function getNestedCatalogs(catalog, stacCatalog = null, config = {}) {
     try {
+        const timeoutMs = config.timeout || 30000;
+        const axiosTimeout = timeoutMs === Infinity ? 0 : Math.min(5000, timeoutMs);
+        
         // If we have a stac-js catalog object, use its link navigation methods
         if (stacCatalog && typeof stacCatalog.getChildLinks === 'function') {
             const childLinks = stacCatalog.getChildLinks();
@@ -232,7 +245,11 @@ async function getNestedCatalogs(catalog, stacCatalog = null) {
                             ? link.getAbsoluteUrl()
                             : link.href;
                         
-                        const response = await axios.get(childUrl, { timeout: 5000 });
+                        const response = await withTimeout(
+                            axios.get(childUrl, { timeout: axiosTimeout }),
+                            timeoutMs,
+                            `Fetching child catalog from ${childUrl}`
+                        );
                         nestedCatalogs.push(response.data);
                     } catch (e) {
                         console.warn(`   Failed to fetch child catalog: ${e.message}`);
@@ -252,7 +269,11 @@ async function getNestedCatalogs(catalog, stacCatalog = null) {
 
         for (const url of catalogUrls) {
             try {
-                const response = await axios.get(url, { timeout: 5000 });
+                const response = await withTimeout(
+                    axios.get(url, { timeout: axiosTimeout }),
+                    timeoutMs,
+                    `Fetching nested catalogs from ${url}`
+                );
                 const catalogsData = Array.isArray(response.data) 
                     ? response.data 
                     : response.data.catalogs || [];
@@ -279,22 +300,36 @@ async function getNestedCatalogs(catalog, stacCatalog = null) {
  * @async
  * @param {Object} catalog - Catalog object to crawl
  * @param {number} depth - Current depth level (for indentation)
+ * @param {Object} config - Configuration object with timeout and depth settings
  * @returns {Promise<Object>} Stats object with collections count and STAC compliance
  */
-async function crawlCatalogRecursive(catalog, depth = 0) {
+async function crawlCatalogRecursive(catalog, depth = 0, config = {}) {
     const indent = '  '.repeat(depth);
     let stats = { 
         collections: 0, 
         stacCompliant: false
     };
     
+    // Check max depth
+    const maxDepth = config.maxDepth || 3;
+    if (depth >= maxDepth) {
+        console.log(`${indent} Max depth ${maxDepth} reached, stopping recursion`);
+        return stats;
+    }
+    
     try {
+        const timeoutMs = config.timeout || 30000;
+        const axiosTimeout = timeoutMs === Infinity ? 0 : Math.min(5000, timeoutMs);
         let stacCatalog = null;
         
         // Try to fetch and parse the catalog with stac-js
         if (catalog.url) {
             try {
-                const response = await axios.get(catalog.url, { timeout: 5000 });
+                const response = await withTimeout(
+                    axios.get(catalog.url, { timeout: axiosTimeout }),
+                    timeoutMs,
+                    `Fetching catalog ${catalog.id}`
+                );
                 
                 try {
                     stacCatalog = create(response.data, catalog.url);
@@ -318,11 +353,11 @@ async function crawlCatalogRecursive(catalog, depth = 0) {
         }
         
         // First, try to get collections from this catalog
-        const collections = await getCollections(catalog);
+        const collections = await getCollections(catalog, config);
         stats.collections = collections.length;
         
         // Then, try to get nested catalogs using stac-js if available
-        const nestedCatalogs = await getNestedCatalogs(catalog, stacCatalog);
+        const nestedCatalogs = await getNestedCatalogs(catalog, stacCatalog, config);
         
         if (nestedCatalogs.length > 0) {
             console.log(`${indent} Nested catalogs found: ${nestedCatalogs.length}`);
@@ -335,7 +370,7 @@ async function crawlCatalogRecursive(catalog, depth = 0) {
                     url: nestedCatalog.links?.find(l => l.rel === 'self')?.href || nestedCatalog.url
                 };
                 
-                const nestedStats = await crawlCatalogRecursive(nestedCatalogObj, depth + 1);
+                const nestedStats = await crawlCatalogRecursive(nestedCatalogObj, depth + 1, config);
                 stats.collections += nestedStats.collections;
             }
         }

@@ -6,6 +6,7 @@
 import axios from 'axios';
 import { splitCatalogs, crawlCatalogRecursive } from './catalogs/catalog.js';
 import { crawlApis } from './apis/api.js';
+import { getConfig } from './utils/config.js';
 
 /**
  * URL of the STAC Index API endpoint
@@ -21,44 +22,78 @@ const targetUrl = 'https://www.stacindex.org/api/catalogs';
  */
 const crawler = async () => {
     try {
+        // Load configuration
+        const config = getConfig();
+        
+        // Display configuration
+        console.log('\n=== STAC Crawler Configuration ===');
+        console.log(`Mode: ${config.mode}`);
+        console.log(`Max Catalogs: ${config.maxCatalogs === Infinity ? 'unlimited' : config.maxCatalogs}`);
+        console.log(`Max APIs: ${config.maxApis === Infinity ? 'unlimited' : config.maxApis}`);
+        console.log(`Timeout: ${config.timeout === Infinity ? 'unlimited' : config.timeout + 'ms'}`);
+        console.log(`Max Depth: ${config.maxDepth === Infinity ? 'unlimited' : config.maxDepth}`);
+        console.log('==================================\n');
+        
         const response = await axios.get(targetUrl);
         const catalogs = splitCatalogs(response.data);
         
-        // Crawl collections and nested catalogs for each catalog
-        console.log('\n Crawling collections and nested catalogs...\n');
-        let totalCollections = 0;
-        for (const catalogData of catalogs.slice(0, 10)) { // Limit to first 10 catalogs
-            const catalog = {
-                id: catalogData[1],
-                url: catalogData[2]
-            };
-            const stats = await crawlCatalogRecursive(catalog);
-            totalCollections += stats.collections;
+        // Crawl catalogs if mode is 'catalogs' or 'both'
+        if (config.mode === 'catalogs' || config.mode === 'both') {
+            console.log('\n Crawling collections and nested catalogs...\n');
+            let totalCollections = 0;
+            
+            const catalogsToProcess = config.maxCatalogs === Infinity ? catalogs : catalogs.slice(0, config.maxCatalogs);
+            console.log(`Processing ${catalogsToProcess.length} catalogs (max: ${config.maxCatalogs === Infinity ? 'unlimited' : config.maxCatalogs})\n`);
+            
+            for (const catalogData of catalogsToProcess) {
+                const catalog = {
+                    id: catalogData[1],
+                    url: catalogData[2]
+                };
+                
+                try {
+                    const stats = await crawlCatalogRecursive(catalog, 0, config);
+                    totalCollections += stats.collections;
+                } catch (error) {
+                    console.error(`Failed to crawl catalog ${catalog.id}: ${error.message}`);
+                }
+            }
+            
+            console.log(`\n Total collections found across all catalogs: ${totalCollections}`);
+        } else {
+            console.log('\n Skipping catalog crawling (mode: apis)\n');
         }
-        
-        console.log(`\n Total collections found across all catalogs: ${totalCollections}`);
 
-        // Extract API URLs and crawl them
-        console.log('\n Crawling APIs...');
-        const apiUrls = catalogs
-            .filter(cat => cat[10] === true) // isApi is at index 10
-            .map(cat => cat[2]); // url is at index 2
-            
-        if (apiUrls.length > 0) {
-            console.log(`Found ${apiUrls.length} APIs. Starting crawl...`);
-            // Limit to first 5 APIs for demonstration/performance
-            const collections = await crawlApis(apiUrls, true);
-            console.log(`\nFetched ${collections.length} collections from APIs (sorted by URL).`);
-            
-            if (collections.length > 0) {
-                console.log('First 3 collections found:');
-                collections.slice(0, 3).forEach(c => {
-                    const selfLink = c.links?.find(l => l.rel === 'self')?.href;
-                    console.log(` - ${c.id}: ${selfLink}`);
-                });
+        // Crawl APIs if mode is 'apis' or 'both'
+        if (config.mode === 'apis' || config.mode === 'both') {
+            console.log('\n Crawling APIs...');
+            const apiUrls = catalogs
+                .filter(cat => cat[10] === true) // isApi is at index 10
+                .map(cat => cat[2]); // url is at index 2
+                
+            if (apiUrls.length > 0) {
+                const apisToProcess = config.maxApis === Infinity ? apiUrls : apiUrls.slice(0, config.maxApis);
+                console.log(`Found ${apiUrls.length} APIs. Processing ${apisToProcess.length} (max: ${config.maxApis === Infinity ? 'unlimited' : config.maxApis})...`);
+                
+                try {
+                    const collections = await crawlApis(apisToProcess, true, config);
+                    console.log(`\nFetched ${collections.length} collections from APIs (sorted by URL).`);
+                    
+                    if (collections.length > 0) {
+                        console.log('First 3 collections found:');
+                        collections.slice(0, 3).forEach(c => {
+                            const selfLink = c.links?.find(l => l.rel === 'self')?.href;
+                            console.log(` - ${c.id}: ${selfLink}`);
+                        });
+                    }
+                } catch (error) {
+                    console.error(`Failed to crawl APIs: ${error.message}`);
+                }
+            } else {
+                console.log('No APIs found to crawl.');
             }
         } else {
-            console.log('No APIs found to crawl.');
+            console.log('\n Skipping API crawling (mode: catalogs)\n');
         }
 
     } catch (error) {
