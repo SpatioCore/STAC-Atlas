@@ -5,15 +5,17 @@
 
 import axios from 'axios';
 import create from 'stac-js';
+import { withTimeout } from '../utils/config.js';
 
 /**
  * Crawls STAC APIs to retrieve collection information without fetching items.
  * 
  * @param {string[]} urls - Array of API URLs to crawl
  * @param {boolean} isApi - Boolean flag indicating if the URLs are APIs
+ * @param {Object} config - Configuration object with timeout settings
  * @returns {Promise<Object[]>} Array of STAC Collection objects ordered by URL
  */
-async function crawlApis(urls, isApi) {
+async function crawlApis(urls, isApi, config = {}) {
     if (!isApi || !Array.isArray(urls) || urls.length === 0) {
         return [];
     }
@@ -26,7 +28,7 @@ async function crawlApis(urls, isApi) {
     for (const [index, url] of urls.entries()) {
         console.log(`Processing API ${index + 1}/${urls.length}: ${url}`);
         try {
-            await crawlSingleApi(url, allCollections);
+            await crawlSingleApi(url, allCollections, new Set(), config);
         } catch (error) {
             console.error(`Error crawling API ${url}:`, error.message);
         }
@@ -50,14 +52,22 @@ async function crawlApis(urls, isApi) {
  * @param {string} url - URL to crawl
  * @param {Map} collectionMap - Map to store found collections
  * @param {Set<string>} visited - Set of visited URLs to prevent loops
+ * @param {Object} config - Configuration object with timeout settings
  */
-async function crawlSingleApi(url, collectionMap, visited = new Set()) {
+async function crawlSingleApi(url, collectionMap, visited = new Set(), config = {}) {
     if (!url || visited.has(url)) return;
     visited.add(url);
 
+    const timeoutMs = config.timeout || 30000;
+    const axiosTimeout = timeoutMs === Infinity ? 0 : Math.min(10000, timeoutMs);
+
     try {
         console.log(`  Fetching: ${url}`);
-        const response = await axios.get(url);
+        const response = await withTimeout(
+            axios.get(url, { timeout: axiosTimeout }),
+            timeoutMs,
+            `Crawling API ${url}`
+        );
         const stacObj = create(response.data);
 
         // If it's a Collection, add it
@@ -77,7 +87,7 @@ async function crawlSingleApi(url, collectionMap, visited = new Set()) {
             const collectionsLink = stacObj.getApiCollectionsLink();
             if (collectionsLink) {
                 console.log(`  Found /collections endpoint link in ${url}`);
-                await fetchCollectionsFromLink(collectionsLink, collectionMap, visited);
+                await fetchCollectionsFromLink(collectionsLink, collectionMap, visited, config);
             } else {
                 // Fallback: check standard STAC API structure if not explicitly found
                 // Many STAC APIs have a /collections endpoint relative to root
@@ -90,7 +100,7 @@ async function crawlSingleApi(url, collectionMap, visited = new Set()) {
                      for (const link of childLinks) {
                         const childUrl = link.getAbsoluteUrl();
                         if (childUrl) {
-                            await crawlSingleApi(childUrl, collectionMap, visited);
+                            await crawlSingleApi(childUrl, collectionMap, visited, config);
                         }
                     }
                 }
@@ -108,15 +118,23 @@ async function crawlSingleApi(url, collectionMap, visited = new Set()) {
  * @param {Object} link - stac-js Link object
  * @param {Map} collectionMap - Map to store collections
  * @param {Set<string>} visited - Visited set
+ * @param {Object} config - Configuration object with timeout settings
  */
-async function fetchCollectionsFromLink(link, collectionMap, visited) {
+async function fetchCollectionsFromLink(link, collectionMap, visited, config = {}) {
     const url = link.getAbsoluteUrl();
     if (!url || visited.has(url)) return;
     visited.add(url);
 
+    const timeoutMs = config.timeout || 30000;
+    const axiosTimeout = timeoutMs === Infinity ? 0 : Math.min(10000, timeoutMs);
+
     try {
         console.log(`  Fetching collections from: ${url}`);
-        const response = await axios.get(url);
+        const response = await withTimeout(
+            axios.get(url, { timeout: axiosTimeout }),
+            timeoutMs,
+            `Fetching collections from ${url}`
+        );
         // create() handles CollectionCollection (API Collections response)
         const stacObj = create(response.data);
         
