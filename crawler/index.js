@@ -99,6 +99,21 @@ const crawler = async () => {
     } catch (error) {
         console.error(`Error fetching ${targetUrl}: ${error.message}`);
     }
+
+    // Persist catalogs into DB
+    try {
+        await Promise.all(catalogs.map(async (catalog) => {
+            try {
+                await db.insertOrUpdateCatalog(catalog);
+            } catch (err) {
+                console.error('DB write error for catalog', catalog && (catalog.id || catalog.slug), err && err.message);
+            }
+        }));
+        console.log('Finished writing catalogs to DB');
+    } catch (e) {
+        console.error('Unexpected error while saving catalogs to DB', e && e.message);
+    }
+
 };
 
 crawler();
