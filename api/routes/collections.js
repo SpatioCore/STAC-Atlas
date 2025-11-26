@@ -2,10 +2,6 @@ const express = require('express');
 const router = express.Router();
 const collectionsStore = require('../data/collections'); // change with the real collections when we have them
 
-// TODO: Implement collection search with filters (q, bbox, datetime, provider, license, etc.)
-// TODO: Implement CQL2 filtering
-// TODO: Add pagination (limit, offset/token)
-// TODO: Add sorting (sortby parameter)
 
 /**
  * GET /collections
