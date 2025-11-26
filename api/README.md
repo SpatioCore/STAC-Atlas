@@ -89,7 +89,6 @@ api/
 │   └── queryables.js      # Queryables Schema
 ├── __tests__/
 │   └── api.test.js        # API Tests
-├── docs/
 ├── app.js                 # Express App Setup
 ├── package.json
 ├── .env.example           # Beispiel-Umgebungsvariablen
