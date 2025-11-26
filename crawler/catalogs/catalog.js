@@ -7,101 +7,6 @@ const axios = require('axios');
 const { default: create } = require('stac-js');
 
 /**
- * Checks if a catalog is STAC API compliant by validating conformance classes
- * @async
- * @param {string} catalogUrl - The base URL of the catalog
- * @returns {Promise<Object>} Object with isStacApi flag and conformance classes
- */
-async function checkStacApiCompliance(catalogUrl) {
-    const result = {
-        isStacApi: false,
-        conformsTo: [],
-        features: []
-    };
-
-    try {
-        // Try to fetch conformance declaration
-        const conformanceUrls = [
-            `${catalogUrl}/conformance`,
-            `${catalogUrl}/api/conformance`,
-            catalogUrl // Root might have conformsTo property
-        ];
-
-        for (const url of conformanceUrls) {
-            try {
-                const response = await axios.get(url, { timeout: 5000 });
-                
-                // Check for conformsTo array (STAC API spec)
-                if (response.data.conformsTo && Array.isArray(response.data.conformsTo)) {
-                    result.conformsTo = response.data.conformsTo;
-                    
-                    // Check for STAC API specific conformance classes
-                    const stacApiClasses = [
-                        'https://api.stacspec.org/v1.0.0/core',
-                        'http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/core',
-                        'https://api.stacspec.org/v1.0.0-rc.1/core'
-                    ];
-                    
-                    result.isStacApi = result.conformsTo.some(conformance => 
-                        stacApiClasses.some(stacClass => conformance.includes('stacspec.org') || conformance.includes('ogcapi-features'))
-                    );
-                    
-                    // Identify supported features
-                    if (result.conformsTo.some(c => c.includes('item-search') || c.includes('/search'))) {
-                        result.features.push('search');
-                    }
-                    if (result.conformsTo.some(c => c.includes('filter'))) {
-                        result.features.push('filter');
-                    }
-                    if (result.conformsTo.some(c => c.includes('query'))) {
-                        result.features.push('query');
-                    }
-                    if (result.conformsTo.some(c => c.includes('sort'))) {
-                        result.features.push('sort');
-                    }
-                    if (result.conformsTo.some(c => c.includes('fields'))) {
-                        result.features.push('fields');
-                    }
-                    
-                    if (result.isStacApi) {
-                        break; // Found valid STAC API conformance
-                    }
-                }
-            } catch (e) {
-                // Try next URL
-                continue;
-            }
-        }
-        
-        // Fallback: Check for /search endpoint existence (practical test)
-        if (!result.isStacApi) {
-            try {
-                const searchResponse = await axios.get(`${catalogUrl}/search`, { 
-                    timeout: 3000,
-                    params: { limit: 1 },
-                    validateStatus: (status) => status < 500 // Accept 4xx as "endpoint exists"
-                });
-                
-                // If search endpoint exists and returns expected structure
-                if (searchResponse.status === 200 && 
-                    (searchResponse.data.type === 'FeatureCollection' || 
-                     searchResponse.data.features)) {
-                    result.isStacApi = true;
-                    result.features.push('search');
-                }
-            } catch (e) {
-                // Search endpoint doesn't exist - likely static catalog
-            }
-        }
-        
-    } catch (error) {
-        // STAC API validation failed - catalog is likely static-only
-    }
-    
-    return result;
-}
-
-/**
  * Splits an array of catalogs into individual elements where each element is an array of its properties
  * @param {Array<Object>} catalogs - Array of catalog objects from the STAC Index API
  * @returns {Array<Array>} Array of arrays, where each inner array contains:
@@ -375,16 +280,13 @@ async function getNestedCatalogs(catalog, stacCatalog = null) {
  * @async
  * @param {Object} catalog - Catalog object to crawl
  * @param {number} depth - Current depth level (for indentation)
- * @returns {Promise<Object>} Stats object with collections count, STAC compliance, and API capabilities
+ * @returns {Promise<Object>} Stats object with collections count and STAC compliance
  */
 async function crawlCatalogRecursive(catalog, depth = 0) {
     const indent = '  '.repeat(depth);
     let stats = { 
         collections: 0, 
-        stacCompliant: false,
-        stacApiCompliant: false,
-        apiFeatures: [],
-        conformsTo: []
+        stacCompliant: false
     };
     
     try {
@@ -404,16 +306,6 @@ async function crawlCatalogRecursive(catalog, depth = 0) {
                         console.log(`${indent} STAC Catalog validated: ${catalog.id}`);
                     } else if (typeof stacCatalog.isCollection === 'function' && stacCatalog.isCollection()) {
                         console.log(`${indent} STAC Collection validated: ${catalog.id}`);
-                    }
-                    
-                    // Check STAC API compliance
-                    const apiCompliance = await checkStacApiCompliance(catalog.url);
-                    stats.stacApiCompliant = apiCompliance.isStacApi;
-                    stats.apiFeatures = apiCompliance.features;
-                    stats.conformsTo = apiCompliance.conformsTo;
-                    
-                    if (apiCompliance.isStacApi) {
-                        console.log(`${indent} STAC API compliant - Features: [${apiCompliance.features.join(', ')}]`);
                     }
                     
                 } catch (parseError) {
@@ -490,6 +382,5 @@ module.exports = {
     getCollections,
     getNestedCatalogs,
     crawlCatalogRecursive,
-    deriveCategories,
-    checkStacApiCompliance
+    deriveCategories
 };
