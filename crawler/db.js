@@ -6,11 +6,11 @@ const { Pool } = require('pg');
 require('dotenv').config();
 
 const pool = new Pool({
-  host: process.env.PGHOST || 'atlas.stacindex.org',
-  port: parseInt(process.env.PGPORT || '5432', 10),
-  user: process.env.PGUSER || 'stac_user',
-  password: process.env.PGPASSWORD || 'stac_pass',
-  database: process.env.PGDATABASE || 'stac_db',
+  host: process.env.PGHOST,
+  port: parseInt(process.env.PGPORT, 10),
+  user: process.env.PGUSER ,
+  password: process.env.PGPASSWORD ,
+  database: process.env.PGDATABASE ,
   max: 10,
 });
 
@@ -242,6 +242,24 @@ async function insertKeywords(client, parentId, keywords, type) {
     );
   }
 }
+
+/**
+ * Helper function to insert STAC extensions
+ */
+async function insertStacExtensions(client, parentId, extensions, type) {
+  await client.query(
+    `DELETE FROM ${type}_stac_extensions WHERE ${type}_id = $1`,
+    [parentId]
+  );
+
+  for (const extension of extensions) {
+    await client.query(
+      `INSERT INTO ${type}_stac_extensions (${type}_id, extension) VALUES ($1, $2)`,
+      [parentId, extension]
+    );
+  }
+}
+
 
 
 
