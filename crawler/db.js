@@ -115,7 +115,7 @@ async function insertOrUpdateCollection(collection) {
       const bbox = collection.extent.spatial.bbox[0];
       if (bbox.length === 4) {
         // Create polygon from bbox [west, south, east, north]
-        spatialExtend = `SRID=4326;POLYGON((${bbox[0]} ${bbox[1]}, ${bbox[2]} ${bbox[1]}, ${bbox[2]} ${bbox[3]}, ${bbox[0]} ${bbox[3]}, ${bbox[0]} ${bbox[1]}))`;
+        spatialExtend = `EPSG:4326;POLYGON((${bbox[0]} ${bbox[1]}, ${bbox[2]} ${bbox[1]}, ${bbox[2]} ${bbox[3]}, ${bbox[0]} ${bbox[3]}, ${bbox[0]} ${bbox[1]}))`;
       }
     }
 
@@ -213,7 +213,6 @@ async function insertOrUpdateCollection(collection) {
   }
 }
 
-// TODO: Implement insertKeywords, insertStacExtensions, insertSummary, insertProviders, insertAssets functions
 
 
 /**
@@ -252,10 +251,110 @@ async function insertStacExtensions(client, parentId, extensions, type) {
     [parentId]
   );
 
-  for (const extension of extensions) {
+   for (const extension of extensions) {
+    if (!extension) continue;
+
+    // Insert extension if not exists
+    const extResult = await client.query(
+      'INSERT INTO stac_extensions (stac_extension) VALUES ($1) ON CONFLICT (stac_extension) DO UPDATE SET stac_extension = EXCLUDED.stac_extension RETURNING id',
+      [extension]
+    );
+    const extId = extResult.rows[0].id;
+
+    // Link extension to parent
     await client.query(
-      `INSERT INTO ${type}_stac_extensions (${type}_id, extension) VALUES ($1, $2)`,
-      [parentId, extension]
+      `INSERT INTO ${type}_stac_extension (${type}_id, stac_extension_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+      [parentId, extId]
+    );
+  }
+}
+
+
+/**
+ * Helper function to insert collection summaries
+ */
+async function insertSummary(client, collectionId, name, value) {
+  let kind = 'unknown';
+  let rangeMin = null;
+  let rangeMax = null;
+  let setValue = null;
+  let jsonSchema = null;
+
+  if (Array.isArray(value)) {
+    if (value.length === 2 && typeof value[0] === 'number' && typeof value[1] === 'number') {
+      kind = 'range';
+      rangeMin = value[0];
+      rangeMax = value[1];
+    } else {
+      kind = 'set';
+      setValue = JSON.stringify(value);
+    }
+  } else if (typeof value === 'object') {
+    kind = 'schema';
+    jsonSchema = JSON.stringify(value);
+  } else {
+    kind = 'value';
+    setValue = String(value);
+  }
+
+  await client.query(
+    'INSERT INTO collection_summaries (collection_id, name, kind, range_min, range_max, set_value, json_schema) VALUES ($1, $2, $3, $4, $5, $6, $7)',
+    [collectionId, name, kind, rangeMin, rangeMax, setValue, jsonSchema]
+  );
+}
+
+/**
+ * Helper function to insert providers
+ */
+async function insertProviders(client, collectionId, providers) {
+  await client.query('DELETE FROM collection_providers WHERE collection_id = $1', [collectionId]);
+
+  for (const provider of providers) {
+    if (!provider.name) continue;
+
+    // Insert provider if not exists
+    const providerResult = await client.query(
+      'INSERT INTO providers (provider) VALUES ($1) ON CONFLICT (provider) DO UPDATE SET provider = EXCLUDED.provider RETURNING id',
+      [provider.name]
+    );
+    const providerId = providerResult.rows[0].id;
+
+    // Link provider to collection
+    const roles = provider.roles ? provider.roles.join(',') : null;
+    await client.query(
+      'INSERT INTO collection_providers (collection_id, provider_id, collection_provider_roles) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING',
+      [collectionId, providerId, roles]
+    );
+  }
+}
+
+/**
+ * Helper function to insert assets
+ */
+async function insertAssets(client, collectionId, assets) {
+  await client.query('DELETE FROM collection_assets WHERE collection_id = $1', [collectionId]);
+
+  for (const [assetName, assetData] of Object.entries(assets)) {
+    if (!assetData) continue;
+
+    // Insert asset
+    const assetResult = await client.query(
+      'INSERT INTO assets (name, href, type, roles, metadata) VALUES ($1, $2, $3, $4, $5) RETURNING id',
+      [
+        assetName,
+        assetData.href || null,
+        assetData.type || null,
+        assetData.roles || null,
+        JSON.stringify(assetData)
+      ]
+    );
+    const assetId = assetResult.rows[0].id;
+
+    // Link asset to collection
+    const roles = assetData.roles ? assetData.roles.join(',') : null;
+    await client.query(
+      'INSERT INTO collection_assets (collection_id, asset_id, collection_asset_roles) VALUES ($1, $2, $3)',
+      [collectionId, assetId, roles]
     );
   }
 }
