@@ -11,6 +11,10 @@ const collectionsStore = require('../data/collections'); // change with the real
  *   - token: start index (default 0)
  */
 router.get('/', (req, res) => {
+  // TODO: Implement collection search with filters (q, bbox, datetime, provider, license, etc.)
+  // TODO: Implement CQL2 filtering
+  // TODO: Add pagination (limit, offset/token)
+  // TODO: Add sorting (sortby parameter)
   // Total available collections in the current data source
   const total = Array.isArray(collectionsStore) ? collectionsStore.length : 0;
 
