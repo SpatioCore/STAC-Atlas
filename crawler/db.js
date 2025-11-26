@@ -6,7 +6,7 @@ const { Pool } = require('pg');
 require('dotenv').config();
 
 const pool = new Pool({
-  host: process.env.PGHOST || 'localhost',
+  host: process.env.PGHOST || 'atlas.stacindex.org',
   port: parseInt(process.env.PGPORT || '5432', 10),
   user: process.env.PGUSER || 'stac_user',
   password: process.env.PGPASSWORD || 'stac_pass',
@@ -214,6 +214,36 @@ async function insertOrUpdateCollection(collection) {
 }
 
 // TODO: Implement insertKeywords, insertStacExtensions, insertSummary, insertProviders, insertAssets functions
+
+
+/**
+ * Helper function to insert keywords
+ */
+async function insertKeywords(client, parentId, keywords, type) {
+  await client.query(
+    `DELETE FROM ${type}_keywords WHERE ${type}_id = $1`,
+    [parentId]
+  );
+
+  for (const keyword of keywords) {
+    if (!keyword) continue;
+    
+    // Insert keyword if not exists
+    const keywordResult = await client.query(
+      'INSERT INTO keywords (keyword) VALUES ($1) ON CONFLICT (keyword) DO UPDATE SET keyword = EXCLUDED.keyword RETURNING id',
+      [keyword]
+    );
+    const keywordId = keywordResult.rows[0].id;
+
+    // Link keyword to parent
+    await client.query(
+      `INSERT INTO ${type}_keywords (${type}_id, keyword_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+      [parentId, keywordId]
+    );
+  }
+}
+
+
 
 async function close() {
   await pool.end();
