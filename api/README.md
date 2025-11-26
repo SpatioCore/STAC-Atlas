@@ -67,7 +67,7 @@ npm run format
 | GET | `/collections` | Liste aller Collections (mit Filterung) |
 | POST | `/collections` | Collection Search mit CQL2 |
 | GET | `/collections/:id` | Einzelne Collection abrufen |
-| GET | `/queryables` | Queryable Properties Schema |
+| GET | `/collections-queryables` | Queryable Properties Schema |
 
 ### API Dokumentation
 
@@ -80,6 +80,8 @@ npm run format
 api/
 ├── bin/
 │   └── www                 # Server-Startskript
+├── data/
+│   ├── collections.js  # Test collections 
 ├── routes/
 │   ├── index.js           # Landing Page (/)
 │   ├── conformance.js     # Conformance Classes
@@ -87,8 +89,6 @@ api/
 │   └── queryables.js      # Queryables Schema
 ├── __tests__/
 │   └── api.test.js        # API Tests
-├── docs/
-│   └── openapi.yaml       # OpenAPI Specification (TODO)
 ├── app.js                 # Express App Setup
 ├── package.json
 ├── .env.example           # Beispiel-Umgebungsvariablen
