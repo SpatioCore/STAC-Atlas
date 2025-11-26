@@ -13,9 +13,11 @@
   },
   "author": "",
   "license": "ISC",
+  "type": "module",
   "dependencies": {
     "@databases/pg": "^5.5.0",
     "axios": "^1.13.2",
     "dotenv": "^17.2.3"
+    "stac-js": "^0.1.9"
   }
 }
