@@ -3,8 +3,8 @@
  * @module apis/api
  */
 
-const axios = require('axios');
-const { default: create } = require('stac-js');
+import axios from 'axios';
+import create from 'stac-js';
 
 /**
  * Crawls STAC APIs to retrieve collection information without fetching items.
@@ -153,6 +153,6 @@ function getSelfLink(stacJson) {
     return selfLink ? selfLink.href : null;
 }
 
-module.exports = {
+export {
     crawlApis
 };

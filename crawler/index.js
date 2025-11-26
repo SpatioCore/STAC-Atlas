@@ -3,9 +3,9 @@
  * @module crawler
  */
 
-const axios = require('axios');
-const { splitCatalogs, crawlCatalogRecursive } = require('./catalogs/catalog');
-const { crawlApis } = require('./apis/api');
+import axios from 'axios';
+import { splitCatalogs, crawlCatalogRecursive } from './catalogs/catalog.js';
+import { crawlApis } from './apis/api.js';
 
 /**
  * URL of the STAC Index API endpoint
@@ -27,7 +27,11 @@ const crawler = async () => {
         // Crawl collections and nested catalogs for each catalog
         console.log('\n Crawling collections and nested catalogs...\n');
         let totalCollections = 0;
-        for (const catalog of response.data.slice(0, 10)) { // Limit to first 10 catalogs
+        for (const catalogData of catalogs.slice(0, 10)) { // Limit to first 10 catalogs
+            const catalog = {
+                id: catalogData[1],
+                url: catalogData[2]
+            };
             const stats = await crawlCatalogRecursive(catalog);
             totalCollections += stats.collections;
         }
@@ -43,7 +47,7 @@ const crawler = async () => {
         if (apiUrls.length > 0) {
             console.log(`Found ${apiUrls.length} APIs. Starting crawl...`);
             // Limit to first 5 APIs for demonstration/performance
-            const collections = await crawlApis(apiUrls.slice(0, 5), true);
+            const collections = await crawlApis(apiUrls, true);
             console.log(`\nFetched ${collections.length} collections from APIs (sorted by URL).`);
             
             if (collections.length > 0) {

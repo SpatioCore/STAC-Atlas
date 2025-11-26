@@ -3,8 +3,8 @@
  * @module catalogs/catalog
  */
 
-const axios = require('axios');
-const { default: create } = require('stac-js');
+import axios from 'axios';
+import create from 'stac-js';
 
 /**
  * Splits an array of catalogs into individual elements where each element is an array of its properties
@@ -50,14 +50,13 @@ function splitCatalogs(catalogs) {
         const allProperties = Object.keys(elementObj);
         
         // Separate standard and dynamic properties
-        const standardProps = standardPropertyOrder.filter(prop => prop in elementObj);
         const dynamicProps = allProperties.filter(prop => !standardPropertyOrder.includes(prop));
         
         // Create array with standard properties first, then dynamic ones
         const elementArray = [];
         
-        // Add standard properties in defined order
-        standardProps.forEach(prop => {
+        // Add standard properties in defined order (always include all standard fields for consistent indices)
+        standardPropertyOrder.forEach(prop => {
             elementArray.push(elementObj[prop]);
         });
         
@@ -377,7 +376,7 @@ function deriveCategories(catalog) {
     return [];
 }
 
-module.exports = {
+export {
     splitCatalogs,
     getCollections,
     getNestedCatalogs,
