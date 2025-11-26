@@ -83,7 +83,7 @@ What to change in the Docker Compose file
 
 ## Initialization Scripts
 
-All SQL scripts in the `init/` folder are automatically executed on the start of the database. The numbering ensures guaranteed execution order:
+All SQL scripts in the `./db/init/` folder are automatically executed on the start of the database. The numbering ensures guaranteed execution order:
 
 1. **`01_extensions.sql`** - Installs PostGIS and pg_trgm extensions
 2. **`02_tables_catalog.sql`** - Creates catalog-related tables
