@@ -21,6 +21,8 @@ function getConfig() {
         'TIMEOUT_MS',
         'MAX_DEPTH',
         'MAX_CONCURRENCY',
+        'MIN_CONCURRENCY',
+        'MAX_REQUEST_RETRIES',
         'TARGET_URL'
     ];
 
@@ -40,11 +42,13 @@ function getConfig() {
         timeout: parseInt(process.env.TIMEOUT_MS, 10),
         maxDepth: parseInt(process.env.MAX_DEPTH, 10),
         maxConcurrency: parseInt(process.env.MAX_CONCURRENCY, 10),
+        minConcurrency: parseInt(process.env.MIN_CONCURRENCY, 10),
+        maxRequestRetries: parseInt(process.env.MAX_REQUEST_RETRIES, 10),
         targetUrl: process.env.TARGET_URL
     };
 
     // Validate numeric values
-    const numericFields = ['maxCatalogs', 'maxApis', 'timeout', 'maxDepth', 'maxConcurrency'];
+    const numericFields = ['maxCatalogs', 'maxApis', 'timeout', 'maxDepth', 'maxConcurrency', 'minConcurrency', 'maxRequestRetries'];
     const invalidFields = numericFields.filter(field => isNaN(config[field]));
 
     if (invalidFields.length > 0) {
