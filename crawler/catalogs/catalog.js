@@ -22,13 +22,20 @@ export async function processStacEntity({ request, body, log, crawler, config })
     const { depth = 0, isApi } = userData;
 
     try {
-        const data = JSON.parse(body);
-        let stacObj;
+        let data;
+        try {
+            data = JSON.parse(body);
+        } catch (e) {
+            log.error(`Failed to parse JSON body at ${url}: ${e.message}`);
+            return;
+        }
         
+        let stacObj;
         try {
             stacObj = create(data);
         } catch (e) {
             log.warning(`Failed to parse STAC object at ${url}: ${e.message}`);
+            // If we can't parse it as STAC, we can't process it.
             return;
         }
 
@@ -42,7 +49,8 @@ export async function processStacEntity({ request, body, log, crawler, config })
                 log.info(`Saved Catalog: ${stacObj.id}`);
             }
         } catch (dbError) {
-            log.error(`DB Error for ${stacObj.id}: ${dbError.message}`);
+            // Enhanced error logging for DB issues
+            log.error(`DB Error for ${stacObj.id} (${url}): ${dbError.message}\nStack: ${dbError.stack}`);
         }
 
         // Recursion: Find child links
@@ -78,13 +86,40 @@ export async function processStacEntity({ request, body, log, crawler, config })
 
             // Enqueue all found links
             if (linksToEnqueue.length > 0) {
+                try {
                     await crawler.addRequests(linksToEnqueue);
                     log.info(`Enqueued ${linksToEnqueue.length} links from ${stacObj.id}`);
+                } catch (batchError) {
+                    log.warning(`Batch enqueue failed for ${stacObj.id} (${url}), attempting sequential add. Error: ${batchError.message}`);
+                    
+                    let successCount = 0;
+                    for (const req of linksToEnqueue) {
+                        try {
+                            await crawler.addRequests([req]);
+                            successCount++;
+                        } catch (seqError) {
+                            log.error(`Failed to enqueue specific child URL: ${req.url}. Error: ${seqError.message}`);
+                        }
+                    }
+                    log.info(`Recovered: Enqueued ${successCount}/${linksToEnqueue.length} links sequentially from ${stacObj.id}`);
+                }
             }
         }
 
     } catch (error) {
-        log.error(`Error processing STAC entity ${url}: ${error.message}`);
+        // Enhanced error logging for general processing errors
+        // Check if it's an AggregateError (common with Promise.all)
+        if (error instanceof AggregateError) {
+             log.error(`Aggregate Error processing STAC entity ${url}:`);
+             for (const e of error.errors) {
+                 log.error(`- ${e.message} \n  Stack: ${e.stack}`);
+             }
+        } else {
+             log.error(`Error processing STAC entity ${url}: ${error.message}\nStack: ${error.stack}`);
+             if (error.cause) {
+                 log.error(`Caused by: ${error.cause.message}\nStack: ${error.cause.stack}`);
+             }
+        }
     }
 }
 

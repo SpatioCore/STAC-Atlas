@@ -21,7 +21,14 @@ export async function processCollectionList({ request, body, log, crawler, confi
     const { depth = 0 } = userData;
 
     try {
-        const data = JSON.parse(body);
+        let data;
+        try {
+            data = JSON.parse(body);
+        } catch (e) {
+             log.error(`Failed to parse JSON body at ${url}: ${e.message}`);
+             return;
+        }
+
         // It might be a { collections: [...] } object or just array
         let collections = [];
         
@@ -59,12 +66,13 @@ export async function processCollectionList({ request, body, log, crawler, confi
                     }
 
                 } catch (err) {
-                    log.error(`Error saving collection from list: ${err.message}`);
+                    // Enhanced error logging for saving collections from list
+                     log.error(`Error saving collection from list: ${err.message}\nStack: ${err.stack}`);
                 }
         }
 
     } catch (error) {
-        log.error(`Error processing collections list ${url}: ${error.message}`);
+        log.error(`Error processing collections list ${url}: ${error.message}\nStack: ${error.stack}`);
     }
 }
 

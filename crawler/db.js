@@ -31,6 +31,33 @@ async function initDb() {
 }
 
 /**
+ * Execute a database operation with retry logic for deadlocks
+ * @param {Function} operation - Async function that performs the DB operation
+ * @param {number} maxRetries - Maximum number of retries
+ * @returns {Promise<any>} Result of the operation
+ */
+async function withTransactionRetry(operation, maxRetries = 5) {
+    let retries = 0;
+    while (true) {
+        try {
+            return await operation();
+        } catch (err) {
+            // 40P01 is the Postgres error code for deadlock_detected
+            if (err.code === '40P01' && retries < maxRetries) {
+                retries++;
+                const delay = Math.random() * 1000 + 500; // Random delay between 500-1500ms
+                console.warn(`Deadlock detected. Retrying operation (${retries}/${maxRetries}) in ${Math.round(delay)}ms...`);
+                await new Promise(resolve => setTimeout(resolve, delay));
+            } else {
+                throw err;
+            }
+        }
+    }
+    // If we exhaust retries, we throw the last error.
+    // The caller (crawler) will catch this and log it as a failed request.
+}
+
+/**
  * Insert or update a catalog in the database
  * @param {Object} catalog - STAC catalog object
  * @returns {Promise<number>} catalog ID
@@ -38,69 +65,74 @@ async function initDb() {
 async function insertOrUpdateCatalog(catalog) {
   if (!catalog || typeof catalog !== 'object') return null;
 
-  const client = await pool.connect();
-  try {
-    await client.query('BEGIN');
+  return withTransactionRetry(async () => {
+      const client = await pool.connect();
+      try {
+        await client.query('BEGIN');
 
-    // Insert or update catalog
-    const catalogQuery = `
-      INSERT INTO catalog (stac_id, stac_version, type, title, description, updated_at)
-      VALUES ($1, $2, $3, $4, $5, now())
-      ON CONFLICT (stac_id) DO UPDATE SET
-        stac_version = EXCLUDED.stac_version,
-        type = EXCLUDED.type,
-        title = EXCLUDED.title,
-        description = EXCLUDED.description,
-        updated_at = now()
-      RETURNING id;
-    `;
-    const catalogResult = await client.query(catalogQuery, [
-      catalog.id,
-      catalog.stac_version || null,
-      catalog.type || 'Catalog',
-      catalog.title || catalog.id || null,
-      catalog.description || null
-    ]);
-    const catalogId = catalogResult.rows[0].id;
+        // Insert or update catalog
+        const catalogQuery = `
+          INSERT INTO catalog (stac_id, stac_version, type, title, description, updated_at)
+          VALUES ($1, $2, $3, $4, $5, now())
+          ON CONFLICT (stac_id) DO UPDATE SET
+            stac_version = EXCLUDED.stac_version,
+            type = EXCLUDED.type,
+            title = EXCLUDED.title,
+            description = EXCLUDED.description,
+            updated_at = now()
+          RETURNING id;
+        `;
+        const catalogResult = await client.query(catalogQuery, [
+          catalog.id,
+          catalog.stac_version || null,
+          catalog.type || 'Catalog',
+          catalog.title || catalog.id || null,
+          catalog.description || null
+        ]);
+        const catalogId = catalogResult.rows[0].id;
 
-    // Insert links
-    if (catalog.links && Array.isArray(catalog.links)) {
-      await client.query('DELETE FROM catalog_links WHERE catalog_id = $1', [catalogId]);
-      for (const link of catalog.links) {
+        // Insert links
+        if (catalog.links && Array.isArray(catalog.links)) {
+          await client.query('DELETE FROM catalog_links WHERE catalog_id = $1', [catalogId]);
+          for (const link of catalog.links) {
+            await client.query(
+              'INSERT INTO catalog_links (catalog_id, rel, href, type, title) VALUES ($1, $2, $3, $4, $5)',
+              [catalogId, link.rel, link.href, link.type || null, link.title || null]
+            );
+          }
+        }
+
+        // Insert keywords
+        if (catalog.keywords && Array.isArray(catalog.keywords)) {
+          await insertKeywords(client, catalogId, catalog.keywords, 'catalog');
+        }
+
+        // Insert STAC extensions
+        if (catalog.stac_extensions && Array.isArray(catalog.stac_extensions)) {
+          await insertStacExtensions(client, catalogId, catalog.stac_extensions, 'catalog');
+        }
+
+        // Update crawl log
         await client.query(
-          'INSERT INTO catalog_links (catalog_id, rel, href, type, title) VALUES ($1, $2, $3, $4, $5)',
-          [catalogId, link.rel, link.href, link.type || null, link.title || null]
+          `INSERT INTO crawllog_catalog (catalog_id, last_crawled)
+           VALUES ($1, now())
+           ON CONFLICT (catalog_id) DO UPDATE SET last_crawled = now()`,
+          [catalogId]
         );
+
+        await client.query('COMMIT');
+        return catalogId;
+      } catch (error) {
+        await client.query('ROLLBACK');
+        // Don't log deadlock errors here, let the retry wrapper handle/log them
+        if (error.code !== '40P01') {
+            console.error('Error inserting catalog:', error.message);
+        }
+        throw error;
+      } finally {
+        client.release();
       }
-    }
-
-    // Insert keywords
-    if (catalog.keywords && Array.isArray(catalog.keywords)) {
-      await insertKeywords(client, catalogId, catalog.keywords, 'catalog');
-    }
-
-    // Insert STAC extensions
-    if (catalog.stac_extensions && Array.isArray(catalog.stac_extensions)) {
-      await insertStacExtensions(client, catalogId, catalog.stac_extensions, 'catalog');
-    }
-
-    // Update crawl log
-    await client.query(
-      `INSERT INTO crawllog_catalog (catalog_id, last_crawled)
-       VALUES ($1, now())
-       ON CONFLICT (catalog_id) DO UPDATE SET last_crawled = now()`,
-      [catalogId]
-    );
-
-    await client.query('COMMIT');
-    return catalogId;
-  } catch (error) {
-    await client.query('ROLLBACK');
-    console.error('Error inserting catalog:', error.message);
-    throw error;
-  } finally {
-    client.release();
-  }
+  });
 }
 
 /**
@@ -111,120 +143,125 @@ async function insertOrUpdateCatalog(catalog) {
 async function insertOrUpdateCollection(collection) {
   if (!collection || typeof collection !== 'object') return null;
 
-  const client = await pool.connect();
-  try {
-    await client.query('BEGIN');
+  return withTransactionRetry(async () => {
+      const client = await pool.connect();
+      try {
+        await client.query('BEGIN');
 
-    // Parse spatial extent (bbox)
-    let spatialExtend = null;
-    if (collection.extent?.spatial?.bbox && collection.extent.spatial.bbox[0]) {
-      const bbox = collection.extent.spatial.bbox[0];
-      if (bbox.length === 4) {
-        // Ensure bbox values are valid numbers
-        const [minX, minY, maxX, maxY] = bbox.map(Number);
-        if (!isNaN(minX) && !isNaN(minY) && !isNaN(maxX) && !isNaN(maxY)) {
-          // Check for non-degenerate polygon
-          if (minX !== maxX && minY !== maxY) {
-             // Create polygon from bbox [west, south, east, north]
-             spatialExtend = `SRID=4326;POLYGON((${minX} ${minY}, ${maxX} ${minY}, ${maxX} ${maxY}, ${minX} ${maxY}, ${minX} ${minY}))`;
+        // Parse spatial extent (bbox)
+        let spatialExtend = null;
+        if (collection.extent?.spatial?.bbox && collection.extent.spatial.bbox[0]) {
+          const bbox = collection.extent.spatial.bbox[0];
+          if (bbox.length === 4) {
+            // Ensure bbox values are valid numbers
+            const [minX, minY, maxX, maxY] = bbox.map(Number);
+            if (!isNaN(minX) && !isNaN(minY) && !isNaN(maxX) && !isNaN(maxY)) {
+              // Check for non-degenerate polygon
+              if (minX !== maxX && minY !== maxY) {
+                 // Create polygon from bbox [west, south, east, north]
+                 spatialExtend = `SRID=4326;POLYGON((${minX} ${minY}, ${maxX} ${minY}, ${maxX} ${maxY}, ${minX} ${maxY}, ${minX} ${minY}))`;
+              }
+            }
           }
         }
+
+        // Parse temporal extent
+        let temporalStart = null;
+        let temporalEnd = null;
+        if (collection.extent?.temporal?.interval && collection.extent.temporal.interval[0]) {
+          const interval = collection.extent.temporal.interval[0];
+          temporalStart = interval[0] ? new Date(interval[0]) : null;
+          temporalEnd = interval[1] ? new Date(interval[1]) : null;
+        }
+
+        // Insert or update collection
+        const collectionQuery = `
+          INSERT INTO collection (
+            stac_id, stac_version, type, title, description, license,
+            spatial_extend, temporal_extend_start, temporal_extend_end,
+            is_api, is_active, full_json, updated_at
+          )
+          VALUES ($1, $2, $3, $4, $5, $6, ST_GeomFromEWKT($7), $8, $9, $10, $11, $12, now())
+          ON CONFLICT (stac_id) DO UPDATE SET
+            stac_version = EXCLUDED.stac_version,
+            type = EXCLUDED.type,
+            title = EXCLUDED.title,
+            description = EXCLUDED.description,
+            license = EXCLUDED.license,
+            spatial_extend = EXCLUDED.spatial_extend,
+            temporal_extend_start = EXCLUDED.temporal_extend_start,
+            temporal_extend_end = EXCLUDED.temporal_extend_end,
+            is_api = EXCLUDED.is_api,
+            is_active = EXCLUDED.is_active,
+            full_json = EXCLUDED.full_json,
+            updated_at = now()
+          RETURNING id;
+        `;
+        const collectionResult = await client.query(collectionQuery, [
+          collection.id,
+          collection.stac_version || null,
+          collection.type || 'Collection',
+          collection.title || collection.id || null,
+          collection.description || null,
+          collection.license || null,
+          spatialExtend,
+          temporalStart,
+          temporalEnd,
+          false, // is_api - will be determined by crawler
+          true, // is_active
+          JSON.stringify(collection)
+        ]);
+        const collectionId = collectionResult.rows[0].id;
+
+        // Insert summaries
+        if (collection.summaries && typeof collection.summaries === 'object') {
+          await client.query('DELETE FROM collection_summaries WHERE collection_id = $1', [collectionId]);
+          for (const [name, value] of Object.entries(collection.summaries)) {
+            await insertSummary(client, collectionId, name, value);
+          }
+        }
+
+        // Insert keywords
+        if (collection.keywords && Array.isArray(collection.keywords)) {
+          await insertKeywords(client, collectionId, collection.keywords, 'collection');
+        }
+
+        // Insert STAC extensions
+        if (collection.stac_extensions && Array.isArray(collection.stac_extensions)) {
+          await insertStacExtensions(client, collectionId, collection.stac_extensions, 'collection');
+        }
+
+        // Insert providers
+        if (collection.providers && Array.isArray(collection.providers)) {
+          await insertProviders(client, collectionId, collection.providers);
+        }
+
+        // Insert assets
+        if (collection.assets && typeof collection.assets === 'object') {
+          await insertAssets(client, collectionId, collection.assets);
+        }
+
+        // Update crawl log
+        await client.query(
+          `INSERT INTO crawllog_collection (collection_id, last_crawled)
+           VALUES ($1, now())
+           ON CONFLICT (collection_id) DO UPDATE SET last_crawled = now()`,
+          [collectionId]
+        );
+
+        await client.query('COMMIT');
+        return collectionId;
+      } catch (error) {
+        await client.query('ROLLBACK');
+        // Don't log deadlock errors here, let the retry wrapper handle/log them
+        if (error.code !== '40P01') {
+            console.error('Error inserting collection:', error.message);
+        }
+        throw error;
+      } finally {
+        client.release();
       }
-    }
-
-    // Parse temporal extent
-    let temporalStart = null;
-    let temporalEnd = null;
-    if (collection.extent?.temporal?.interval && collection.extent.temporal.interval[0]) {
-      const interval = collection.extent.temporal.interval[0];
-      temporalStart = interval[0] ? new Date(interval[0]) : null;
-      temporalEnd = interval[1] ? new Date(interval[1]) : null;
-    }
-
-    // Insert or update collection
-    const collectionQuery = `
-      INSERT INTO collection (
-        stac_id, stac_version, type, title, description, license,
-        spatial_extend, temporal_extend_start, temporal_extend_end,
-        is_api, is_active, full_json, updated_at
-      )
-      VALUES ($1, $2, $3, $4, $5, $6, ST_GeomFromEWKT($7), $8, $9, $10, $11, $12, now())
-      ON CONFLICT (stac_id) DO UPDATE SET
-        stac_version = EXCLUDED.stac_version,
-        type = EXCLUDED.type,
-        title = EXCLUDED.title,
-        description = EXCLUDED.description,
-        license = EXCLUDED.license,
-        spatial_extend = EXCLUDED.spatial_extend,
-        temporal_extend_start = EXCLUDED.temporal_extend_start,
-        temporal_extend_end = EXCLUDED.temporal_extend_end,
-        is_api = EXCLUDED.is_api,
-        is_active = EXCLUDED.is_active,
-        full_json = EXCLUDED.full_json,
-        updated_at = now()
-      RETURNING id;
-    `;
-    const collectionResult = await client.query(collectionQuery, [
-      collection.id,
-      collection.stac_version || null,
-      collection.type || 'Collection',
-      collection.title || collection.id || null,
-      collection.description || null,
-      collection.license || null,
-      spatialExtend,
-      temporalStart,
-      temporalEnd,
-      false, // is_api - will be determined by crawler
-      true, // is_active
-      JSON.stringify(collection)
-    ]);
-    const collectionId = collectionResult.rows[0].id;
-
-    // Insert summaries
-    if (collection.summaries && typeof collection.summaries === 'object') {
-      await client.query('DELETE FROM collection_summaries WHERE collection_id = $1', [collectionId]);
-      for (const [name, value] of Object.entries(collection.summaries)) {
-        await insertSummary(client, collectionId, name, value);
-      }
-    }
-
-    // Insert keywords
-    if (collection.keywords && Array.isArray(collection.keywords)) {
-      await insertKeywords(client, collectionId, collection.keywords, 'collection');
-    }
-
-    // Insert STAC extensions
-    if (collection.stac_extensions && Array.isArray(collection.stac_extensions)) {
-      await insertStacExtensions(client, collectionId, collection.stac_extensions, 'collection');
-    }
-
-    // Insert providers
-    if (collection.providers && Array.isArray(collection.providers)) {
-      await insertProviders(client, collectionId, collection.providers);
-    }
-
-    // Insert assets
-    if (collection.assets && typeof collection.assets === 'object') {
-      await insertAssets(client, collectionId, collection.assets);
-    }
-
-    // Update crawl log
-    await client.query(
-      `INSERT INTO crawllog_collection (collection_id, last_crawled)
-       VALUES ($1, now())
-       ON CONFLICT (collection_id) DO UPDATE SET last_crawled = now()`,
-      [collectionId]
-    );
-
-    await client.query('COMMIT');
-    return collectionId;
-  } catch (error) {
-    await client.query('ROLLBACK');
-    console.error('Error inserting collection:', error.message);
-    throw error;
-  } finally {
-    client.release();
-  }
+  });
 }
 
 
@@ -387,5 +424,3 @@ export {
   close, 
   pool 
 };
-
-
