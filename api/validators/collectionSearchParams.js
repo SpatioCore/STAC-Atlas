@@ -160,6 +160,11 @@ function isValidISO8601(dateString) {
 function validateLimit(limit) {
   if (!limit) return { valid: true, normalized: 10 }; // default value
   
+  // Check if limit contains a decimal point (reject floats)
+  if (typeof limit === 'string' && limit.includes('.')) {
+    return { valid: false, error: 'Parameter "limit" must be an integer, not a decimal' };
+  }
+  
   const num = parseInt(limit, 10);
   
   if (isNaN(num)) {
