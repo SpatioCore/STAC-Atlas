@@ -157,12 +157,18 @@ async function queryByGeometry(table, geojson, predicate = 'intersects', geomCol
 // @returns {Promise} query result
 async function queryByDistance(table, point, distance, geomColumn = 'spatial_extend') {
   const [lon, lat] = point;
+  
+  // Use geometry type with ST_Centroid to avoid antipodal edge errors
+  // ST_Centroid provides a single point from potentially large geometries
   const sql = `
     SELECT *, 
-      ST_Distance(${geomColumn}::geography, ST_SetSRID(ST_Point($1, $2), 4326)::geography) as distance
+      ST_Distance(
+        ST_Centroid(${geomColumn})::geography, 
+        ST_SetSRID(ST_Point($1, $2), 4326)::geography
+      ) as distance
     FROM ${table}
     WHERE ST_DWithin(
-      ${geomColumn}::geography,
+      ST_Centroid(${geomColumn})::geography,
       ST_SetSRID(ST_Point($1, $2), 4326)::geography,
       $3
     )
