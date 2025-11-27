@@ -42,10 +42,10 @@ export async function processStacEntity({ request, body, log, crawler, config })
         // Persist to DB
         try {
             if (stacObj.isCollection()) {
-                await db.insertOrUpdateCollection(stacObj.toJSON());
+                await db.insertOrUpdateCollection(stacObj.toJSON(), url);
                 log.info(`Saved Collection: ${stacObj.id}`);
             } else if (stacObj.isCatalog() || stacObj.isCatalogLike()) {
-                await db.insertOrUpdateCatalog(stacObj.toJSON());
+                await db.insertOrUpdateCatalog(stacObj.toJSON(), url);
                 log.info(`Saved Catalog: ${stacObj.id}`);
             }
         } catch (dbError) {

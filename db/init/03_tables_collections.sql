@@ -5,15 +5,16 @@
 -- full_json: Complete JSONB representation the whole collection
 CREATE TABLE collection (
     id SERIAL PRIMARY KEY,
-    stac_id TEXT UNIQUE NOT NULL,
+    stac_id TEXT NOT NULL,
     stac_version TEXT,
     type TEXT,
     title TEXT,
     description TEXT,
     license TEXT,
+    source_url TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT now(),
     updated_at TIMESTAMP DEFAULT now(),
-
+    
     spatial_extend GEOMETRY(POLYGON, 4326),
     temporal_extend_start TIMESTAMP,
     temporal_extend_end TIMESTAMP,
@@ -21,7 +22,8 @@ CREATE TABLE collection (
     is_api BOOLEAN DEFAULT FALSE,
     is_active BOOLEAN DEFAULT TRUE,
 
-    full_json JSONB
+    full_json JSONB,
+    UNIQUE (stac_id, source_url)
 );
 
 -- Collection summaries: Stores summaries for collection properties

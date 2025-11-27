@@ -60,9 +60,10 @@ async function withTransactionRetry(operation, maxRetries = 5) {
 /**
  * Insert or update a catalog in the database
  * @param {Object} catalog - STAC catalog object
+ * @param {string} sourceUrl - URL where this catalog was fetched from
  * @returns {Promise<number>} catalog ID
  */
-async function insertOrUpdateCatalog(catalog) {
+async function insertOrUpdateCatalog(catalog, sourceUrl) {
   if (!catalog || typeof catalog !== 'object') return null;
 
   return withTransactionRetry(async () => {
@@ -72,9 +73,9 @@ async function insertOrUpdateCatalog(catalog) {
 
         // Insert or update catalog
         const catalogQuery = `
-          INSERT INTO catalog (stac_id, stac_version, type, title, description, updated_at)
-          VALUES ($1, $2, $3, $4, $5, now())
-          ON CONFLICT (stac_id) DO UPDATE SET
+          INSERT INTO catalog (stac_id, stac_version, type, title, description, source_url, updated_at)
+          VALUES ($1, $2, $3, $4, $5, $6, now())
+          ON CONFLICT (stac_id, source_url) DO UPDATE SET
             stac_version = EXCLUDED.stac_version,
             type = EXCLUDED.type,
             title = EXCLUDED.title,
@@ -87,7 +88,8 @@ async function insertOrUpdateCatalog(catalog) {
           catalog.stac_version || null,
           catalog.type || 'Catalog',
           catalog.title || catalog.id || null,
-          catalog.description || null
+          catalog.description || null,
+          sourceUrl
         ]);
         const catalogId = catalogResult.rows[0].id;
 
@@ -138,9 +140,10 @@ async function insertOrUpdateCatalog(catalog) {
 /**
  * Insert or update a collection in the database
  * @param {Object} collection - STAC collection object
+ * @param {string} sourceUrl - URL where this collection was fetched from
  * @returns {Promise<number>} collection ID
  */
-async function insertOrUpdateCollection(collection) {
+async function insertOrUpdateCollection(collection, sourceUrl) {
   if (!collection || typeof collection !== 'object') return null;
 
   return withTransactionRetry(async () => {
@@ -179,10 +182,10 @@ async function insertOrUpdateCollection(collection) {
           INSERT INTO collection (
             stac_id, stac_version, type, title, description, license,
             spatial_extend, temporal_extend_start, temporal_extend_end,
-            is_api, is_active, full_json, updated_at
+            is_api, is_active, full_json, source_url, updated_at
           )
-          VALUES ($1, $2, $3, $4, $5, $6, ST_GeomFromEWKT($7), $8, $9, $10, $11, $12, now())
-          ON CONFLICT (stac_id) DO UPDATE SET
+          VALUES ($1, $2, $3, $4, $5, $6, ST_GeomFromEWKT($7), $8, $9, $10, $11, $12, $13, now())
+          ON CONFLICT (stac_id, source_url) DO UPDATE SET
             stac_version = EXCLUDED.stac_version,
             type = EXCLUDED.type,
             title = EXCLUDED.title,
@@ -209,7 +212,8 @@ async function insertOrUpdateCollection(collection) {
           temporalEnd,
           false, // is_api - will be determined by crawler
           true, // is_active
-          JSON.stringify(collection)
+          JSON.stringify(collection),
+          sourceUrl
         ]);
         const collectionId = collectionResult.rows[0].id;
 

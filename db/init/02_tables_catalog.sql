@@ -4,13 +4,15 @@
 -- Each catalog represents a STAC catalog endpoint that has been discovered and indexed
 CREATE TABLE catalog (
     id SERIAL PRIMARY KEY,
-    stac_id TEXT UNIQUE NOT NULL,
+    stac_id TEXT NOT NULL,
     stac_version TEXT,
     type TEXT,
     title TEXT,
     description TEXT,
+    source_url TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT now(),
-    updated_at TIMESTAMP DEFAULT now()
+    updated_at TIMESTAMP DEFAULT now(),
+    UNIQUE (stac_id, source_url)
 );
 
 -- Catalog links table: Stores related links for catalogs (e.g., self, root, child, item links)
