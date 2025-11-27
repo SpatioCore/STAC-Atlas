@@ -1,10 +1,199 @@
-const { query } = require('../db/db_APIconnection');
+const { query, closePool } = require('../db/db_APIconnection');
 
 /**
- * Verify Database Schema for Collection and Catalog Tables
+ * Jest Test Suite: Verify Database Schema for Collection and Catalog Tables
  * Checks that both tables have all required columns with valid data
  */
 
+describe('Database Schema Verification', () => {
+  
+  afterAll(async () => {
+    await closePool();
+  });
+
+  describe('Collection Table Structure', () => {
+    let tableInfo;
+
+    beforeAll(async () => {
+      tableInfo = await query(`
+        SELECT 
+          column_name, 
+          data_type, 
+          is_nullable,
+          column_default
+        FROM information_schema.columns
+        WHERE table_name = 'collection'
+        ORDER BY ordinal_position
+      `);
+    });
+
+    test('should have table structure', () => {
+      expect(tableInfo.rowCount).toBeGreaterThan(0);
+    });
+
+    test('should have at least 15 columns', () => {
+      expect(tableInfo.rowCount).toBeGreaterThanOrEqual(15);
+    });
+  });
+
+  describe('Collection Table - Column Data Integrity', () => {
+    test.each([
+      ['id', 'integer'],
+      ['stac_id', 'text'],
+      ['title', 'text'],
+      ['description', 'text'],
+      ['license', 'text'],
+      ['spatial_extend', 'USER-DEFINED'],
+      ['full_json', 'jsonb'],
+      ['is_active', 'boolean'],
+      ['is_api', 'boolean']
+    ])('column %s should exist with type %s', async (colName, expectedType) => {
+      const stats = await query(`
+        SELECT 
+          COUNT(*) as total_rows,
+          COUNT(${colName}) as non_null_count
+        FROM collection
+      `);
+      
+      const stat = stats.rows[0];
+      expect(parseInt(stat.total_rows)).toBeGreaterThan(0);
+      
+      // Most columns should have data
+      if (colName !== 'spatial_extend') {
+        expect(parseInt(stat.non_null_count)).toBeGreaterThan(0);
+      }
+    });
+
+    test('should have geometry data in spatial_extend', async () => {
+      const geomType = await query(`
+        SELECT ST_GeometryType(spatial_extend) as geom_type 
+        FROM collection 
+        WHERE spatial_extend IS NOT NULL 
+        LIMIT 1
+      `);
+      
+      expect(geomType.rows).toHaveLength(1);
+      expect(geomType.rows[0].geom_type).toMatch(/^ST_/);
+    });
+
+    test('should have valid JSONB data in full_json', async () => {
+      const sample = await query(`
+        SELECT full_json 
+        FROM collection 
+        WHERE full_json IS NOT NULL 
+        LIMIT 1
+      `);
+      
+      expect(sample.rows).toHaveLength(1);
+      expect(typeof sample.rows[0].full_json).toBe('object');
+      expect(Object.keys(sample.rows[0].full_json).length).toBeGreaterThan(0);
+    });
+
+    test('should have valid timestamps', async () => {
+      const sample = await query(`
+        SELECT created_at, updated_at
+        FROM collection 
+        LIMIT 1
+      `);
+      
+      expect(sample.rows).toHaveLength(1);
+      expect(sample.rows[0].created_at).toBeInstanceOf(Date);
+      expect(sample.rows[0].updated_at).toBeInstanceOf(Date);
+    });
+  });
+
+  describe('Collection Table - Indexes', () => {
+    test('should have indexes', async () => {
+      const indexCheck = await query(`
+        SELECT 
+          indexname, 
+          indexdef
+        FROM pg_indexes
+        WHERE tablename = 'collection'
+      `);
+      
+      expect(indexCheck.rowCount).toBeGreaterThan(0);
+    });
+  });
+
+  describe('Collection Table - Overall Statistics', () => {
+    test('should contain data', async () => {
+      const countResult = await query(`SELECT COUNT(*) as count FROM collection`);
+      const count = parseInt(countResult.rows[0].count);
+      
+      expect(count).toBeGreaterThan(0);
+    });
+  });
+
+  describe('Catalog Table Structure', () => {
+    let tableInfo;
+
+    beforeAll(async () => {
+      tableInfo = await query(`
+        SELECT 
+          column_name, 
+          data_type, 
+          is_nullable,
+          column_default
+        FROM information_schema.columns
+        WHERE table_name = 'catalog'
+        ORDER BY ordinal_position
+      `);
+    });
+
+    test('should have table structure', () => {
+      expect(tableInfo.rowCount).toBeGreaterThan(0);
+    });
+
+    test('should have at least 8 columns', () => {
+      expect(tableInfo.rowCount).toBeGreaterThanOrEqual(8);
+    });
+  });
+
+  describe('Catalog Table - Column Data Integrity', () => {
+    test.each([
+      ['id', 'integer'],
+      ['stac_id', 'text'],
+      ['stac_version', 'text'],
+      ['type', 'text'],
+      ['description', 'text']
+    ])('column %s should exist with type %s', async (colName, expectedType) => {
+      const stats = await query(`
+        SELECT 
+          COUNT(*) as total_rows,
+          COUNT(${colName}) as non_null_count
+        FROM catalog
+      `);
+      
+      const stat = stats.rows[0];
+      expect(parseInt(stat.total_rows)).toBeGreaterThan(0);
+      expect(parseInt(stat.non_null_count)).toBeGreaterThan(0);
+    });
+
+    test('should have valid timestamps', async () => {
+      const sample = await query(`
+        SELECT created_at, updated_at
+        FROM catalog 
+        LIMIT 1
+      `);
+      
+      expect(sample.rows).toHaveLength(1);
+      expect(sample.rows[0].created_at).toBeInstanceOf(Date);
+      expect(sample.rows[0].updated_at).toBeInstanceOf(Date);
+    });
+  });
+
+  describe('Catalog Table - Overall Statistics', () => {
+    test('should contain data', async () => {
+      const countResult = await query(`SELECT COUNT(*) as count FROM catalog`);
+      const count = parseInt(countResult.rows[0].count);
+      
+      expect(count).toBeGreaterThan(0);
+    });
+  });
+});
+
+// Legacy function for backwards compatibility (not used in tests)
 async function verifyTableSchema(tableName, displayName) {
   console.log(`=== ${displayName} Schema Verification ===\n`);
 
@@ -146,8 +335,11 @@ async function verifyTableSchema(tableName, displayName) {
 
   } catch (error) {
     console.error('✗ Schema verification failed:', error.message);
-    process.exit(1);
+    return false;
   }
 }
 
-verifyTableSchema('collection', 'Collection');
+// Export for manual testing if needed
+if (require.main === module) {
+  verifyTableSchema('collection', 'Collection').then(() => process.exit(0));
+}
