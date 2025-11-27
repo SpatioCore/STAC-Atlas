@@ -3,174 +3,95 @@
  * @module apis/api
  */
 
-import axios from 'axios';
 import create from 'stac-js';
-import { withTimeout } from '../utils/config.js';
+import * as db from '../db.js';
 
 /**
- * Crawls STAC APIs to retrieve collection information without fetching items.
+ * Processes a collections list endpoint (e.g. /collections)
  * 
- * @param {string[]} urls - Array of API URLs to crawl
- * @param {boolean} isApi - Boolean flag indicating if the URLs are APIs
- * @param {Object} config - Configuration object with timeout settings
- * @returns {Promise<Object[]>} Array of STAC Collection objects ordered by URL
+ * @param {Object} context - The crawlee request context
+ * @param {Object} context.request - The request object
+ * @param {string} context.body - The response body
+ * @param {Object} context.log - Logger instance
+ * @param {Object} context.crawler - The crawler instance
+ * @param {Object} context.config - Configuration object
  */
-async function crawlApis(urls, isApi, config = {}) {
-    if (!isApi || !Array.isArray(urls) || urls.length === 0) {
-        return [];
-    }
-
-    const allCollections = new Map(); // Use Map to avoid duplicates by URL
-
-    console.log(`Starting to crawl ${urls.length} APIs...`);
-
-    // Process each URL
-    for (const [index, url] of urls.entries()) {
-        console.log(`Processing API ${index + 1}/${urls.length}: ${url}`);
-        try {
-            await crawlSingleApi(url, allCollections, new Set(), config);
-        } catch (error) {
-            console.error(`Error crawling API ${url}:`, error.message);
-        }
-    }
-
-    console.log(`Finished crawling APIs. Total unique collections found: ${allCollections.size}`);
-
-    // Convert Map to array and sort by URL
-    const sortedCollections = Array.from(allCollections.values()).sort((a, b) => {
-        const urlA = getSelfLink(a) || '';
-        const urlB = getSelfLink(b) || '';
-        return urlA.localeCompare(urlB);
-    });
-
-    return sortedCollections;
-}
-
-/**
- * Helper function to crawl a single API recursively for collections/catalogs
- * 
- * @param {string} url - URL to crawl
- * @param {Map} collectionMap - Map to store found collections
- * @param {Set<string>} visited - Set of visited URLs to prevent loops
- * @param {Object} config - Configuration object with timeout settings
- */
-async function crawlSingleApi(url, collectionMap, visited = new Set(), config = {}) {
-    if (!url || visited.has(url)) return;
-    visited.add(url);
-
-    const timeoutMs = config.timeout || 30000;
-    const axiosTimeout = timeoutMs === Infinity ? 0 : Math.min(10000, timeoutMs);
+export async function processCollectionList({ request, body, log, crawler, config }) {
+    const { url, userData } = request;
+    const { depth = 0 } = userData;
 
     try {
-        console.log(`  Fetching: ${url}`);
-        const response = await withTimeout(
-            axios.get(url, { timeout: axiosTimeout }),
-            timeoutMs,
-            `Crawling API ${url}`
-        );
-        const stacObj = create(response.data);
-
-        // If it's a Collection, add it
-        if (stacObj.isCollection()) {
-            const selfUrl = stacObj.getAbsoluteUrl() || url;
-            console.log(`  Found collection: ${stacObj.id} (${selfUrl})`);
-            collectionMap.set(selfUrl, stacObj.toJSON());
-        }
-
-        // If it has collections (API or Catalog), fetch them
-        // stac-js APICollection or Catalog might have getApiCollectionsLink or similar
-        // Or we manually check links.
-        
-        // Check for /collections endpoint if it's a root catalog/API
-        if (stacObj.isCatalogLike()) {
-            // Try to get collections link
-            const collectionsLink = stacObj.getApiCollectionsLink();
-            if (collectionsLink) {
-                console.log(`  Found /collections endpoint link in ${url}`);
-                await fetchCollectionsFromLink(collectionsLink, collectionMap, visited, config);
-            } else {
-                // Fallback: check standard STAC API structure if not explicitly found
-                // Many STAC APIs have a /collections endpoint relative to root
-                // But stac-js might handle this via getApiCollectionsLink if rel="data" exists
-                
-                // Also check child links for nested catalogs
-                const childLinks = stacObj.getChildLinks();
-                if (childLinks.length > 0) {
-                     console.log(`  Found ${childLinks.length} child links in ${url}, recursing...`);
-                     for (const link of childLinks) {
-                        const childUrl = link.getAbsoluteUrl();
-                        if (childUrl) {
-                            await crawlSingleApi(childUrl, collectionMap, visited, config);
-                        }
-                    }
-                }
-            }
-        }
-
-    } catch (error) {
-        console.warn(`Failed to process ${url}:`, error.message);
-    }
-}
-
-/**
- * Fetches collections from a collections endpoint (e.g., /collections)
- * 
- * @param {Object} link - stac-js Link object
- * @param {Map} collectionMap - Map to store collections
- * @param {Set<string>} visited - Visited set
- * @param {Object} config - Configuration object with timeout settings
- */
-async function fetchCollectionsFromLink(link, collectionMap, visited, config = {}) {
-    const url = link.getAbsoluteUrl();
-    if (!url || visited.has(url)) return;
-    visited.add(url);
-
-    const timeoutMs = config.timeout || 30000;
-    const axiosTimeout = timeoutMs === Infinity ? 0 : Math.min(10000, timeoutMs);
-
-    try {
-        console.log(`  Fetching collections from: ${url}`);
-        const response = await withTimeout(
-            axios.get(url, { timeout: axiosTimeout }),
-            timeoutMs,
-            `Fetching collections from ${url}`
-        );
-        // create() handles CollectionCollection (API Collections response)
-        const stacObj = create(response.data);
-        
+        const data = JSON.parse(body);
+        // It might be a { collections: [...] } object or just array
         let collections = [];
         
-        if (stacObj && typeof stacObj.getAll === 'function') {
-            // Use stac-js to get all collections from the response
-            collections = stacObj.getAll();
-        } else if (response.data.collections && Array.isArray(response.data.collections)) {
-            // Fallback for manual parsing if stac-js didn't detect CollectionCollection
-            collections = response.data.collections.map(c => create(c));
-        } else if (Array.isArray(response.data)) {
-            collections = response.data.map(c => create(c));
+        if (data.collections && Array.isArray(data.collections)) {
+            collections = data.collections;
+        } else if (Array.isArray(data)) {
+            collections = data;
         }
-        
-        console.log(`  Retrieved ${collections.length} collections from ${url}`);
 
-        for (const colStac of collections) {
-            if (colStac && typeof colStac.isCollection === 'function' && colStac.isCollection()) {
-                const selfUrl = colStac.getAbsoluteUrl() || url; 
-                collectionMap.set(selfUrl, colStac.toJSON());
-            }
+        log.info(`Found ${collections.length} collections in list at ${url}`);
+
+        for (const colData of collections) {
+                // Determine URL for the collection to fully process it (or process inline)
+                // If inline, we can save directly.
+                
+                let colUrl;
+                try {
+                    // Try to find self link
+                    const selfLink = colData.links?.find(l => l.rel === 'self');
+                    colUrl = selfLink ? selfLink.href : null;
+                } catch(e) {}
+
+                // Save inline collection data
+                try {
+                    const stacCol = create(colData);
+                    await db.insertOrUpdateCollection(stacCol.toJSON());
+                    log.info(`Saved Collection (from list): ${stacCol.id}`);
+                    
+                    // Enqueue for deeper crawl if URL exists and depth allows
+                    if (colUrl && (config.maxDepth === Infinity || depth < config.maxDepth)) {
+                        await crawler.addRequests([{
+                            url: colUrl,
+                            userData: { label: 'STAC_ENTITY', depth: depth + 1 }
+                        }]);
+                    }
+
+                } catch (err) {
+                    log.error(`Error saving collection from list: ${err.message}`);
+                }
         }
+
     } catch (error) {
-        console.warn(`Failed to fetch collections from ${url}:`, error.message);
+        log.error(`Error processing collections list ${url}: ${error.message}`);
     }
 }
 
 /**
- * Helper to get self link from a plain JSON object (since we store toJSON results)
+ * Tries to find a collections URL for a STAC Catalog/API
+ * 
+ * @param {Object} stacObj - The parsed STAC object (Catalog/API)
+ * @param {string} url - The URL of the STAC object
+ * @param {boolean} isApi - Whether the object is known to be an API
+ * @returns {string|null} The absolute URL to the collections endpoint or null
  */
-function getSelfLink(stacJson) {
-    const selfLink = stacJson.links?.find(l => l.rel === 'self');
-    return selfLink ? selfLink.href : null;
+export function findCollectionsUrl(stacObj, url, isApi) {
+    // Try standard links
+    const collectionsLink = stacObj.getLinkWithRel('data') || stacObj.getLinkWithRel('collections');
+    
+    if (collectionsLink) {
+        return collectionsLink.getAbsoluteUrl();
+    } else {
+        // Heuristic: append /collections if not found
+        // Only if it looks like an API (root catalog often is)
+        // checks if isApi is true from userData or if it looks like API
+        if (isApi) {
+                // Try common endpoint
+                if (!url.endsWith('/collections')) {
+                    return url.endsWith('/') ? `${url}collections` : `${url}/collections`;
+                }
+        }
+    }
+    return null;
 }
-
-export {
-    crawlApis
-};
