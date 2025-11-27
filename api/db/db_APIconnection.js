@@ -1,21 +1,33 @@
 const { Pool } = require('pg');
 require('dotenv').config();
 
-// validate required environment variables
-const requiredEnvVars = ['DB_HOST', 'DB_PORT', 'DB_NAME', 'DB_USER', 'DB_PASSWORD'];
-const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
-if (missingVars.length > 0) {
-  throw new Error(`Missing required environment variables: ${missingVars.join(', ')}`);
-}
-
 // PostgreSQL/PostGIS database connection
-const pool = new Pool({
-  host: process.env.DB_HOST,
-  port: parseInt(process.env.DB_PORT),
-  database: process.env.DB_NAME,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-});
+// Support both DATABASE_URL and individual environment variables
+let pool;
+
+if (process.env.DATABASE_URL) {
+  // Use DATABASE_URL if provided 
+  pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false
+  });
+} else {
+  // Fallback to individual environment variables
+  const requiredEnvVars = ['DB_HOST', 'DB_PORT', 'DB_NAME', 'DB_USER', 'DB_PASSWORD'];
+  const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
+  if (missingVars.length > 0) {
+    throw new Error(`Missing required environment variables: ${missingVars.join(', ')} or DATABASE_URL`);
+  }
+
+  pool = new Pool({
+    host: process.env.DB_HOST,
+    port: parseInt(process.env.DB_PORT),
+    database: process.env.DB_NAME,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false
+  });
+}
 
 // handle pool errors
 pool.on('error', (err) => {
