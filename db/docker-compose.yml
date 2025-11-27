@@ -1,7 +1,7 @@
 services:
   database:
     image: postgis/postgis:16-3.4
-    container_name: stac_db
+    container_name: stac-db
     restart: always
 
     environment:
