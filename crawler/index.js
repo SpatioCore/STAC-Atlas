@@ -7,6 +7,7 @@ import axios from 'axios';
 import { splitCatalogs, crawlCatalogRecursive } from './catalogs/catalog.js';
 import { crawlApis } from './apis/api.js';
 import { getConfig } from './utils/config.js';
+import db from './db.js';
 
 /**
  * URL of the STAC Index API endpoint
@@ -34,8 +35,30 @@ const crawler = async () => {
         console.log(`Max Depth: ${config.maxDepth === Infinity ? 'unlimited' : config.maxDepth}`);
         console.log('==================================\n');
         
+        // Initialize database connection
+        console.log('Initializing database connection...');
+        await db.initDb();
+        
         const response = await axios.get(targetUrl);
         const catalogs = splitCatalogs(response.data);
+        
+        // Save catalogs from STAC Index to database
+        console.log('\n=== Saving catalogs to database ===');
+        let catalogsSaved = 0;
+        let catalogsFailed = 0;
+        
+        for (const catalog of response.data) {
+            try {
+                const catalogId = await db.insertOrUpdateCatalog(catalog);
+                console.log(`✓ Saved catalog: ${catalog.title || catalog.id} (DB ID: ${catalogId})`);
+                catalogsSaved++;
+            } catch (err) {
+                console.error(`✗ Failed catalog: ${catalog.title || catalog.id} - ${err.message}`);
+                catalogsFailed++;
+            }
+        }
+        
+        console.log(`\nCatalogs: ${catalogsSaved} saved, ${catalogsFailed} failed\n`);
         
         // Crawl catalogs if mode is 'catalogs' or 'both'
         if (config.mode === 'catalogs' || config.mode === 'both') {
@@ -54,6 +77,18 @@ const crawler = async () => {
                 try {
                     const stats = await crawlCatalogRecursive(catalog, 0, config);
                     totalCollections += stats.collections;
+                    
+                    // Save collections to database if returned
+                    if (stats.collectionsData && Array.isArray(stats.collectionsData)) {
+                        for (const collection of stats.collectionsData) {
+                            try {
+                                const collectionId = await db.insertOrUpdateCollection(collection);
+                                console.log(`  ✓ Saved collection: ${collection.title || collection.id} (DB ID: ${collectionId})`);
+                            } catch (err) {
+                                console.error(`  ✗ Failed collection: ${collection.title || collection.id} - ${err.message}`);
+                            }
+                        }
+                    }
                 } catch (error) {
                     console.error(`Failed to crawl catalog ${catalog.id}: ${error.message}`);
                 }
@@ -85,6 +120,24 @@ const crawler = async () => {
                             const selfLink = c.links?.find(l => l.rel === 'self')?.href;
                             console.log(` - ${c.id}: ${selfLink}`);
                         });
+                        
+                        // Save API collections to database
+                        console.log('\n=== Saving API collections to database ===');
+                        let apiCollectionsSaved = 0;
+                        let apiCollectionsFailed = 0;
+                        
+                        for (const collection of collections) {
+                            try {
+                                const collectionId = await db.insertOrUpdateCollection(collection);
+                                console.log(`  ✓ Saved: ${collection.title || collection.id} (DB ID: ${collectionId})`);
+                                apiCollectionsSaved++;
+                            } catch (err) {
+                                console.error(`  ✗ Failed: ${collection.title || collection.id} - ${err.message}`);
+                                apiCollectionsFailed++;
+                            }
+                        }
+                        
+                        console.log(`\nAPI Collections: ${apiCollectionsSaved} saved, ${apiCollectionsFailed} failed`);
                     }
                 } catch (error) {
                     console.error(`Failed to crawl APIs: ${error.message}`);
@@ -98,22 +151,11 @@ const crawler = async () => {
 
     } catch (error) {
         console.error(`Error fetching ${targetUrl}: ${error.message}`);
+    } finally {
+        // Close database connection
+        await db.close();
+        console.log('\nDatabase connection closed.');
     }
-
-    // Persist catalogs into DB
-    try {
-        await Promise.all(catalogs.map(async (catalog) => {
-            try {
-                await db.insertOrUpdateCatalog(catalog);
-            } catch (err) {
-                console.error('DB write error for catalog', catalog && (catalog.id || catalog.slug), err && err.message);
-            }
-        }));
-        console.log('Finished writing catalogs to DB');
-    } catch (e) {
-        console.error('Unexpected error while saving catalogs to DB', e && e.message);
-    }
-
 };
 
 crawler();
