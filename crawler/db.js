@@ -2,8 +2,13 @@
  * DB helper for crawler using `pg` Pool
  * Exposes: initDb(), insertOrUpdateCatalog(), close()
  */
-const { Pool } = require('pg');
-require('dotenv').config();
+import pg from 'pg';
+import dotenv from 'dotenv';
+
+const { Pool } = pg;
+
+// Load environment variables from .env file
+dotenv.config();
 
 const pool = new Pool({
   host: process.env.PGHOST,
@@ -39,9 +44,9 @@ async function insertOrUpdateCatalog(catalog) {
 
     // Insert or update catalog
     const catalogQuery = `
-      INSERT INTO catalog (stac_version, type, title, description, updated_at)
-      VALUES ($1, $2, $3, $4, now())
-      ON CONFLICT ON CONSTRAINT catalog_pkey DO UPDATE SET
+      INSERT INTO catalog (stac_id, stac_version, type, title, description, updated_at)
+      VALUES ($1, $2, $3, $4, $5, now())
+      ON CONFLICT (stac_id) DO UPDATE SET
         stac_version = EXCLUDED.stac_version,
         type = EXCLUDED.type,
         title = EXCLUDED.title,
@@ -50,6 +55,7 @@ async function insertOrUpdateCatalog(catalog) {
       RETURNING id;
     `;
     const catalogResult = await client.query(catalogQuery, [
+      catalog.id,
       catalog.stac_version || null,
       catalog.type || 'Catalog',
       catalog.title || catalog.id || null,
@@ -114,8 +120,15 @@ async function insertOrUpdateCollection(collection) {
     if (collection.extent?.spatial?.bbox && collection.extent.spatial.bbox[0]) {
       const bbox = collection.extent.spatial.bbox[0];
       if (bbox.length === 4) {
-        // Create polygon from bbox [west, south, east, north]
-        spatialExtend = `EPSG:4326;POLYGON((${bbox[0]} ${bbox[1]}, ${bbox[2]} ${bbox[1]}, ${bbox[2]} ${bbox[3]}, ${bbox[0]} ${bbox[3]}, ${bbox[0]} ${bbox[1]}))`;
+        // Ensure bbox values are valid numbers
+        const [minX, minY, maxX, maxY] = bbox.map(Number);
+        if (!isNaN(minX) && !isNaN(minY) && !isNaN(maxX) && !isNaN(maxY)) {
+          // Check for non-degenerate polygon
+          if (minX !== maxX && minY !== maxY) {
+             // Create polygon from bbox [west, south, east, north]
+             spatialExtend = `SRID=4326;POLYGON((${minX} ${minY}, ${maxX} ${minY}, ${maxX} ${maxY}, ${minX} ${maxY}, ${minX} ${minY}))`;
+          }
+        }
       }
     }
 
@@ -131,12 +144,12 @@ async function insertOrUpdateCollection(collection) {
     // Insert or update collection
     const collectionQuery = `
       INSERT INTO collection (
-        stac_version, type, title, description, license,
+        stac_id, stac_version, type, title, description, license,
         spatial_extend, temporal_extend_start, temporal_extend_end,
         is_api, is_active, full_json, updated_at
       )
-      VALUES ($1, $2, $3, $4, $5, ST_GeomFromEWKT($6), $7, $8, $9, $10, $11, now())
-      ON CONFLICT ON CONSTRAINT collection_pkey DO UPDATE SET
+      VALUES ($1, $2, $3, $4, $5, $6, ST_GeomFromEWKT($7), $8, $9, $10, $11, $12, now())
+      ON CONFLICT (stac_id) DO UPDATE SET
         stac_version = EXCLUDED.stac_version,
         type = EXCLUDED.type,
         title = EXCLUDED.title,
@@ -152,6 +165,7 @@ async function insertOrUpdateCollection(collection) {
       RETURNING id;
     `;
     const collectionResult = await client.query(collectionQuery, [
+      collection.id,
       collection.stac_version || null,
       collection.type || 'Collection',
       collection.title || collection.id || null,
@@ -247,7 +261,7 @@ async function insertKeywords(client, parentId, keywords, type) {
  */
 async function insertStacExtensions(client, parentId, extensions, type) {
   await client.query(
-    `DELETE FROM ${type}_stac_extensions WHERE ${type}_id = $1`,
+    `DELETE FROM ${type}_stac_extension WHERE ${type}_id = $1`,
     [parentId]
   );
 
@@ -366,7 +380,7 @@ async function close() {
   await pool.end();
 }
 
-module.exports = { 
+export { 
   initDb, 
   insertOrUpdateCatalog, 
   insertOrUpdateCollection,

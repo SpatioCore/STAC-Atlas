@@ -5,6 +5,7 @@
 -- full_json: Complete JSONB representation the whole collection
 CREATE TABLE collection (
     id SERIAL PRIMARY KEY,
+    stac_id TEXT UNIQUE NOT NULL,
     stac_version TEXT,
     type TEXT,
     title TEXT,
@@ -60,6 +61,6 @@ CREATE TABLE assets (
 -- (same usecase as the crawllog for catalogs)
 CREATE TABLE crawllog_collection (
     id SERIAL PRIMARY KEY,
-    collection_id INTEGER REFERENCES collection(id) ON DELETE CASCADE,
+    collection_id INTEGER UNIQUE REFERENCES collection(id) ON DELETE CASCADE,
     last_crawled TIMESTAMP
 );

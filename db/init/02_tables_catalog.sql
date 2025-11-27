@@ -4,6 +4,7 @@
 -- Each catalog represents a STAC catalog endpoint that has been discovered and indexed
 CREATE TABLE catalog (
     id SERIAL PRIMARY KEY,
+    stac_id TEXT UNIQUE NOT NULL,
     stac_version TEXT,
     type TEXT,
     title TEXT,
@@ -41,6 +42,6 @@ CREATE TABLE stac_extensions (
 -- Used to schedule re-crawling and maintain freshness of catalog data
 CREATE TABLE crawllog_catalog (
     id SERIAL PRIMARY KEY,
-    catalog_id INTEGER REFERENCES catalog(id) ON DELETE CASCADE,
+    catalog_id INTEGER UNIQUE REFERENCES catalog(id) ON DELETE CASCADE,
     last_crawled TIMESTAMP
 );
