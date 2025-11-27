@@ -150,4 +150,4 @@ async function verifyTableSchema(tableName, displayName) {
   }
 }
 
-verifySchema();
+verifyTableSchema('collection', 'Collection');

@@ -5,11 +5,21 @@ require('dotenv').config();
 // Support both DATABASE_URL and individual environment variables
 let pool;
 
+// Pool configuration with connection limits and timeouts
+const poolConfig = {
+  max: parseInt(process.env.DB_POOL_MAX), // Maximum number of clients in the pool
+  min: parseInt(process.env.DB_POOL_MIN), // Minimum number of clients in the pool
+  idleTimeoutMillis: parseInt(process.env.DB_IDLE_TIMEOUT), // Close time for idle clients
+  connectionTimeoutMillis: parseInt(process.env.DB_CONNECTION_TIMEOUT), // Waiting time before timing out
+  allowExitOnIdle: false // Keep the pool alive even when all clients are idle
+};
+
 if (process.env.DATABASE_URL) {
   // Use DATABASE_URL if provided 
   pool = new Pool({
     connectionString: process.env.DATABASE_URL,
-    ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false
+    ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
+
   });
 } else {
   // Fallback to individual environment variables
@@ -25,13 +35,40 @@ if (process.env.DATABASE_URL) {
     database: process.env.DB_NAME,
     user: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
-    ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false
+    ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
+    ...poolConfig
   });
 }
 
-// handle pool errors
+// Handle pool errors
 pool.on('error', (err) => {
   console.error('Unexpected database pool error:', err);
+});
+
+// Handle pool connection events for monitoring
+pool.on('connect', (client) => {
+  console.log('New client connected to pool');
+});
+
+pool.on('acquire', (client) => {
+  console.log('Client acquired from pool');
+});
+
+pool.on('remove', (client) => {
+  console.log('Client removed from pool');
+});
+
+// Graceful shutdown handlers
+process.on('SIGTERM', async () => {
+  console.log('SIGTERM received, closing database pool...');
+  await closePool();
+  process.exit(0);
+});
+
+process.on('SIGINT', async () => {
+  console.log('SIGINT received, closing database pool...');
+  await closePool();
+  process.exit(0);
 });
 
 // execute query 
@@ -57,16 +94,43 @@ async function query(text, params = []) {
   }
 }
 
-// connection test
-async function testConnection() {
-  try {
-    await query('SELECT 1');
-    console.log('✓ database connection successful');
-    return true;
-  } catch (error) {
-    console.error('✗ connection failed:', error.message);
-    return false;
+// Connection test with retry logic and pool info
+async function testConnection(retries = 3, delay = 2000) {
+  for (let i = 0; i < retries; i++) {
+    try {
+      const result = await pool.query('SELECT 1 as connected, version() as version, current_database() as database');
+      const poolInfo = {
+        totalCount: pool.totalCount,
+        idleCount: pool.idleCount,
+        waitingCount: pool.waitingCount
+      };
+      
+      console.log('✓ Database connection successful');
+      console.log(`  Database: ${result.rows[0].database}`);
+      console.log(`  PostgreSQL version: ${result.rows[0].version.split(',')[0]}`);
+      console.log(`  Pool status: ${poolInfo.totalCount} total, ${poolInfo.idleCount} idle, ${poolInfo.waitingCount} waiting`);
+      return true;
+    } catch (error) {
+      console.error(`✗ Connection attempt ${i + 1}/${retries} failed:`, error.message);
+      
+      if (i < retries - 1) {
+        console.log(`  Retrying in ${delay / 1000} seconds...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
   }
+  
+  console.error('✗ All connection attempts failed');
+  return false;
+}
+
+// Get current pool statistics
+function getPoolStats() {
+  return {
+    total: pool.totalCount,
+    idle: pool.idleCount,
+    waiting: pool.waitingCount
+  };
 }
 
 // PostGIS: Bounding Box Query
@@ -192,6 +256,8 @@ module.exports = {
   pool,
   query,
   testConnection,
+  closePool,
+  getPoolStats,
 
   // PostGIS functions
   queryByBBox,
