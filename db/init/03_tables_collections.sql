@@ -4,7 +4,7 @@
 -- Collections group related STAC items and define their common properties
 -- full_json: Complete JSONB representation the whole collection
 CREATE TABLE collection (
-    id SERIAL PRIMARY KEY,
+    id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     stac_id TEXT NOT NULL,
     stac_version TEXT,
     type TEXT,
@@ -30,7 +30,7 @@ CREATE TABLE collection (
 -- represent ranges (min/max), sets of values, or JSON schemas
 -- Used to describe the range of values found in collection items
 CREATE TABLE collection_summaries (
-    id SERIAL PRIMARY KEY,
+    id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     collection_id INTEGER REFERENCES collection(id) ON DELETE CASCADE,
     name TEXT,
     kind TEXT,
@@ -43,14 +43,14 @@ CREATE TABLE collection_summaries (
 -- Providers lookup table: Stores unique data provider names
 -- Providers are organizations or entities that produce, host, or process the data
 CREATE TABLE providers (
-    id SERIAL PRIMARY KEY,
+    id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     provider TEXT UNIQUE
 );
 
 -- Assets table: Stores downloadable assets (data files, thumbnails, metadata files, etc.)
 -- Assets are the actual data products or resources associated with collections
 CREATE TABLE assets (
-    id SERIAL PRIMARY KEY,
+    id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     name TEXT,
     href TEXT,
     type TEXT,
@@ -62,7 +62,7 @@ CREATE TABLE assets (
 -- Used to schedule re-crawling and maintain freshness of collection data
 -- (same usecase as the crawllog for catalogs)
 CREATE TABLE crawllog_collection (
-    id SERIAL PRIMARY KEY,
+    id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     collection_id INTEGER UNIQUE REFERENCES collection(id) ON DELETE CASCADE,
     last_crawled TIMESTAMP
 );
