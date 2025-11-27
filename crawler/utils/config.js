@@ -11,8 +11,27 @@ dotenv.config();
 /**
  * Get configuration from environment variables
  * @returns {Object} Configuration object
+ * @throws {Error} If required environment variables are missing or invalid
  */
 function getConfig() {
+    const requiredVars = [
+        'CRAWL_MODE',
+        'MAX_CATALOGS',
+        'MAX_APIS',
+        'TIMEOUT_MS',
+        'MAX_DEPTH',
+        'MAX_CONCURRENCY',
+        'TARGET_URL'
+    ];
+
+    const missingVars = requiredVars.filter(key => !process.env[key]);
+
+    if (missingVars.length > 0) {
+        throw new Error(
+            `CRITICAL ERROR: Missing required environment variables: ${missingVars.join(', ')}.\n` +
+            'Please create a .env file based on .env.example and set all variables.'
+        );
+    }
 
     const config = {
         mode: process.env.CRAWL_MODE,
@@ -24,6 +43,16 @@ function getConfig() {
         targetUrl: process.env.TARGET_URL
     };
 
+    // Validate numeric values
+    const numericFields = ['maxCatalogs', 'maxApis', 'timeout', 'maxDepth', 'maxConcurrency'];
+    const invalidFields = numericFields.filter(field => isNaN(config[field]));
+
+    if (invalidFields.length > 0) {
+        throw new Error(
+            `CRITICAL ERROR: Invalid numeric values for variables: ${invalidFields.join(', ')}.\n` +
+            'Please ensure these variables are set to valid numbers in your .env file.'
+        );
+    }
 
     return config;
 }
@@ -44,4 +73,5 @@ function createTimeout(ms, operation = 'Operation') {
 
 export {
     getConfig,
+    createTimeout
 };
