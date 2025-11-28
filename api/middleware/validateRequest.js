@@ -1,4 +1,10 @@
 /**
+ * ==================================
+ *  ELSEWHERE IMPLEMENTED - OUTDATED
+ * ==================================
+ */
+
+/**
  * Middleware for validating incoming API requests
  * Tests and validates requests before they are processed by route handlers
  */
@@ -311,51 +317,6 @@ const validateSortBy = (req, res, next) => {
         });
       }
     }
-  }
-
-  next();
-};
-
-/**
- * Validates Content-Type header for POST/PUT requests
- * @param {Object} req - Express request object
- * @param {Object} res - Express response object
- * @param {Function} next - Express next middleware function
- */
-const validateContentType = (req, res, next) => {
-  if (['POST', 'PUT', 'PATCH'].includes(req.method)) {
-    const contentType = req.get('Content-Type');
-
-    if (!contentType || !contentType.includes('application/json')) {
-      return res.status(415).json({
-        code: 'UnsupportedMediaType',
-        description: 'Content-Type must be application/json',
-        received: contentType || 'none'
-      });
-    }
-  }
-
-  next();
-};
-
-/**
- * General request validator that combines common validations
- * @param {Object} req - Express request object
- * @param {Object} res - Express response object
- * @param {Function} next - Express next middleware function
- */
-const validateRequest = (req, res, next) => {
-  // Log request for debugging
-  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path} - Query:`, req.query);
-
-  // Validate HTTP method
-  const allowedMethods = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD'];
-  if (!allowedMethods.includes(req.method)) {
-    return res.status(405).json({
-      code: 'MethodNotAllowed',
-      description: `Method ${req.method} is not allowed`,
-      allowed: allowedMethods
-    });
   }
 
   next();
