@@ -69,6 +69,33 @@ npm run format
 | GET | `/collections/:id` | Einzelne Collection abrufen |
 | GET | `/collections-queryables` | Queryable Properties Schema |
 
+### Query Parameters (GET /collections)
+
+Die Collection Search API unterstützt folgende Query-Parameter:
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `q` | String | No | Free-text search (max 500 chars) |
+| `bbox` | String | No | Bounding box: `minX,minY,maxX,maxY` |
+| `datetime` | String | No | ISO8601 datetime or interval |
+| `limit` | Integer | No | Result limit (default: 10, max: 10000) |
+| `sortby` | String | No | Sort by field: `+/-field` (title, id, license, created, updated) |
+| `token` | Integer | No | Pagination token (offset, default: 0) |
+
+**Beispiele:**
+```bash
+# Free-text search
+GET /collections?q=sentinel
+
+# Spatial + temporal filter
+GET /collections?bbox=-10,40,10,50&datetime=2020-01-01/2021-12-31
+
+# Pagination with sorting
+GET /collections?limit=20&sortby=-created&token=2
+```
+
+📖 **Detaillierte Dokumentation:** Siehe [docs/collection-search-parameters.md](docs/collection-search-parameters.md)
+
 ### API Dokumentation
 
 - **Swagger UI**: `http://localhost:3000/api-docs` (wenn `docs/openapi.yaml` existiert)
@@ -80,18 +107,26 @@ npm run format
 api/
 ├── bin/
 │   └── www                 # Server-Startskript
+├── config/
+│   └── conformanceURIS.js  # STAC Conformance URIs
 ├── data/
-│   ├── collections.js  # Test collections 
+│   └── collections.js      # Test collections
+├── docs/
+│   └── collection-search-parameters.md  # Query Parameter Dokumentation
+├── middleware/
+│   └── validateCollectionSearch.js  # Query Parameter Validation
 ├── routes/
-│   ├── index.js           # Landing Page (/)
-│   ├── conformance.js     # Conformance Classes
-│   ├── collections.js     # Collections Endpoints
-│   └── queryables.js      # Queryables Schema
+│   ├── index.js            # Landing Page (/)
+│   ├── conformance.js      # Conformance Classes
+│   ├── collections.js      # Collections Endpoints
+│   └── queryables.js       # Queryables Schema
+├── validators/
+│   └── collectionSearchParams.js  # Parameter Validators
 ├── __tests__/
-│   └── api.test.js        # API Tests
-├── app.js                 # Express App Setup
+│   └── api.test.js         # API Tests
+├── app.js                  # Express App Setup
 ├── package.json
-├── .env.example           # Beispiel-Umgebungsvariablen
+├── .env.example            # Beispiel-Umgebungsvariablen
 └── README.md
 ```
 
@@ -122,20 +157,26 @@ Diese API implementiert:
 ### TODO
 
 - [ ] Datenbank-Integration (PostgreSQL + PostGIS)
+  - [ ] Implement q (full-text search with TSVector)
+  - [ ] Implement bbox (PostGIS spatial queries)
+  - [ ] Implement datetime (temporal overlap queries)
+  - [ ] Implement sortby (ORDER BY in SQL)
 - [ ] CQL2-Parser Integration (cql2-rs via WASM)
 - [ ] Controller-Layer implementieren
 - [ ] Service-Layer für Business Logic
 - [ ] OpenAPI Dokumentation vervollständigen
 - [ ] Erweiterte Tests (Integration, E2E)
+  - [ ] Unit tests for validators
+  - [ ] Integration tests for filtered queries
 - [ ] Docker Setup
 - [ ] CI/CD Pipeline
 
 ### Implementierungsplan (siehe bid.md)
 
 1. ✅ **AP-01**: Projekt-Skeleton & Infrastruktur
-2. 🚧 **AP-02**: Daten-Vertrag & Queryables
-3. ⏳ **AP-03**: STAC-Core Endpunkte (Basis vorhanden)
-4. ⏳ **AP-04**: Collection Search – Routen & Parameter
+2. ✅ **AP-02**: Query Parameter Validation (q, bbox, datetime, limit, sortby, token)
+3. 🚧 **AP-03**: STAC-Core Endpunkte (Basis vorhanden)
+4. 🚧 **AP-04**: Collection Search – Filter-Implementierung (DB-Integration pending)
 5. ⏳ **AP-05**: CQL2-Filtering Integration
 
 ## 📄 Lizenz

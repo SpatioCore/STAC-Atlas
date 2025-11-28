@@ -1,34 +1,39 @@
 const express = require('express');
 const router = express.Router();
 const collectionsStore = require('../data/collections'); // change with the real collections when we have them
-
+const { validateCollectionSearchParams } = require('../middleware/validateCollectionSearch');
 
 /**
  * GET /collections
- * Returns a paginated list of collections (basic version)
- * Query params:
- *   - limit: number of collections to return (default 10, max 100)
- *   - token: start index (default 0)
+ * Returns a paginated list of collections with optional filtering
+ * 
+ * Supported query parameters:
+ *   - q: Free-text search across title, description, keywords
+ *   - bbox: Spatial filter as minX,minY,maxX,maxY
+ *   - datetime: Temporal filter (ISO8601 single or interval)
+ *   - limit: Number of results (default 10, max 10000)
+ *   - sortby: Sort by field (+field for ASC, -field for DESC)
+ *   - token: Pagination continuation token (offset)
+ * 
+ * All parameters are validated by validateCollectionSearchParams middleware.
+ * Validated/normalized values are available in req.validatedParams.
  */
-router.get('/', (req, res) => {
-  // TODO: Implement collection search with filters (q, bbox, datetime, provider, license, etc.)
-  // TODO: Implement CQL2 filtering
-  // TODO: Add pagination (limit, offset/token)
-  // TODO: Add sorting (sortby parameter)
+router.get('/', validateCollectionSearchParams, (req, res) => {
+  // TODO: Implement collection search with filters (q, bbox, datetime) and connect to DB
+  // TODO: Think about the parameters `provider` and `license` - They are mentioned in the bid, but not in the STAC spec
+  // TODO: Implement CQL2 filtering (GET endpoint) and add validator for `filter`, filter-lang` parameters
+  // TODO: Apply sorting based on sortby parameter, when querying the database
+  // TODO: Apply filters to database query once DB is connected
+  
+  // Get validated parameters from middleware
+  const { q, bbox, datetime, limit, sortby, token } = req.validatedParams;
+  
   // Total available collections in the current data source
   const total = Array.isArray(collectionsStore) ? collectionsStore.length : 0;
 
-  // Parse pagination params; fallback to sensible defaults
-  let limit = parseInt(req.query.limit, 10);
-  let token = parseInt(req.query.token, 10);
-
-  // Validate and normalise inputs
-  if (Number.isNaN(limit) || limit <= 0) limit = 10;
-  if (Number.isNaN(token) || token < 0) token = 0;
-  if (limit > 100) limit = 100; // protect against very large requests
-
-  // Compute slice indexes
-  const start = token ;
+  // Use validated limit and token from middleware
+  // Note: limit and token are always present (have defaults from validator)
+  const start = token;
   const end = Math.min(start + limit, total);
 
   // Slice the in-memory store. When connected to a DB, use LIMIT/OFFSET or
@@ -43,9 +48,9 @@ router.get('/', (req, res) => {
   // Helper to build a single pagination link. We keep query params simple
   // (`limit`/`token`) so clients can follow them easily. A more advanced
   // token format (opaque cursor) can be introduced later for large datasets.
-  const buildLink = (rel, offs) => ({
+  const buildLink = (rel, token) => ({
     rel,
-    href: `${baseUrl}?limit=${limit}&token=${offs}`,
+    href: `${baseUrl}?limit=${limit}&token=${token}`,
     type: 'application/json'
   });
 
@@ -87,6 +92,7 @@ router.get('/', (req, res) => {
  * - 404 NotFound with proper error format if collection does not exist
  */
 router.get('/:id', (req, res) => {
+  // TODO: Create a proper validator middleware for :id parameter to avoid SQL injection, etc.
   const { id } = req.params;
   
   // Look up the collection in the data store by ID
