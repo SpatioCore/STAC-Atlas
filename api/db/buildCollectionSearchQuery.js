@@ -38,7 +38,7 @@ function buildCollectionSearchQuery(params) {
     i++;
   }
 
-  // BBOX → PostGIS
+  // BBOX with PostGIS
   if (bbox) {
     const [minX, minY, maxX, maxY] = bbox;
 
@@ -53,23 +53,27 @@ function buildCollectionSearchQuery(params) {
     i += 4;
   }
 
-  // DATETIME
+    // datetime: Point or interval
   if (datetime) {
     if (datetime.includes('/')) {
+      // interval: start/end, ../end, start/..
       const [start, end] = datetime.split('/');
 
       if (start !== '..') {
+        // Collection should run after start
         where.push(`temporal_extent_end >= $${i}`);
         values.push(start);
         i++;
       }
 
       if (end !== '..') {
+        // Collection should run before end
         where.push(`temporal_extent_start <= $${i}`);
         values.push(end);
         i++;
       }
     } else {
+      // single datetime: collections active at that time
       where.push(`
         temporal_extent_start <= $${i}
         AND temporal_extent_end >= $${i}
