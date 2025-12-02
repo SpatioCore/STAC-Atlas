@@ -42,9 +42,10 @@ function buildCollectionSearchQuery(params) {
   if (bbox) {
     const [minX, minY, maxX, maxY] = bbox;
 
+    // TODO: ask if spatial_extend or spatial_extent?
     where.push(`
       ST_Intersects(
-        spatial_extent,
+        spatial_extent, 
         ST_MakeEnvelope($${i}, $${i+1}, $${i+2}, $${i+3}, 4326)
       )
     `);
@@ -54,6 +55,7 @@ function buildCollectionSearchQuery(params) {
   }
 
     // datetime: Point or interval
+    //TODO: ask if temporal_extent_start/end or temporal_extent?
   if (datetime) {
     if (datetime.includes('/')) {
       // interval: start/end, ../end, start/..
