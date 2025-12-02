@@ -79,9 +79,9 @@ What to change the environment parameters in the Docker Compose file
 - Open the `docker-compose.yml`.
 - Locate e.g. `ports:` and change the host side:
 - Format: `"<host_port>:<container_port>"`
-- Example: change `5432:5432` to `15432:5432` to expose the container's 5432 on host port 15432.
+- Example: change `5432:5432` to `5433:5432` to expose the container's 5432 on host port 5433.
 - If the compose file references environment variables (e.g. `${DB_PORT}`), change the value in the corresponding `.env` file.
-**Important**: Do not modify the `docker-compose.yml` file directly. Instead, update the port configuration in the `.env` file by changing the `DB_PORT`, `POSTGRES_DB`, `POSTGRES_USER` and `POSTGRES_PASSWORD` variable, then restart the service with `docker-compose up`. 
+**Important**: Do not modify the `docker-compose.yml` file directly. Instead, update the port configuration in the `.env` file by changing the `${DB_PORT}`, `${POSTGRES_DB}`, `${POSTGRES_USER}` and `${POSTGRES_PASSWORD}` variable, then restart the service with `docker-compose up`. 
 - The change in the `.env` does not count for the <container-port>, you can change that directly in the `docker-compose.yml` if needed. 
 - There is an `example.env` provided that can be renamed into `.env` and then modified.
 
