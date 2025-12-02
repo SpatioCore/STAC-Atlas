@@ -59,11 +59,12 @@ Comprehensive indexing for optimal query performance:
 ```bash
 cd ./db/
 docker-compose up
+```
 
 ### Connection Details
 
 - **Host**: `atlas.stacindex.org`
-- **Port**: `5432`
+- **Port**: `5432` and `5433`
 
 ## Port Configuration
 
@@ -71,15 +72,18 @@ This project exposes the database service on a port that can be changed.  Update
 
 The database uses port mapping in the format `HOST:CONTAINER`:
 - **`5432:5432`** means:
-  - Left side (`5432`): Port on your local machine (host)
+  - Left side (`5432`): Port on your local machine (host) (must be changed in the `.env`)
   - Right side (`5432`): Port inside the Docker container
 
-What to change in the Docker Compose file
+What to change the environment parameters in the Docker Compose file
 - Open the `docker-compose.yml`.
-- Locate the `ports:` and change the host side:
+- Locate e.g. `ports:` and change the host side:
 - Format: `"<host_port>:<container_port>"`
 - Example: change `5432:5432` to `15432:5432` to expose the container's 5432 on host port 15432.
-- TODO: If the compose file references environment variables (e.g. `${DB_PORT}`), change the value in the corresponding `.env` file.
+- If the compose file references environment variables (e.g. `${DB_PORT}`), change the value in the corresponding `.env` file.
+**Important**: Do not modify the `docker-compose.yml` file directly. Instead, update the port configuration in the `.env` file by changing the `DB_PORT`, `POSTGRES_DB`, `POSTGRES_USER` and `POSTGRES_PASSWORD` variable, then restart the service with `docker-compose up`. 
+- The change in the `.env` does not count for the <container-port>, you can change that directly in the `docker-compose.yml` if needed. 
+- There is an `example.env` provided that can be renamed into `.env` and then modified.
 
 ## Initialization Scripts
 
