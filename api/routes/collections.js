@@ -2,6 +2,19 @@ const express = require('express');
 const router = express.Router();
 const collectionsStore = require('../data/collections'); // change with the real collections when we have them
 const { validateCollectionSearchParams } = require('../middleware/validateCollectionSearch');
+const { query } = require('../db/db_APIconnection');
+const { buildCollectionSearchQuery } = require('../db/buildCollectionSearchQuery');
+
+// helpers to run the built query (from documentation)
+async function runQuery(sql, params = []) {
+  try {
+    const result = await query(sql, params);
+    return result.rows;
+  } catch (error) {
+    console.error('Query error in /collections:', error);
+    throw error;
+  }
+}
 
 /**
  * GET /collections
@@ -18,68 +31,70 @@ const { validateCollectionSearchParams } = require('../middleware/validateCollec
  * All parameters are validated by validateCollectionSearchParams middleware.
  * Validated/normalized values are available in req.validatedParams.
  */
-router.get('/', validateCollectionSearchParams, (req, res) => {
-  // TODO: Implement collection search with filters (q, bbox, datetime) and connect to DB
-  // TODO: Think about the parameters `provider` and `license` - They are mentioned in the bid, but not in the STAC spec
-  // TODO: Implement CQL2 filtering (GET endpoint) and add validator for `filter`, filter-lang` parameters
-  // TODO: Apply sorting based on sortby parameter, when querying the database
-  // TODO: Apply filters to database query once DB is connected
-  
-  // Get validated parameters from middleware
-  const { q, bbox, datetime, limit, sortby, token } = req.validatedParams;
-  
-  // Total available collections in the current data source
-  const total = Array.isArray(collectionsStore) ? collectionsStore.length : 0;
+router.get('/', validateCollectionSearchParams, async (req, res, next) => {
+  try {
+    // validated parameters from middleware
+    const { q, bbox, datetime, limit, sortby, token } = req.validatedParams;
 
-  // Use validated limit and token from middleware
-  // Note: limit and token are always present (have defaults from validator)
-  const start = token;
-  const end = Math.min(start + limit, total);
+    // build SQL querry and parameters
+    const { sql, values } = buildCollectionSearchQuery({
+      q,
+      bbox,
+      datetime,
+      limit,
+      sortby,
+      token
+    });
 
-  // Slice the in-memory store. When connected to a DB, use LIMIT/OFFSET or
-  // a proper token-based paging implementation instead.
-  const collections = collectionsStore.slice(start, end);
+    // execute Query against database
+    const collections = await runQuery(sql, values);
+    const returned = collections.length;
 
-  // Base host and URL used for building pagination links. We extract the
-  // host once and reuse it to avoid repeating the template expression.
-  const baseHost = `${req.protocol}://${req.get('host')}`;
-  const baseUrl = `${baseHost}/collections`;
+    // Base URL for links
+    const baseHost = `${req.protocol}://${req.get('host')}`;
+    const baseUrl = `${baseHost}${req.baseUrl}`;
 
-  // Helper to build a single pagination link. We keep query params simple
-  // (`limit`/`token`) so clients can follow them easily. A more advanced
-  // token format (opaque cursor) can be introduced later for large datasets.
-  const buildLink = (rel, token) => ({
-    rel,
-    href: `${baseUrl}?limit=${limit}&token=${token}`,
-    type: 'application/json'
-  });
+    const buildLink = (rel, tokenValue) => ({
+      rel,
+      href: `${baseUrl}?limit=${limit}&token=${tokenValue}`,
+      type: 'application/json'
+    });
 
-  // Always include a self and root link. Add next/prev when applicable.
-  const links = [
-    { rel: 'self', href: `${baseUrl}?limit=${limit}&token=${token}`, type: 'application/json' },
-    { rel: 'root', href: baseHost, type: 'application/json' }
-  ];
+    const links = [
+      buildLink('self', token),
+      {
+        rel: 'root',
+        href: baseHost,
+        type: 'application/json'
+      }
+    ];
 
-  if (end < total) {
-    links.push(buildLink('next', end));
-  }
-
-  if (start > 0) {
-    const prevToken = Math.max(0, start - limit);
-    links.push(buildLink('prev', prevToken));
-  }
-
-  // Final response: STAC-like FeatureCollection wrapper
-  res.json({
-        type: 'FeatureCollection',
-    collections,
-    links,
-    context: {
-      returned: collections.length, // Count of returned collections by this request
-      limit: limit,                 // Requested site-limit
-      matched: total                // Number of all available collections
+    // "next": only if returned === limit,
+    // indicating there may be more results
+    if (returned === limit) {
+      links.push(buildLink('next', token + limit));
     }
-  });
+
+    // "prev": only if token > 0
+    if (token > 0) {
+      const prevToken = Math.max(0, token - limit);
+      links.push(buildLink('prev', prevToken));
+    }
+
+    // matched (total results) not implemented yet: needs extra COUNT(*) query
+    res.json({
+      type: 'FeatureCollection',
+      collections,
+      links,
+      context: {
+        returned,
+        limit,
+        matched: null // TODO: implement COUNT(*) for total matches
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
 });
 
 /**
