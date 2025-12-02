@@ -75,7 +75,7 @@ The database uses port mapping in the format `HOST:CONTAINER`:
   - Left side (`5432`): Port on your local machine (host) (must be changed in the `.env`)
   - Right side (`5432`): Port inside the Docker container
 
-What to change the environment parameters in the Docker Compose file
+How to change the environment parameters in the Docker Compose file
 - Open the `docker-compose.yml`.
 - Locate e.g. `ports:` and change the host side:
 - Format: `"<host_port>:<container_port>"`
