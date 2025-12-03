@@ -82,7 +82,7 @@ function buildCollectionSearchQuery(params) {
     where.push(`
       ST_Intersects(
         spatial_extend, 
-        ST_MakeEnvelope($${i}, $${i+1}, $${i+2}, $${i+3}, 4326)
+        ST_MakeEnvelope($${i}, $${i + 1}, $${i + 2}, $${i + 3}, 4326)
       )
     `);
 
@@ -90,8 +90,8 @@ function buildCollectionSearchQuery(params) {
     i += 4;
   }
 
-    // datetime: Point or interval
-    //TODO: ask if temporal_extent_start/end or temporal_extent?
+  // datetime: Point or interval
+  // TODO: ask if temporal_extent_start/end or temporal_extent?
   if (datetime) {
     if (datetime.includes('/')) {
       // interval: start/end, ../end, start/..
