@@ -62,7 +62,7 @@ describe('Database Schema Validation', () => {
   });
 
   describe('Schema Validation - Collection Table', () => {
-    let actualColumns = {};
+    const actualColumns = {};
 
     beforeAll(async () => {
       const columnsResult = await query(`
@@ -123,7 +123,7 @@ describe('Database Schema Validation', () => {
   });
 
   describe('Schema Validation - Catalog Table', () => {
-    let actualColumns = {};
+    const actualColumns = {};
 
     beforeAll(async () => {
       const columnsResult = await query(`

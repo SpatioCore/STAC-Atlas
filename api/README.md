@@ -56,6 +56,17 @@ npm run lint:fix
 npm run format
 ```
 
+## CI/CD Pipeline
+
+This Project uses GitHub Actions for Continous Integration:
+
+- **Automatic Tests** at every push and pull request
+- **Branch Protection** prevent merges if tests failed
+- **Code Quality Checks** (ESLint, Tests, Build-Validation)
+- **Test Coverage Reports** as artifacts
+
+**Status:** ![CI Status](https://github.com/SpatioCore/STAC-Atlas/workflows/API%20CI%2FCD%20Pipeline/badge.svg?branch=dev-api)
+
 ## 📋 API Endpunkte
 
 ### Core Endpoints
