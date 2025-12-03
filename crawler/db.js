@@ -40,24 +40,51 @@ async function insertOrUpdateCatalog(catalog) {
     await client.query('BEGIN');
 
     // Insert or update catalog
-    const catalogQuery = `
-      INSERT INTO catalog (stac_version, type, title, description, updated_at)
-      VALUES ($1, $2, $3, $4, now())
-      ON CONFLICT ON CONSTRAINT catalog_pkey DO UPDATE SET
-        stac_version = EXCLUDED.stac_version,
-        type = EXCLUDED.type,
-        title = EXCLUDED.title,
-        description = EXCLUDED.description,
-        updated_at = now()
-      RETURNING id;
-    `;
-    const catalogResult = await client.query(catalogQuery, [
-      catalog.stac_version || null,
-      catalog.type || 'Catalog',
-      catalog.title || catalog.id || null,
-      catalog.description || null
-    ]);
-    const catalogId = catalogResult.rows[0].id;
+    const catalogTitle = catalog.title || catalog.id || 'Unnamed Catalog';
+    
+    // Handle both STAC format and STAC Index API format
+    const description = catalog.description || null;
+    const stacVersion = catalog.stac_version || catalog.stacVersion || null;
+    
+    // Check if catalog with this title already exists
+    const existingCatalog = await client.query(
+      'SELECT id FROM catalog WHERE title = $1',
+      [catalogTitle]
+    );
+    
+    let catalogId;
+    if (existingCatalog.rows.length > 0) {
+      // Update existing catalog
+      catalogId = existingCatalog.rows[0].id;
+      await client.query(
+        `UPDATE catalog SET 
+          stac_version = $1, 
+          type = $2, 
+          description = $3, 
+          updated_at = now() 
+         WHERE id = $4`,
+        [
+          stacVersion,
+          catalog.type || 'Catalog',
+          description,
+          catalogId
+        ]
+      );
+    } else {
+      // Insert new catalog
+      const catalogResult = await client.query(
+        `INSERT INTO catalog (stac_version, type, title, description, updated_at)
+         VALUES ($1, $2, $3, $4, now())
+         RETURNING id`,
+        [
+          stacVersion,
+          catalog.type || 'Catalog',
+          catalogTitle,
+          description
+        ]
+      );
+      catalogId = catalogResult.rows[0].id;
+    }
 
     // Insert links
     if (catalog.links && Array.isArray(catalog.links)) {
@@ -71,20 +98,25 @@ async function insertOrUpdateCatalog(catalog) {
     }
 
     // Insert keywords
-    if (catalog.keywords && Array.isArray(catalog.keywords)) {
-      await insertKeywords(client, catalogId, catalog.keywords, 'catalog');
+    // STAC Index API uses 'categories' instead of 'keywords'
+    const keywords = catalog.keywords || catalog.categories || [];
+    if (Array.isArray(keywords) && keywords.length > 0) {
+      await insertKeywords(client, catalogId, keywords, 'catalog');
     }
 
     // Insert STAC extensions
-    if (catalog.stac_extensions && Array.isArray(catalog.stac_extensions)) {
-      await insertStacExtensions(client, catalogId, catalog.stac_extensions, 'catalog');
+    const extensions = catalog.stac_extensions || catalog.stacExtensions || [];
+    if (Array.isArray(extensions) && extensions.length > 0) {
+      await insertStacExtensions(client, catalogId, extensions, 'catalog');
     }
 
     // Update crawl log
     await client.query(
-      `INSERT INTO crawllog_catalog (catalog_id, last_crawled)
-       VALUES ($1, now())
-       ON CONFLICT (catalog_id) DO UPDATE SET last_crawled = now()`,
+      'DELETE FROM crawllog_catalog WHERE catalog_id = $1',
+      [catalogId]
+    );
+    await client.query(
+      'INSERT INTO crawllog_catalog (catalog_id, last_crawled) VALUES ($1, now())',
       [catalogId]
     );
 
@@ -131,42 +163,72 @@ async function insertOrUpdateCollection(collection) {
     }
 
     // Insert or update collection
-    const collectionQuery = `
-      INSERT INTO collection (
-        stac_version, type, title, description, license,
-        spatial_extend, temporal_extend_start, temporal_extend_end,
-        is_api, is_active, full_json, updated_at
-      )
-      VALUES ($1, $2, $3, $4, $5, ST_GeomFromEWKT($6), $7, $8, $9, $10, $11, now())
-      ON CONFLICT ON CONSTRAINT collection_pkey DO UPDATE SET
-        stac_version = EXCLUDED.stac_version,
-        type = EXCLUDED.type,
-        title = EXCLUDED.title,
-        description = EXCLUDED.description,
-        license = EXCLUDED.license,
-        spatial_extend = EXCLUDED.spatial_extend,
-        temporal_extend_start = EXCLUDED.temporal_extend_start,
-        temporal_extend_end = EXCLUDED.temporal_extend_end,
-        is_api = EXCLUDED.is_api,
-        is_active = EXCLUDED.is_active,
-        full_json = EXCLUDED.full_json,
-        updated_at = now()
-      RETURNING id;
-    `;
-    const collectionResult = await client.query(collectionQuery, [
-      collection.stac_version || null,
-      collection.type || 'Collection',
-      collection.title || collection.id || null,
-      collection.description || null,
-      collection.license || null,
-      spatialExtend,
-      temporalStart,
-      temporalEnd,
-      false, // is_api - will be determined by crawler
-      true, // is_active
-      JSON.stringify(collection)
-    ]);
-    const collectionId = collectionResult.rows[0].id;
+    const collectionTitle = collection.title || collection.id || 'Unnamed Collection';
+    
+    // Check if collection with this title already exists
+    const existingCollection = await client.query(
+      'SELECT id FROM collection WHERE title = $1',
+      [collectionTitle]
+    );
+    
+    let collectionId;
+    if (existingCollection.rows.length > 0) {
+      // Update existing collection
+      collectionId = existingCollection.rows[0].id;
+      await client.query(
+        `UPDATE collection SET 
+          stac_version = $1,
+          type = $2,
+          description = $3,
+          license = $4,
+          spatial_extend = ST_GeomFromEWKT($5),
+          temporal_extend_start = $6,
+          temporal_extend_end = $7,
+          is_api = $8,
+          is_active = $9,
+          full_json = $10,
+          updated_at = now()
+         WHERE id = $11`,
+        [
+          collection.stac_version || null,
+          collection.type || 'Collection',
+          collection.description || null,
+          collection.license || null,
+          spatialExtend,
+          temporalStart,
+          temporalEnd,
+          false, // is_api - will be determined by crawler
+          true, // is_active
+          JSON.stringify(collection),
+          collectionId
+        ]
+      );
+    } else {
+      // Insert new collection
+      const collectionResult = await client.query(
+        `INSERT INTO collection (
+          stac_version, type, title, description, license,
+          spatial_extend, temporal_extend_start, temporal_extend_end,
+          is_api, is_active, full_json, updated_at
+        )
+        VALUES ($1, $2, $3, $4, $5, ST_GeomFromEWKT($6), $7, $8, $9, $10, $11, now())
+        RETURNING id`,
+        [
+          collection.stac_version || null,
+          collection.type || 'Collection',
+          collectionTitle,
+          collection.description || null,
+          collection.license || null,
+          spatialExtend,
+          temporalStart,
+          temporalEnd,
+          false, // is_api - will be determined by crawler
+          true, // is_active
+          JSON.stringify(collection)
+        ]
+      );
+      collectionId = collectionResult.rows[0].id;
+    }
 
     // Insert summaries
     if (collection.summaries && typeof collection.summaries === 'object') {
@@ -198,9 +260,11 @@ async function insertOrUpdateCollection(collection) {
 
     // Update crawl log
     await client.query(
-      `INSERT INTO crawllog_collection (collection_id, last_crawled)
-       VALUES ($1, now())
-       ON CONFLICT (collection_id) DO UPDATE SET last_crawled = now()`,
+      'DELETE FROM crawllog_collection WHERE collection_id = $1',
+      [collectionId]
+    );
+    await client.query(
+      'INSERT INTO crawllog_collection (collection_id, last_crawled) VALUES ($1, now())',
       [collectionId]
     );
 
@@ -249,7 +313,7 @@ async function insertKeywords(client, parentId, keywords, type) {
  */
 async function insertStacExtensions(client, parentId, extensions, type) {
   await client.query(
-    `DELETE FROM ${type}_stac_extensions WHERE ${type}_id = $1`,
+    `DELETE FROM ${type}_stac_extension WHERE ${type}_id = $1`,
     [parentId]
   );
 
