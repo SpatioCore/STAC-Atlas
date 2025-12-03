@@ -4,9 +4,11 @@
  */
 
 import axios from 'axios';
-import { splitCatalogs, crawlCatalogRecursive } from './catalogs/catalog.js';
+import { processCatalogs } from './utils/normalization.js';
+import { crawlCatalogs } from './catalogs/catalog.js';
 import { crawlApis } from './apis/api.js';
 import { getConfig } from './utils/config.js';
+import * as db from './db.js';
 
 /**
  * URL of the STAC Index API endpoint
@@ -25,51 +27,74 @@ const crawler = async () => {
         // Load configuration
         const config = getConfig();
         
+        // Initialize database connection (unless --no-db flag is set)
+        if (!config.noDb) {
+            await db.initDb();
+        }
+        
         // Display configuration
         console.log('\n=== STAC Crawler Configuration ===');
         console.log(`Mode: ${config.mode}`);
         console.log(`Max Catalogs: ${config.maxCatalogs === Infinity ? 'unlimited' : config.maxCatalogs}`);
         console.log(`Max APIs: ${config.maxApis === Infinity ? 'unlimited' : config.maxApis}`);
         console.log(`Timeout: ${config.timeout === Infinity ? 'unlimited' : config.timeout + 'ms'}`);
-        console.log(`Max Depth: ${config.maxDepth === Infinity ? 'unlimited' : config.maxDepth}`);
+        console.log(`Crawl Depth: unlimited`);
+        console.log(`Database: ${config.noDb ? 'disabled (terminal output only)' : 'enabled'}`);
         console.log('==================================\n');
         
         const response = await axios.get(targetUrl);
-        const catalogs = splitCatalogs(response.data);
+        const catalogs = processCatalogs(response.data);
         
         // Crawl catalogs if mode is 'catalogs' or 'both'
         if (config.mode === 'catalogs' || config.mode === 'both') {
-            console.log('\n Crawling collections and nested catalogs...\n');
-            let totalCollections = 0;
+            console.log('\nCrawling collections and nested catalogs with Crawlee...\n');
             
-            const catalogsToProcess = config.maxCatalogs === Infinity ? catalogs : catalogs.slice(0, config.maxCatalogs);
+            const catalogsToProcess = config.maxCatalogs === Infinity 
+                ? catalogs 
+                : catalogs.slice(0, config.maxCatalogs);
+            
             console.log(`Processing ${catalogsToProcess.length} catalogs (max: ${config.maxCatalogs === Infinity ? 'unlimited' : config.maxCatalogs})\n`);
             
-            for (const catalogData of catalogsToProcess) {
-                const catalog = {
-                    id: catalogData[1],
-                    url: catalogData[2]
-                };
+            try {
+                const results = await crawlCatalogs(catalogsToProcess, config);
+                console.log(`\nTotal collections found across all catalogs: ${results.stats.collectionsFound}`);
                 
-                try {
-                    const stats = await crawlCatalogRecursive(catalog, 0, config);
-                    totalCollections += stats.collections;
-                } catch (error) {
-                    console.error(`Failed to crawl catalog ${catalog.id}: ${error.message}`);
+                // Persist collections to database
+                if (!config.noDb && results.collections.length > 0) {
+                    console.log(`\nSaving ${results.collections.length} collections to database...`);
+                    let savedCount = 0;
+                    let errorCount = 0;
+                    
+                    for (const collection of results.collections) {
+                        try {
+                            await db.insertOrUpdateCollection(collection);
+                            savedCount++;
+                        } catch (err) {
+                            errorCount++;
+                            console.error(`DB write error for collection ${collection.id}:`, err.message);
+                        }
+                    }
+                    
+                    console.log(`Successfully saved ${savedCount} collections to database`);
+                    if (errorCount > 0) {
+                        console.log(`Failed to save ${errorCount} collections`);
+                    }
+                } else if (config.noDb && results.collections.length > 0) {
+                    console.log(`\n[--no-db mode] Found ${results.collections.length} collections (not saved to database)`);
                 }
+            } catch (error) {
+                console.error(`Failed to crawl catalogs: ${error.message}`);
             }
-            
-            console.log(`\n Total collections found across all catalogs: ${totalCollections}`);
         } else {
-            console.log('\n Skipping catalog crawling (mode: apis)\n');
+            console.log('\nSkipping catalog crawling (mode: apis)\n');
         }
 
         // Crawl APIs if mode is 'apis' or 'both'
         if (config.mode === 'apis' || config.mode === 'both') {
-            console.log('\n Crawling APIs...');
+            console.log('\nCrawling APIs...');
             const apiUrls = catalogs
-                .filter(cat => cat[10] === true) // isApi is at index 10
-                .map(cat => cat[2]); // url is at index 2
+                .filter(cat => cat.isApi === true)
+                .map(cat => cat.url);
                 
             if (apiUrls.length > 0) {
                 const apisToProcess = config.maxApis === Infinity ? apiUrls : apiUrls.slice(0, config.maxApis);
@@ -85,6 +110,30 @@ const crawler = async () => {
                             const selfLink = c.links?.find(l => l.rel === 'self')?.href;
                             console.log(` - ${c.id}: ${selfLink}`);
                         });
+                        
+                        // Persist API collections to database
+                        if (!config.noDb) {
+                            console.log(`\nSaving ${collections.length} API collections to database...`);
+                            let savedCount = 0;
+                            let errorCount = 0;
+                            
+                            for (const collection of collections) {
+                                try {
+                                    await db.insertOrUpdateCollection(collection);
+                                    savedCount++;
+                                } catch (err) {
+                                    errorCount++;
+                                    console.error(`DB write error for collection ${collection.id}:`, err.message);
+                                }
+                            }
+                            
+                            console.log(`Successfully saved ${savedCount} API collections to database`);
+                            if (errorCount > 0) {
+                                console.log(`Failed to save ${errorCount} collections`);
+                            }
+                        } else {
+                            console.log(`\n[--no-db mode] Found ${collections.length} API collections (not saved to database)`);
+                        }
                     }
                 } catch (error) {
                     console.error(`Failed to crawl APIs: ${error.message}`);
@@ -93,25 +142,41 @@ const crawler = async () => {
                 console.log('No APIs found to crawl.');
             }
         } else {
-            console.log('\n Skipping API crawling (mode: catalogs)\n');
+            console.log('\nSkipping API crawling (mode: catalogs)\n');
+        }
+
+        // Persist catalogs metadata to database
+        if (!config.noDb) {
+            console.log(`\nSaving ${catalogs.length} catalog metadata entries to database...`);
+            let savedCatalogCount = 0;
+            let errorCatalogCount = 0;
+            
+            for (const catalog of catalogs) {
+                try {
+                    await db.insertOrUpdateCatalog(catalog);
+                    savedCatalogCount++;
+                } catch (err) {
+                    errorCatalogCount++;
+                    console.error(`DB write error for catalog ${catalog.id || catalog.slug}:`, err.message);
+                }
+            }
+            
+            console.log(`Successfully saved ${savedCatalogCount} catalog metadata entries`);
+            if (errorCatalogCount > 0) {
+                console.log(`Failed to save ${errorCatalogCount} catalog entries`);
+            }
+        } else {
+            console.log(`\n[--no-db mode] Skipping catalog metadata persistence`);
         }
 
     } catch (error) {
-        console.error(`Error fetching ${targetUrl}: ${error.message}`);
-    }
-
-    // Persist catalogs into DB
-    try {
-        await Promise.all(catalogs.map(async (catalog) => {
-            try {
-                await db.insertOrUpdateCatalog(catalog);
-            } catch (err) {
-                console.error('DB write error for catalog', catalog && (catalog.id || catalog.slug), err && err.message);
-            }
-        }));
-        console.log('Finished writing catalogs to DB');
-    } catch (e) {
-        console.error('Unexpected error while saving catalogs to DB', e && e.message);
+        console.error(`Error fetching ${targetUrl}:`, error);
+    } finally {
+        // Close database connection (unless --no-db flag is set)
+        if (!getConfig().noDb) {
+            await db.close();
+            console.log('\nDatabase connection closed.');
+        }
     }
 
 };

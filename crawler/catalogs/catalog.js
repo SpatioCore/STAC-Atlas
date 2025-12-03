@@ -1,420 +1,111 @@
 /**
- * @fileoverview Catalog crawling functionality for STAC Index
+ * @fileoverview Catalog crawling functionality for STAC Index using Crawlee
  * @module catalogs/catalog
  */
 
-import axios from 'axios';
-import create from 'stac-js';
-import { withTimeout } from '../utils/config.js';
+import { HttpCrawler } from 'crawlee';
+import { handleCatalog, handleCollections } from '../utils/handlers.js';
 
 /**
- * Splits an array of catalogs into individual elements where each element is an array of its properties
- * @param {Array<Object>} catalogs - Array of catalog objects from the STAC Index API
- * @returns {Array<Array>} Array of arrays, where each inner array contains:
- *   [0] = index, [1] = id, [2] = url, [3] = slug, [4] = title, [5] = summary, 
- *   [6] = access, [7] = created, [8] = updated, [9] = isPrivate, [10] = isApi, 
- *   [11] = accessInfo, [12] = categories, ... (followed by any other dynamic properties)
- * @throws {Error} Throws error if input is not an array
+ * Creates and runs a Crawlee HttpCrawler to crawl STAC catalogs
+ * @async
+ * @param {Array<Object>} initialCatalogs - Array of catalog objects to start crawling from
+ * @param {Object} config - Configuration object with timeout and depth settings
+ * @returns {Promise<Object>} Crawl results with collections and statistics
  */
-function splitCatalogs(catalogs) {
-    if (!Array.isArray(catalogs)) {
-        throw new Error('Expected an array');
-    }
+async function crawlCatalogs(initialCatalogs, config = {}) {
+    const timeoutSecs = config.timeout && config.timeout !== Infinity 
+        ? Math.ceil(config.timeout / 1000) 
+        : 60;
+    
+    // Store results
+    const results = {
+        collections: [],
+        catalogs: [],
+        stats: {
+            totalRequests: 0,
+            successfulRequests: 0,
+            failedRequests: 0,
+            collectionsFound: 0,
+            catalogsProcessed: 0,
+            stacCompliant: 0,
+            nonCompliant: 0
+        }
+    };
 
-    // Define the order of standard properties
-    const standardPropertyOrder = [
-        'index', 'id', 'url', 'slug', 'title', 'summary', 
-        'access', 'created', 'updated', 'isPrivate', 'isApi', 'accessInfo'
-    ];
-
-    // Split each element individually and convert to array format
-    const elements = catalogs.map((catalog, index) => {
+    const crawler = new HttpCrawler({
+        requestHandlerTimeoutSecs: timeoutSecs,
         
-        // Create object with all properties
-        let elementObj = {
-            index: index,
-            ...catalog,
-        };
-
-        // Validate and migrate STAC catalog using stac-js if it has STAC properties
-        if (catalog.url && typeof catalog.url === 'string') {
+        async requestHandler({ request, json, crawler, log }) {
+            results.stats.totalRequests++;
+            const depth = request.userData?.depth || 0;
+            const indent = '  '.repeat(depth);
+            
             try {
-                // For STAC Index catalogs, we don't validate against STAC spec
-                // as they are metadata about STAC catalogs, not STAC objects themselves
-                // This is just for potential future enhancement
+                // Route based on request label
+                if (request.label === 'CATALOG') {
+                    await handleCatalog({ request, json, crawler, log, indent, results });
+                } else if (request.label === 'COLLECTIONS') {
+                    await handleCollections({ request, json, crawler, log, indent, results });
+                }
+                
+                results.stats.successfulRequests++;
             } catch (error) {
-                console.warn(`STAC validation skipped for catalog ${catalog.id}: ${error.message}`);
+                log.error(`${indent}Error handling ${request.label} at ${request.url}: ${error.message}`);
+                throw error; // Re-throw to trigger failedRequestHandler
+            }
+        },
+        
+        async failedRequestHandler({ request, error, log }) {
+            results.stats.failedRequests++;
+            const depth = request.userData?.depth || 0;
+            const indent = '  '.repeat(depth);
+            const catalogId = request.userData?.catalogId || 'unknown';
+            
+            // Log detailed failure information
+            if (error.message.includes('STAC validation')) {
+                log.info(`${indent}[STAC VALIDATION FAILED] ${catalogId} at ${request.url}`);
+                log.info(`${indent}   Reason: ${error.message}`);
+                results.stats.nonCompliant++;
+            } else if (error.message.includes('timeout')) {
+                log.warning(`${indent}[TIMEOUT] ${catalogId} at ${request.url}`);
+            } else if (error.message.includes('ENOTFOUND') || error.message.includes('ECONNREFUSED')) {
+                log.warning(`${indent}[CONNECTION FAILED] ${catalogId} at ${request.url}`);
+            } else if (error.code === 'ERR_NON_2XX_3XX_RESPONSE') {
+                log.warning(`${indent}[HTTP ERROR] ${catalogId} at ${request.url} - Status: ${error.statusCode}`);
+            } else {
+                log.warning(`${indent}[FAILED] ${catalogId} at ${request.url}`);
+                log.warning(`${indent}   Error: ${error.message}`);
             }
         }
-
-        // Get all property names
-        const allProperties = Object.keys(elementObj);
-        
-        // Separate standard and dynamic properties
-        const dynamicProps = allProperties.filter(prop => !standardPropertyOrder.includes(prop));
-        
-        // Create array with standard properties first, then dynamic ones
-        const elementArray = [];
-        
-        // Add standard properties in defined order (always include all standard fields for consistent indices)
-        standardPropertyOrder.forEach(prop => {
-            elementArray.push(elementObj[prop]);
-        });
-        
-        // Add dynamic properties
-        dynamicProps.forEach(prop => {
-            elementArray.push(elementObj[prop]);
-        });
-        return elementArray;
     });
 
-    // Output for demonstration
-    console.log(`Total: ${elements.length} elements found\n`);
+    // Seed the crawler with initial catalog requests
+    const initialRequests = initialCatalogs.map(catalog => ({
+        url: catalog.url,
+        label: 'CATALOG',
+        userData: {
+            depth: 0,
+            catalogId: catalog.id,
+            catalogTitle: catalog.title
+        }
+    }));
+
+    await crawler.addRequests(initialRequests);
     
-    if (elements.length > 0) {
-        console.log('Example - First Element (as array):');
-        console.log('Array indices and values:');
-        const firstElement = elements[0];
-        const allProps = [
-            'index', 'id', 'url', 'slug', 'title', 'summary', 
-            'access', 'created', 'updated', 'isPrivate', 'isApi', 'accessInfo'
-        ];
-        firstElement.forEach((value, idx) => {
-            const propName = idx < allProps.length ? allProps[idx] : `dynamic_property_${idx}`;
-            console.log(`  [${idx}] ${propName}: ${JSON.stringify(value)}`);
-        });
-        console.log('\nAccess examples:');
-        console.log(`  elements[0][0] (index): ${elements[0][0]}`);
-        console.log(`  elements[0][1] (id): ${elements[0][1]}`);
-        console.log(`  elements[0][2] (url): ${elements[0][2]}`);
-        console.log(`  elements[0][7] (created): ${elements[0][7]}`);
-    }
-
-    return elements;
-}
-
-/**
- * Fetches and processes collections from a catalog using stac-js
- * @async
- * @param {Object} catalog - Catalog object with url property
- * @param {Object} config - Configuration object with timeout settings
- * @returns {Promise<Array>} Array of collections formatted as arrays
- */
-async function getCollections(catalog, config = {}) {
-    try {
-        const timeoutMs = config.timeout || 30000;
-        const axiosTimeout = timeoutMs === Infinity ? 0 : Math.min(5000, timeoutMs);
-        
-        // Try common STAC collection endpoints
-        const collectionUrls = [
-            `${catalog.url}/collections`,
-            `${catalog.url}/collections/`,
-            `${catalog.url}/api/v1/collections`
-        ];
-
-        for (const url of collectionUrls) {
-            try {
-                const response = await withTimeout(
-                    axios.get(url, { timeout: axiosTimeout }),
-                    timeoutMs,
-                    `Fetching collections from ${url}`
-                );
-                
-                // Parse response with stac-js for validation and enhanced metadata extraction
-                let stacObj;
-                try {
-                    stacObj = create(response.data, url);
-                } catch (parseError) {
-                    // If stac-js cannot parse, skip this catalog (non-compliant STAC)
-                    console.warn(`   Skipping non-compliant STAC at ${url}: ${parseError.message}`);
-                    continue;
-                }
-                
-                let collectionsData = [];
-                
-                // Check if this is a CollectionCollection (STAC API response)
-                if (stacObj && typeof stacObj.getAll === 'function') {
-                    collectionsData = stacObj.getAll();
-                } else if (Array.isArray(response.data)) {
-                    // Handle array of collections
-                    collectionsData = response.data.map(col => {
-                        try {
-                            return create(col, url);
-                        } catch {
-                            return null;
-                        }
-                    }).filter(Boolean);
-                } else if (response.data.collections) {
-                    // Handle nested collections property
-                    collectionsData = response.data.collections.map(col => {
-                        try {
-                            return create(col, url);
-                        } catch {
-                            return null;
-                        }
-                    }).filter(Boolean);
-                }
-                
-                if (collectionsData.length > 0) {
-                    console.log(`\n Catalog: ${catalog.id}`);
-                    console.log(`   Found ${collectionsData.length} collections`);
-                    
-                    // Convert collections using stac-js methods for metadata extraction
-                    const collections = collectionsData.map((colObj, index) => {
-                        // Use stac-js methods for robust metadata extraction
-                        const bbox = typeof colObj.getBoundingBox === 'function' 
-                            ? colObj.getBoundingBox() 
-                            : (colObj.extent?.spatial?.bbox?.[0] || 'N/A');
-                        
-                        const temporal = typeof colObj.getTemporalExtent === 'function'
-                            ? colObj.getTemporalExtent()
-                            : (colObj.extent?.temporal?.interval?.[0] || 'N/A');
-                        
-                        // Get self URL using stac-js link navigation
-                        let selfUrl = 'N/A';
-                        if (typeof colObj.getAbsoluteUrl === 'function') {
-                            selfUrl = colObj.getAbsoluteUrl();
-                        } else if (colObj.links) {
-                            const selfLink = colObj.links.find(l => l.rel === 'self');
-                            selfUrl = selfLink?.href || 'N/A';
-                        }
-                        
-                        return [
-                            index,
-                            colObj.id || 'Unknown',
-                            selfUrl,
-                            colObj.title || 'N/A',
-                            colObj.description || colObj.summary || 'N/A',
-                            bbox,
-                            temporal,
-                            colObj.license || 'N/A',
-                            colObj.keywords || []
-                        ];
-                    });
-
-                    // Display collection details
-                    if (collections.length > 0) {
-                        console.log('   Collection details:');
-                        collections.forEach((col, idx) => {
-                            console.log(`     [${idx}] ${col[1]} - ${col[3]}`);
-                        });
-                    }
-                    
-                    return collections;
-                }
-            } catch (e) {
-                // Try next URL
-                continue;
-            }
-        }
-        
-        console.log(`\n No collections found for catalog: ${catalog.id}`);
-        return [];
-        
-    } catch (error) {
-        console.error(`Error fetching collections for ${catalog.id}: ${error.message}`);
-        return [];
-    }
-}
-
-/**
- * Fetches nested catalogs within a catalog using stac-js link navigation
- * @async
- * @param {Object} catalog - Catalog object with url property
- * @param {Object} [stacCatalog] - Optional stac-js catalog object for link extraction
- * @param {Object} config - Configuration object with timeout settings
- * @returns {Promise<Array>} Array of nested catalogs
- */
-async function getNestedCatalogs(catalog, stacCatalog = null, config = {}) {
-    try {
-        const timeoutMs = config.timeout || 30000;
-        const axiosTimeout = timeoutMs === Infinity ? 0 : Math.min(5000, timeoutMs);
-        
-        // If we have a stac-js catalog object, use its link navigation methods
-        if (stacCatalog && typeof stacCatalog.getChildLinks === 'function') {
-            const childLinks = stacCatalog.getChildLinks();
-            
-            if (childLinks.length > 0) {
-                console.log(`   Found ${childLinks.length} child catalog links via stac-js`);
-                
-                // Fetch each child catalog
-                const nestedCatalogs = [];
-                for (const link of childLinks) {
-                    try {
-                        const childUrl = typeof link.getAbsoluteUrl === 'function'
-                            ? link.getAbsoluteUrl()
-                            : link.href;
-                        
-                        const response = await withTimeout(
-                            axios.get(childUrl, { timeout: axiosTimeout }),
-                            timeoutMs,
-                            `Fetching child catalog from ${childUrl}`
-                        );
-                        nestedCatalogs.push(response.data);
-                    } catch (e) {
-                        console.warn(`   Failed to fetch child catalog: ${e.message}`);
-                    }
-                }
-                
-                return nestedCatalogs;
-            }
-        }
-        
-        // Fallback: Try common STAC nested catalog endpoints
-        const catalogUrls = [
-            `${catalog.url}/catalogs`,
-            `${catalog.url}/catalogs/`,
-            `${catalog.url}/api/v1/catalogs`
-        ];
-
-        for (const url of catalogUrls) {
-            try {
-                const response = await withTimeout(
-                    axios.get(url, { timeout: axiosTimeout }),
-                    timeoutMs,
-                    `Fetching nested catalogs from ${url}`
-                );
-                const catalogsData = Array.isArray(response.data) 
-                    ? response.data 
-                    : response.data.catalogs || [];
-                
-                if (catalogsData.length > 0) {
-                    return catalogsData;
-                }
-            } catch (e) {
-                // Try next URL
-                continue;
-            }
-        }
-        
-        return [];
-        
-    } catch (error) {
-        console.error(`Error fetching nested catalogs for ${catalog.id}: ${error.message}`);
-        return [];
-    }
-}
-
-/**
- * Recursively crawls a catalog using stac-js for parsing and navigation
- * @async
- * @param {Object} catalog - Catalog object to crawl
- * @param {number} depth - Current depth level (for indentation)
- * @param {Object} config - Configuration object with timeout and depth settings
- * @returns {Promise<Object>} Stats object with collections count and STAC compliance
- */
-async function crawlCatalogRecursive(catalog, depth = 0, config = {}) {
-    const indent = '  '.repeat(depth);
-    let stats = { 
-        collections: 0, 
-        stacCompliant: false
-    };
+    console.log(`\nStarting Crawlee crawler with ${initialRequests.length} initial catalogs...\n`);
+    await crawler.run();
     
-    // Check max depth
-    const maxDepth = config.maxDepth || 3;
-    if (depth >= maxDepth) {
-        console.log(`${indent} Max depth ${maxDepth} reached, stopping recursion`);
-        return stats;
-    }
-    
-    try {
-        const timeoutMs = config.timeout || 30000;
-        const axiosTimeout = timeoutMs === Infinity ? 0 : Math.min(5000, timeoutMs);
-        let stacCatalog = null;
-        
-        // Try to fetch and parse the catalog with stac-js
-        if (catalog.url) {
-            try {
-                const response = await withTimeout(
-                    axios.get(catalog.url, { timeout: axiosTimeout }),
-                    timeoutMs,
-                    `Fetching catalog ${catalog.id}`
-                );
-                
-                try {
-                    stacCatalog = create(response.data, catalog.url);
-                    stats.stacCompliant = true;
-                    
-                    // Log STAC object type
-                    if (typeof stacCatalog.isCatalog === 'function' && stacCatalog.isCatalog()) {
-                        console.log(`${indent} STAC Catalog validated: ${catalog.id}`);
-                    } else if (typeof stacCatalog.isCollection === 'function' && stacCatalog.isCollection()) {
-                        console.log(`${indent} STAC Collection validated: ${catalog.id}`);
-                    }
-                    
-                } catch (parseError) {
-                    console.warn(`${indent} Non-compliant STAC catalog ${catalog.id}, skipping: ${parseError.message}`);
-                    return stats; // Skip non-compliant catalogs as per requirement
-                }
-            } catch (fetchError) {
-                console.warn(`${indent} Failed to fetch catalog ${catalog.id}: ${fetchError.message}`);
-                return stats;
-            }
-        }
-        
-        // First, try to get collections from this catalog
-        const collections = await getCollections(catalog, config);
-        stats.collections = collections.length;
-        
-        // Then, try to get nested catalogs using stac-js if available
-        const nestedCatalogs = await getNestedCatalogs(catalog, stacCatalog, config);
-        
-        if (nestedCatalogs.length > 0) {
-            console.log(`${indent} Nested catalogs found: ${nestedCatalogs.length}`);
-            
-            // Recursively crawl each nested catalog
-            for (const nestedCatalog of nestedCatalogs.slice(0, 5)) { // Limit to first 5 nested
-                // Convert nested catalog to expected format
-                const nestedCatalogObj = {
-                    id: nestedCatalog.id || 'unknown',
-                    url: nestedCatalog.links?.find(l => l.rel === 'self')?.href || nestedCatalog.url
-                };
-                
-                const nestedStats = await crawlCatalogRecursive(nestedCatalogObj, depth + 1, config);
-                stats.collections += nestedStats.collections;
-            }
-        }
-        
-    } catch (error) {
-        console.error(`${indent}Error in recursive crawl for ${catalog.id}: ${error.message}`);
-    }
-    
-    return stats;
+    console.log('\nCrawl Statistics:');
+    console.log(`   Total Requests: ${results.stats.totalRequests}`);
+    console.log(`   Successful: ${results.stats.successfulRequests}`);
+    console.log(`   Failed: ${results.stats.failedRequests}`);
+    console.log(`   STAC Compliant: ${results.stats.stacCompliant}`);
+    console.log(`   Non-Compliant: ${results.stats.nonCompliant}`);
+    console.log(`   Catalogs Processed: ${results.stats.catalogsProcessed}`);
+    console.log(`   Collections Found: ${results.stats.collectionsFound}\n`);
+
+    return results;
 }
 
-/**
- * Derives categories from a catalog object by checking various possible fields
- * @param {Object} catalog - Catalog object to extract categories from
- * @returns {Array<string>} Array of category strings, empty array if none found
- */
-function deriveCategories(catalog) {
-    if (!catalog || typeof catalog !== 'object') {
-        return [];
-    }
-
-    if (Array.isArray(catalog.categories)) {
-        return catalog.categories.filter(Boolean).map(String);
-    }
-
-    if (Array.isArray(catalog.keywords)) {
-        return catalog.keywords.filter(Boolean).map(String);
-    }
-
-    if (Array.isArray(catalog.tags)) {
-        return catalog.tags.filter(Boolean).map(String);
-    }
-
-    if (typeof catalog.access === 'string' && catalog.access.trim().length) {
-        return [catalog.access.trim()];
-    }
-
-    return [];
-}
-
-export {
-    splitCatalogs,
-    getCollections,
-    getNestedCatalogs,
-    crawlCatalogRecursive,
-    deriveCategories
-};
+export { crawlCatalogs };
