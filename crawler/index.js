@@ -8,7 +8,7 @@ import { processCatalogs } from './utils/normalization.js';
 import { crawlCatalogs } from './catalogs/catalog.js';
 import { crawlApis } from './apis/api.js';
 import { getConfig } from './utils/config.js';
-import db from './db.js';
+import db from './utils/db.js';
 
 /**
  * URL of the STAC Index API endpoint
