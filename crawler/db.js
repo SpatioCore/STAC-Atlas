@@ -368,7 +368,7 @@ async function close() {
   await pool.end();
 }
 
-export { 
+export default { 
   initDb, 
   insertOrUpdateCatalog, 
   insertOrUpdateCollection,
