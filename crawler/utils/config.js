@@ -4,67 +4,10 @@
  */
 
 import dotenv from 'dotenv';
+import { parseCliArgs } from './cli.js';
 
 // Load environment variables from .env file
 dotenv.config();
-
-/**
- * Parse command line arguments
- * @returns {Object} Parsed CLI arguments
- */
-function parseCliArgs() {
-    const args = process.argv.slice(2);
-    const config = {};
-    
-    for (let i = 0; i < args.length; i++) {
-        const arg = args[i];
-        
-        if (arg === '--mode' || arg === '-m') {
-            config.mode = args[++i];
-        } else if (arg === '--max-catalogs' || arg === '-c') {
-            config.maxCatalogs = parseInt(args[++i], 10);
-        } else if (arg === '--max-apis' || arg === '-a') {
-            config.maxApis = parseInt(args[++i], 10);
-        } else if (arg === '--timeout' || arg === '-t') {
-            config.timeout = parseInt(args[++i], 10);
-        } else if (arg === '--max-depth' || arg === '-d') {
-            config.maxDepth = parseInt(args[++i], 10);
-        } else if (arg === '--help' || arg === '-h') {
-            printHelp();
-            process.exit(0);
-        }
-    }
-    
-    return config;
-}
-
-/**
- * Print help message
- */
-function printHelp() {
-    console.log(`
-STAC Crawler Configuration Options:
-
-  -m, --mode <mode>              Crawl mode: 'catalogs', 'apis', or 'both' (default: 'both')
-  -c, --max-catalogs <number>    Maximum number of catalogs to crawl (default: 10)
-  -a, --max-apis <number>        Maximum number of APIs to crawl (default: 5)
-  -t, --timeout <milliseconds>   Timeout for each crawl operation in ms (default: 30000)
-  -d, --max-depth <number>       Maximum recursion depth for nested catalogs (default: 3)
-  -h, --help                     Show this help message
-
-Environment Variables:
-  CRAWL_MODE          Same as --mode
-  MAX_CATALOGS        Same as --max-catalogs
-  MAX_APIS            Same as --max-apis
-  TIMEOUT_MS          Same as --timeout
-  MAX_DEPTH           Same as --max-depth
-
-Examples:
-  node index.js --mode catalogs --max-catalogs 20
-  node index.js -m apis -a 10 -t 60000
-  CRAWL_MODE=both MAX_CATALOGS=50 node index.js
-    `);
-}
 
 /**
  * Get configuration from environment variables, CLI args, and defaults
@@ -80,16 +23,20 @@ function getConfig() {
         maxCatalogs: 10,        // Maximum number of catalogs to crawl
         maxApis: 5,             // Maximum number of APIs to crawl
         timeout: 30000,         // Timeout in milliseconds (30 seconds)
-        maxDepth: 3             // Maximum recursion depth for nested catalogs
+        noDb: false             // Skip database operations
     };
     
     // Build configuration with precedence: CLI > ENV > Defaults
     const config = {
         mode: cliArgs.mode || process.env.CRAWL_MODE || defaults.mode,
-        maxCatalogs: cliArgs.maxCatalogs || parseInt(process.env.MAX_CATALOGS, 10) || defaults.maxCatalogs,
-        maxApis: cliArgs.maxApis || parseInt(process.env.MAX_APIS, 10) || defaults.maxApis,
-        timeout: cliArgs.timeout || parseInt(process.env.TIMEOUT_MS, 10) || defaults.timeout,
-        maxDepth: cliArgs.maxDepth || parseInt(process.env.MAX_DEPTH, 10) || defaults.maxDepth
+        maxCatalogs: cliArgs.maxCatalogs !== undefined ? cliArgs.maxCatalogs : 
+                     (process.env.MAX_CATALOGS ? parseInt(process.env.MAX_CATALOGS, 10) : defaults.maxCatalogs),
+        maxApis: cliArgs.maxApis !== undefined ? cliArgs.maxApis : 
+                 (process.env.MAX_APIS ? parseInt(process.env.MAX_APIS, 10) : defaults.maxApis),
+        timeout: cliArgs.timeout !== undefined ? cliArgs.timeout : 
+                 (process.env.TIMEOUT_MS ? parseInt(process.env.TIMEOUT_MS, 10) : defaults.timeout),
+        noDb: cliArgs.noDb !== undefined ? cliArgs.noDb :
+              (process.env.NO_DB === 'true' ? true : defaults.noDb)
     };
     
     // Validate mode
@@ -99,15 +46,13 @@ function getConfig() {
         process.exit(1);
     }
     
-    // When mode is 'catalogs', remove limits for comprehensive crawling
-    if (config.mode === 'catalogs') {
-        config.maxCatalogs = Infinity;
-        config.maxDepth = Infinity;
-        config.timeout = Infinity;
-    }
+    // NOTE: Removed automatic Infinity override for 'catalogs' mode
+    // Users can now control limits via CLI args even when mode is 'catalogs'
     
-    // Validate numeric values
-    if (config.maxCatalogs < 0 || config.maxApis < 0 || config.timeout < 0 || config.maxDepth < 0) {
+    // Validate numeric values (allow Infinity for unlimited mode)
+    if ((config.maxCatalogs !== Infinity && config.maxCatalogs < 0) || 
+        (config.maxApis !== Infinity && config.maxApis < 0) || 
+        (config.timeout !== Infinity && config.timeout < 0)) {
         console.error('Numeric configuration values must be non-negative');
         process.exit(1);
     }
@@ -149,8 +94,6 @@ async function withTimeout(promise, ms, operation = 'Operation') {
 
 export {
     getConfig,
-    parseCliArgs,
-    printHelp,
     withTimeout,
     createTimeout
 };

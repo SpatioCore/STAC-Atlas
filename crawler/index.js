@@ -4,7 +4,8 @@
  */
 
 import axios from 'axios';
-import { splitCatalogs, crawlCatalogRecursive } from './catalogs/catalog.js';
+import { processCatalogs } from './utils/normalization.js';
+import { crawlCatalogs } from './catalogs/catalog.js';
 import { crawlApis } from './apis/api.js';
 import { getConfig } from './utils/config.js';
 import db from './db.js';
@@ -26,13 +27,19 @@ const crawler = async () => {
         // Load configuration
         const config = getConfig();
         
+        // Initialize database connection (unless --no-db flag is set)
+        if (!config.noDb) {
+            await db.initDb();
+        }
+        
         // Display configuration
         console.log('\n=== STAC Crawler Configuration ===');
         console.log(`Mode: ${config.mode}`);
         console.log(`Max Catalogs: ${config.maxCatalogs === Infinity ? 'unlimited' : config.maxCatalogs}`);
         console.log(`Max APIs: ${config.maxApis === Infinity ? 'unlimited' : config.maxApis}`);
         console.log(`Timeout: ${config.timeout === Infinity ? 'unlimited' : config.timeout + 'ms'}`);
-        console.log(`Max Depth: ${config.maxDepth === Infinity ? 'unlimited' : config.maxDepth}`);
+        console.log(`Crawl Depth: unlimited`);
+        console.log(`Database: ${config.noDb ? 'disabled (terminal output only)' : 'enabled'}`);
         console.log('==================================\n');
         
         // Initialize database connection
@@ -40,7 +47,7 @@ const crawler = async () => {
         await db.initDb();
         
         const response = await axios.get(targetUrl);
-        const catalogs = splitCatalogs(response.data);
+        const catalogs = processCatalogs(response.data);
         
         // Save catalogs from STAC Index to database
         console.log('\n=== Saving catalogs to database ===');
@@ -62,17 +69,17 @@ const crawler = async () => {
         
         // Crawl catalogs if mode is 'catalogs' or 'both'
         if (config.mode === 'catalogs' || config.mode === 'both') {
-            console.log('\n Crawling collections and nested catalogs...\n');
-            let totalCollections = 0;
+            console.log('\nCrawling collections and nested catalogs with Crawlee...\n');
             
-            const catalogsToProcess = config.maxCatalogs === Infinity ? catalogs : catalogs.slice(0, config.maxCatalogs);
+            const catalogsToProcess = config.maxCatalogs === Infinity 
+                ? catalogs 
+                : catalogs.slice(0, config.maxCatalogs);
+            
             console.log(`Processing ${catalogsToProcess.length} catalogs (max: ${config.maxCatalogs === Infinity ? 'unlimited' : config.maxCatalogs})\n`);
             
-            for (const catalogData of catalogsToProcess) {
-                const catalog = {
-                    id: catalogData[1],
-                    url: catalogData[2]
-                };
+            try {
+                const results = await crawlCatalogs(catalogsToProcess, config);
+                console.log(`\nTotal collections found across all catalogs: ${results.stats.collectionsFound}`);
                 
                 try {
                     const stats = await crawlCatalogRecursive(catalog, 0, config);
@@ -92,19 +99,19 @@ const crawler = async () => {
                 } catch (error) {
                     console.error(`Failed to crawl catalog ${catalog.id}: ${error.message}`);
                 }
+            } catch (error) {
+                console.error(`Failed to crawl catalogs: ${error.message}`);
             }
-            
-            console.log(`\n Total collections found across all catalogs: ${totalCollections}`);
         } else {
-            console.log('\n Skipping catalog crawling (mode: apis)\n');
+            console.log('\nSkipping catalog crawling (mode: apis)\n');
         }
 
         // Crawl APIs if mode is 'apis' or 'both'
         if (config.mode === 'apis' || config.mode === 'both') {
-            console.log('\n Crawling APIs...');
+            console.log('\nCrawling APIs...');
             const apiUrls = catalogs
-                .filter(cat => cat[10] === true) // isApi is at index 10
-                .map(cat => cat[2]); // url is at index 2
+                .filter(cat => cat.isApi === true)
+                .map(cat => cat.url);
                 
             if (apiUrls.length > 0) {
                 const apisToProcess = config.maxApis === Infinity ? apiUrls : apiUrls.slice(0, config.maxApis);
@@ -146,7 +153,7 @@ const crawler = async () => {
                 console.log('No APIs found to crawl.');
             }
         } else {
-            console.log('\n Skipping API crawling (mode: catalogs)\n');
+            console.log('\nSkipping API crawling (mode: catalogs)\n');
         }
 
     } catch (error) {
