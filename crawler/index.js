@@ -96,14 +96,14 @@ const crawler = async () => {
                 console.log(`Found ${apiUrls.length} APIs. Processing ${apisToProcess.length} (max: ${config.maxApis === 0 ? 'unlimited' : config.maxApis})...`);
                 
                 try {
-                    const collections = await crawlApis(apisToProcess, true, config);
-                    console.log(`\nFetched ${collections.length} collections from APIs (sorted by URL).`);
+                    const apiResults = await crawlApis(apisToProcess, true, config);
+                    const collections = apiResults.collections || [];
+                    console.log(`\nFetched ${collections.length} collections from APIs.`);
                     
                     if (collections.length > 0) {
                         console.log('First 3 collections found:');
                         collections.slice(0, 3).forEach(c => {
-                            const selfLink = c.links?.find(l => l.rel === 'self')?.href;
-                            console.log(` - ${c.id}: ${selfLink}`);
+                            console.log(` - ${c.id}: ${c.title}`);
                         });
                         
                         // Save API collections to database
