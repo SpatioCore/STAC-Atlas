@@ -22,8 +22,7 @@ function getConfig() {
         mode: 'both',           // 'catalogs', 'apis', or 'both'
         maxCatalogs: 10,        // Maximum number of catalogs to crawl
         maxApis: 5,             // Maximum number of APIs to crawl
-        timeout: 30000,         // Timeout in milliseconds (30 seconds)
-        noDb: false             // Skip database operations
+        timeout: 30000          // Timeout in milliseconds (30 seconds)
     };
     
     // Build configuration with precedence: CLI > ENV > Defaults
@@ -34,9 +33,7 @@ function getConfig() {
         maxApis: cliArgs.maxApis !== undefined ? cliArgs.maxApis : 
                  (process.env.MAX_APIS ? parseInt(process.env.MAX_APIS, 10) : defaults.maxApis),
         timeout: cliArgs.timeout !== undefined ? cliArgs.timeout : 
-                 (process.env.TIMEOUT_MS ? parseInt(process.env.TIMEOUT_MS, 10) : defaults.timeout),
-        noDb: cliArgs.noDb !== undefined ? cliArgs.noDb :
-              (process.env.NO_DB === 'true' ? true : defaults.noDb)
+                 (process.env.TIMEOUT_MS ? parseInt(process.env.TIMEOUT_MS, 10) : defaults.timeout)
     };
     
     // Validate mode
@@ -48,12 +45,13 @@ function getConfig() {
     
     // NOTE: Removed automatic Infinity override for 'catalogs' mode
     // Users can now control limits via CLI args even when mode is 'catalogs'
+    // Set maxCatalogs or maxApis to 0 for unlimited crawling (for debugging purposes)
     
-    // Validate numeric values (allow Infinity for unlimited mode)
-    if ((config.maxCatalogs !== Infinity && config.maxCatalogs < 0) || 
-        (config.maxApis !== Infinity && config.maxApis < 0) || 
+    // Validate numeric values (0 means unlimited)
+    if ((config.maxCatalogs < 0) || 
+        (config.maxApis < 0) || 
         (config.timeout !== Infinity && config.timeout < 0)) {
-        console.error('Numeric configuration values must be non-negative');
+        console.error('Numeric configuration values must be non-negative (use 0 for unlimited)');
         process.exit(1);
     }
     
