@@ -23,8 +23,6 @@ export function parseCliArgs() {
             config.maxApis = parseInt(args[++i], 10);
         } else if (arg === '--timeout' || arg === '-t') {
             config.timeout = parseInt(args[++i], 10);
-        } else if (arg === '--no-db') {
-            config.noDb = true;
         } else if (arg === '--help' || arg === '-h') {
             printHelp();
             process.exit(0);
@@ -42,21 +40,23 @@ export function printHelp() {
 STAC Crawler Configuration Options:
 
   -m, --mode <mode>              Crawl mode: 'catalogs', 'apis', or 'both' (default: 'both')
-  -c, --max-catalogs <number>    Maximum number of catalogs to crawl (default: 10)
-  -a, --max-apis <number>        Maximum number of APIs to crawl (default: 5)
+  -c, --max-catalogs <number>    Maximum number of catalogs to crawl (default: 10, use 0 for unlimited)
+                                 Note: Limits are for debugging purposes only
+  -a, --max-apis <number>        Maximum number of APIs to crawl (default: 5, use 0 for unlimited)
+                                 Note: Limits are for debugging purposes only
   -t, --timeout <milliseconds>   Timeout for each crawl operation in ms (default: 30000)
-      --no-db                    Skip database operations (terminal output only)
   -h, --help                     Show this help message
 
 Environment Variables:
   CRAWL_MODE          Same as --mode
-  MAX_CATALOGS        Same as --max-catalogs
-  MAX_APIS            Same as --max-apis
+  MAX_CATALOGS        Same as --max-catalogs (use 0 for unlimited)
+  MAX_APIS            Same as --max-apis (use 0 for unlimited)
   TIMEOUT_MS          Same as --timeout
 
 Examples:
   node index.js --mode catalogs --max-catalogs 20
   node index.js -m apis -a 10 -t 60000
+  node index.js -m both -c 0 -a 0              # Unlimited mode (no debugging limits)
   CRAWL_MODE=both MAX_CATALOGS=50 node index.js
     `);
 }
