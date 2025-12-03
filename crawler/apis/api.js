@@ -1,11 +1,12 @@
 /**
- * @fileoverview API crawling functionality for STAC Index
+ * @fileoverview API crawling functionality for STAC Index using Crawlee
  * @module apis/api
  */
 
-import axios from 'axios';
+import { HttpCrawler } from 'crawlee';
 import create from 'stac-js';
-import { withTimeout } from '../utils/config.js';
+import { normalizeCollection } from '../utils/normalization.js';
+import { handleCollections } from '../utils/handlers.js';
 
 /**
  * Crawls STAC APIs to retrieve collection information without fetching items.
@@ -13,162 +14,295 @@ import { withTimeout } from '../utils/config.js';
  * @param {string[]} urls - Array of API URLs to crawl
  * @param {boolean} isApi - Boolean flag indicating if the URLs are APIs
  * @param {Object} config - Configuration object with timeout settings
- * @returns {Promise<Object[]>} Array of STAC Collection objects ordered by URL
+ * @returns {Promise<Object>} Results object with collections array and statistics
  */
 async function crawlApis(urls, isApi, config = {}) {
     if (!isApi || !Array.isArray(urls) || urls.length === 0) {
-        return [];
+        return {
+            collections: [],
+            stats: {
+                totalRequests: 0,
+                successfulRequests: 0,
+                failedRequests: 0,
+                collectionsFound: 0,
+                apisProcessed: 0,
+                stacCompliant: 0,
+                nonCompliant: 0
+            }
+        };
     }
 
-    const allCollections = new Map(); // Use Map to avoid duplicates by URL
+    const timeoutSecs = config.timeout && config.timeout !== Infinity 
+        ? Math.ceil(config.timeout / 1000) 
+        : 60;
 
-    console.log(`Starting to crawl ${urls.length} APIs...`);
-
-    // Process each URL
-    for (const [index, url] of urls.entries()) {
-        console.log(`Processing API ${index + 1}/${urls.length}: ${url}`);
-        try {
-            await crawlSingleApi(url, allCollections, new Set(), config);
-        } catch (error) {
-            console.error(`Error crawling API ${url}:`, error.message);
+    // Store results
+    const results = {
+        collections: [],
+        apis: [],
+        stats: {
+            totalRequests: 0,
+            successfulRequests: 0,
+            failedRequests: 0,
+            collectionsFound: 0,
+            apisProcessed: 0,
+            stacCompliant: 0,
+            nonCompliant: 0
         }
-    }
+    };
 
-    console.log(`Finished crawling APIs. Total unique collections found: ${allCollections.size}`);
-
-    // Convert Map to array and sort by URL
-    const sortedCollections = Array.from(allCollections.values()).sort((a, b) => {
-        const urlA = getSelfLink(a) || '';
-        const urlB = getSelfLink(b) || '';
-        return urlA.localeCompare(urlB);
+    const crawler = new HttpCrawler({
+        requestHandlerTimeoutSecs: timeoutSecs,
+        
+        async requestHandler({ request, json, crawler, log }) {
+            results.stats.totalRequests++;
+            const indent = '  ';
+            
+            try {
+                // Route based on request label
+                if (request.label === 'API_ROOT') {
+                    await handleApiRoot({ request, json, crawler, log, indent, results });
+                } else if (request.label === 'API_COLLECTIONS') {
+                    await handleCollections({ request, json, crawler, log, indent, results });
+                } else if (request.label === 'API_COLLECTION') {
+                    await handleApiCollection({ request, json, crawler, log, indent, results });
+                }
+                
+                results.stats.successfulRequests++;
+            } catch (error) {
+                log.error(`${indent}Error handling ${request.label} at ${request.url}: ${error.message}`);
+                throw error; // Re-throw to trigger failedRequestHandler
+            }
+        },
+        
+        async failedRequestHandler({ request, error, log }) {
+            results.stats.failedRequests++;
+            const indent = '  ';
+            const apiId = request.userData?.apiId || 'unknown';
+            
+            // Log detailed failure information
+            if (error.message.includes('STAC validation')) {
+                log.info(`${indent}[STAC VALIDATION FAILED] ${apiId} at ${request.url}`);
+                log.info(`${indent}   Reason: ${error.message}`);
+                results.stats.nonCompliant++;
+            } else if (error.message.includes('timeout')) {
+                log.warning(`${indent}[TIMEOUT] ${apiId} at ${request.url}`);
+            } else if (error.message.includes('ENOTFOUND') || error.message.includes('ECONNREFUSED')) {
+                log.warning(`${indent}[CONNECTION FAILED] ${apiId} at ${request.url}`);
+            } else if (error.code === 'ERR_NON_2XX_3XX_RESPONSE') {
+                log.warning(`${indent}[HTTP ERROR] ${apiId} at ${request.url} - Status: ${error.statusCode}`);
+            } else {
+                log.warning(`${indent}[FAILED] ${apiId} at ${request.url}`);
+                log.warning(`${indent}   Error: ${error.message}`);
+            }
+        }
     });
 
-    return sortedCollections;
+    // Seed the crawler with initial API requests
+    const initialRequests = urls.map((url, index) => ({
+        url: url,
+        label: 'API_ROOT',
+        userData: {
+            apiId: `api-${index}`,
+            apiUrl: url
+        }
+    }));
+
+    await crawler.addRequests(initialRequests);
+    
+    console.log(`\nStarting Crawlee crawler with ${initialRequests.length} APIs...\n`);
+    await crawler.run();
+    
+    console.log('\nAPI Crawl Statistics:');
+    console.log(`   Total Requests: ${results.stats.totalRequests}`);
+    console.log(`   Successful: ${results.stats.successfulRequests}`);
+    console.log(`   Failed: ${results.stats.failedRequests}`);
+    console.log(`   STAC Compliant: ${results.stats.stacCompliant}`);
+    console.log(`   Non-Compliant: ${results.stats.nonCompliant}`);
+    console.log(`   APIs Processed: ${results.stats.apisProcessed}`);
+    console.log(`   Collections Found: ${results.stats.collectionsFound}\n`);
+
+    return results;
 }
 
+
 /**
- * Helper function to crawl a single API recursively for collections/catalogs
- * 
- * @param {string} url - URL to crawl
- * @param {Map} collectionMap - Map to store found collections
- * @param {Set<string>} visited - Set of visited URLs to prevent loops
- * @param {Object} config - Configuration object with timeout settings
+ * Handles API root endpoint - validates STAC, discovers collections endpoints
+ * @async
+ * @param {Object} context - Request handler context
+ * @param {Object} context.request - Crawlee request object
+ * @param {Object} context.json - Parsed JSON response
+ * @param {Object} context.crawler - Crawlee crawler instance
+ * @param {Object} context.log - Logger instance
+ * @param {string} context.indent - Indentation for logging
+ * @param {Object} context.results - Results object to store data
  */
-async function crawlSingleApi(url, collectionMap, visited = new Set(), config = {}) {
-    if (!url || visited.has(url)) return;
-    visited.add(url);
-
-    const timeoutMs = config.timeout || 30000;
-    const axiosTimeout = timeoutMs === Infinity ? 0 : Math.min(10000, timeoutMs);
-
+async function handleApiRoot({ request, json, crawler, log, indent, results }) {
+    const apiId = request.userData?.apiId || 'unknown';
+    const apiUrl = request.userData?.apiUrl || request.url;
+    
+    log.info(`${indent}Processing API: ${apiId} at ${apiUrl}`);
+    
+    // Validate with stac-js
+    let stacObj;
     try {
-        console.log(`  Fetching: ${url}`);
-        const response = await withTimeout(
-            axios.get(url, { timeout: axiosTimeout }),
-            timeoutMs,
-            `Crawling API ${url}`
-        );
-        const stacObj = create(response.data);
-
-        // If it's a Collection, add it
-        if (stacObj.isCollection()) {
-            const selfUrl = stacObj.getAbsoluteUrl() || url;
-            console.log(`  Found collection: ${stacObj.id} (${selfUrl})`);
-            collectionMap.set(selfUrl, stacObj.toJSON());
-        }
-
-        // If it has collections (API or Catalog), fetch them
-        // stac-js APICollection or Catalog might have getApiCollectionsLink or similar
-        // Or we manually check links.
+        stacObj = create(json, request.url);
+        results.stats.stacCompliant++;
         
-        // Check for /collections endpoint if it's a root catalog/API
-        if (stacObj.isCatalogLike()) {
-            // Try to get collections link
-            const collectionsLink = stacObj.getApiCollectionsLink();
-            if (collectionsLink) {
-                console.log(`  Found /collections endpoint link in ${url}`);
-                await fetchCollectionsFromLink(collectionsLink, collectionMap, visited, config);
-            } else {
-                // Fallback: check standard STAC API structure if not explicitly found
-                // Many STAC APIs have a /collections endpoint relative to root
-                // But stac-js might handle this via getApiCollectionsLink if rel="data" exists
-                
-                // Also check child links for nested catalogs
-                const childLinks = stacObj.getChildLinks();
-                if (childLinks.length > 0) {
-                     console.log(`  Found ${childLinks.length} child links in ${url}, recursing...`);
-                     for (const link of childLinks) {
-                        const childUrl = link.getAbsoluteUrl();
-                        if (childUrl) {
-                            await crawlSingleApi(childUrl, collectionMap, visited, config);
-                        }
+        if (typeof stacObj.isCatalog === 'function' && stacObj.isCatalog()) {
+            log.info(`${indent}STAC Catalog/API validated: ${apiId}`);
+        } else if (typeof stacObj.isCollection === 'function' && stacObj.isCollection()) {
+            log.info(`${indent}STAC Collection validated: ${apiId}`);
+        }
+    } catch (parseError) {
+        log.warning(`${indent}Non-compliant STAC API ${apiId} at ${request.url}`);
+        log.warning(`${indent}Error details: ${parseError.message}`);
+        throw new Error(`STAC validation failed: ${parseError.message}`);
+    }
+    
+    results.stats.apisProcessed++;
+    results.apis.push({
+        id: apiId,
+        url: request.url,
+        stacType: stacObj.isCollection() ? 'collection' : 'catalog'
+    });
+    
+    // If this is a STAC Collection directly, extract and store it
+    if (typeof stacObj.isCollection === 'function' && stacObj.isCollection()) {
+        const collection = normalizeCollection(stacObj, results.collections.length);
+        results.collections.push(collection);
+        results.stats.collectionsFound++;
+        log.info(`${indent}Extracted collection: ${collection.id} - ${collection.title}`);
+        return; // Single collection, no need to look for more
+    }
+    
+    // Try to find collections endpoint using stac-js
+    let collectionsEndpoint = null;
+    
+    if (typeof stacObj.getApiCollectionsLink === 'function') {
+        const collectionsLink = stacObj.getApiCollectionsLink();
+        if (collectionsLink) {
+            const linkUrl = typeof collectionsLink.getAbsoluteUrl === 'function'
+                ? collectionsLink.getAbsoluteUrl()
+                : collectionsLink.href;
+            if (linkUrl) {
+                collectionsEndpoint = linkUrl;
+                log.info(`${indent}Found collections link via stac-js: ${collectionsEndpoint}`);
+            }
+        }
+    }
+    
+    // Fallback: try common STAC API endpoints
+    if (!collectionsEndpoint) {
+        const baseUrl = request.url.endsWith('/') ? request.url.slice(0, -1) : request.url;
+        const endpoints = [
+            `${baseUrl}/collections`,
+            `${apiUrl.endsWith('/') ? apiUrl.slice(0, -1) : apiUrl}/collections`
+        ];
+        
+        for (const endpoint of endpoints) {
+            if (endpoint && endpoint !== collectionsEndpoint) {
+                log.info(`${indent}Trying collections endpoint: ${endpoint}`);
+                await crawler.addRequests([{
+                    url: endpoint,
+                    label: 'API_COLLECTIONS',
+                    userData: {
+                        apiId: apiId,
+                        apiUrl: apiUrl
                     }
-                }
+                }]);
             }
         }
-
-    } catch (error) {
-        console.warn(`Failed to process ${url}:`, error.message);
+    } else {
+        // Use the discovered collections endpoint
+        await crawler.addRequests([{
+            url: collectionsEndpoint,
+            label: 'API_COLLECTIONS',
+            userData: {
+                apiId: apiId,
+                apiUrl: apiUrl
+            }
+        }]);
+    }
+    
+    // Also check for child links (nested catalogs)
+    if (typeof stacObj.getChildLinks === 'function') {
+        const childLinks = stacObj.getChildLinks();
+        
+        if (childLinks.length > 0) {
+            log.info(`${indent}Found ${childLinks.length} child catalog links`);
+            
+            const childRequests = childLinks
+                .map((link, idx) => {
+                    let childUrl;
+                    try {
+                        childUrl = typeof link.getAbsoluteUrl === 'function'
+                            ? link.getAbsoluteUrl()
+                            : link.href;
+                    } catch (err) {
+                        log.warning(`${indent}Error getting URL for link ${idx}: ${err.message}`);
+                        return null;
+                    }
+                    
+                    // Validate URL
+                    if (!childUrl || typeof childUrl !== 'string' || !childUrl.startsWith('http')) {
+                        return null;
+                    }
+                    
+                    // Check if this is a collection link or child catalog
+                    const rel = link.rel || '';
+                    const label = rel === 'child' || rel === 'item' ? 'API_ROOT' : 'API_COLLECTION';
+                    
+                    return {
+                        url: childUrl,
+                        label: label,
+                        userData: {
+                            apiId: `${apiId}-child-${idx}`,
+                            apiUrl: apiUrl,
+                            parentId: apiId
+                        }
+                    };
+                })
+                .filter(Boolean);
+            
+            if (childRequests.length > 0) {
+                await crawler.addRequests(childRequests);
+                log.info(`${indent}Enqueued ${childRequests.length} child catalogs/collections`);
+            }
+        }
     }
 }
 
 /**
- * Fetches collections from a collections endpoint (e.g., /collections)
- * 
- * @param {Object} link - stac-js Link object
- * @param {Map} collectionMap - Map to store collections
- * @param {Set<string>} visited - Visited set
- * @param {Object} config - Configuration object with timeout settings
+ * Handles individual API collection endpoint
+ * @async
+ * @param {Object} context - Request handler context
+ * @param {Object} context.request - Crawlee request object
+ * @param {Object} context.json - Parsed JSON response
+ * @param {Object} context.crawler - Crawlee crawler instance
+ * @param {Object} context.log - Logger instance
+ * @param {string} context.indent - Indentation for logging
+ * @param {Object} context.results - Results object to store data
  */
-async function fetchCollectionsFromLink(link, collectionMap, visited, config = {}) {
-    const url = link.getAbsoluteUrl();
-    if (!url || visited.has(url)) return;
-    visited.add(url);
-
-    const timeoutMs = config.timeout || 30000;
-    const axiosTimeout = timeoutMs === Infinity ? 0 : Math.min(10000, timeoutMs);
-
+async function handleApiCollection({ request, json, crawler, log, indent, results }) {
+    const apiId = request.userData?.apiId || 'unknown';
+    
+    // Validate with stac-js
+    let stacObj;
     try {
-        console.log(`  Fetching collections from: ${url}`);
-        const response = await withTimeout(
-            axios.get(url, { timeout: axiosTimeout }),
-            timeoutMs,
-            `Fetching collections from ${url}`
-        );
-        // create() handles CollectionCollection (API Collections response)
-        const stacObj = create(response.data);
+        stacObj = create(json, request.url);
         
-        let collections = [];
-        
-        if (stacObj && typeof stacObj.getAll === 'function') {
-            // Use stac-js to get all collections from the response
-            collections = stacObj.getAll();
-        } else if (response.data.collections && Array.isArray(response.data.collections)) {
-            // Fallback for manual parsing if stac-js didn't detect CollectionCollection
-            collections = response.data.collections.map(c => create(c));
-        } else if (Array.isArray(response.data)) {
-            collections = response.data.map(c => create(c));
+        if (typeof stacObj.isCollection === 'function' && stacObj.isCollection()) {
+            const collection = normalizeCollection(stacObj, results.collections.length);
+            results.collections.push(collection);
+            results.stats.collectionsFound++;
+            log.info(`${indent}Extracted collection: ${collection.id} - ${collection.title}`);
+        } else {
+            log.warning(`${indent}Expected collection but got: ${json.type || 'unknown type'}`);
         }
-        
-        console.log(`  Retrieved ${collections.length} collections from ${url}`);
-
-        for (const colStac of collections) {
-            if (colStac && typeof colStac.isCollection === 'function' && colStac.isCollection()) {
-                const selfUrl = colStac.getAbsoluteUrl() || url; 
-                collectionMap.set(selfUrl, colStac.toJSON());
-            }
-        }
-    } catch (error) {
-        console.warn(`Failed to fetch collections from ${url}:`, error.message);
+    } catch (parseError) {
+        log.warning(`${indent}Skipping non-compliant STAC collection at ${request.url}`);
     }
-}
-
-/**
- * Helper to get self link from a plain JSON object (since we store toJSON results)
- */
-function getSelfLink(stacJson) {
-    const selfLink = stacJson.links?.find(l => l.rel === 'self');
-    return selfLink ? selfLink.href : null;
 }
 
 export {

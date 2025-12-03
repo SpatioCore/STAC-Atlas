@@ -27,24 +27,17 @@ const crawler = async () => {
         // Load configuration
         const config = getConfig();
         
-        // Initialize database connection (unless --no-db flag is set)
-        if (!config.noDb) {
-            await db.initDb();
-        }
+        // Initialize database connection
+        await db.initDb();
         
         // Display configuration
         console.log('\n=== STAC Crawler Configuration ===');
         console.log(`Mode: ${config.mode}`);
-        console.log(`Max Catalogs: ${config.maxCatalogs === Infinity ? 'unlimited' : config.maxCatalogs}`);
-        console.log(`Max APIs: ${config.maxApis === Infinity ? 'unlimited' : config.maxApis}`);
+        console.log(`Max Catalogs: ${config.maxCatalogs === 0 ? 'unlimited' : config.maxCatalogs} (debugging limit)`);
+        console.log(`Max APIs: ${config.maxApis === 0 ? 'unlimited' : config.maxApis} (debugging limit)`);
         console.log(`Timeout: ${config.timeout === Infinity ? 'unlimited' : config.timeout + 'ms'}`);
         console.log(`Crawl Depth: unlimited`);
-        console.log(`Database: ${config.noDb ? 'disabled (terminal output only)' : 'enabled'}`);
         console.log('==================================\n');
-        
-        // Initialize database connection
-        console.log('Initializing database connection...');
-        await db.initDb();
         
         const response = await axios.get(targetUrl);
         const catalogs = processCatalogs(response.data);
@@ -57,10 +50,10 @@ const crawler = async () => {
         for (const catalog of response.data) {
             try {
                 const catalogId = await db.insertOrUpdateCatalog(catalog);
-                console.log(`✓ Saved catalog: ${catalog.title || catalog.id} (DB ID: ${catalogId})`);
+                console.log(`Saved catalog: ${catalog.title || catalog.id} (DB ID: ${catalogId})`);
                 catalogsSaved++;
             } catch (err) {
-                console.error(`✗ Failed catalog: ${catalog.title || catalog.id} - ${err.message}`);
+                console.error(`Failed catalog: ${catalog.title || catalog.id} - ${err.message}`);
                 catalogsFailed++;
             }
         }
@@ -71,34 +64,17 @@ const crawler = async () => {
         if (config.mode === 'catalogs' || config.mode === 'both') {
             console.log('\nCrawling collections and nested catalogs with Crawlee...\n');
             
-            const catalogsToProcess = config.maxCatalogs === Infinity 
+            // Note: MAX_CATALOGS limit is for debugging purposes only
+            // Set maxCatalogs to 0 or use --max-catalogs 0 for unlimited catalog crawling
+            const catalogsToProcess = config.maxCatalogs === 0 
                 ? catalogs 
                 : catalogs.slice(0, config.maxCatalogs);
             
-            console.log(`Processing ${catalogsToProcess.length} catalogs (max: ${config.maxCatalogs === Infinity ? 'unlimited' : config.maxCatalogs})\n`);
+            console.log(`Processing ${catalogsToProcess.length} catalogs (max: ${config.maxCatalogs === 0 ? 'unlimited' : config.maxCatalogs})\n`);
             
             try {
                 const results = await crawlCatalogs(catalogsToProcess, config);
                 console.log(`\nTotal collections found across all catalogs: ${results.stats.collectionsFound}`);
-                
-                try {
-                    const stats = await crawlCatalogRecursive(catalog, 0, config);
-                    totalCollections += stats.collections;
-                    
-                    // Save collections to database if returned
-                    if (stats.collectionsData && Array.isArray(stats.collectionsData)) {
-                        for (const collection of stats.collectionsData) {
-                            try {
-                                const collectionId = await db.insertOrUpdateCollection(collection);
-                                console.log(`  ✓ Saved collection: ${collection.title || collection.id} (DB ID: ${collectionId})`);
-                            } catch (err) {
-                                console.error(`  ✗ Failed collection: ${collection.title || collection.id} - ${err.message}`);
-                            }
-                        }
-                    }
-                } catch (error) {
-                    console.error(`Failed to crawl catalog ${catalog.id}: ${error.message}`);
-                }
             } catch (error) {
                 console.error(`Failed to crawl catalogs: ${error.message}`);
             }
@@ -114,18 +90,20 @@ const crawler = async () => {
                 .map(cat => cat.url);
                 
             if (apiUrls.length > 0) {
-                const apisToProcess = config.maxApis === Infinity ? apiUrls : apiUrls.slice(0, config.maxApis);
-                console.log(`Found ${apiUrls.length} APIs. Processing ${apisToProcess.length} (max: ${config.maxApis === Infinity ? 'unlimited' : config.maxApis})...`);
+                // Note: MAX_APIS limit is for debugging purposes only
+                // Set maxApis to 0 or use --max-apis 0 for unlimited API crawling
+                const apisToProcess = config.maxApis === 0 ? apiUrls : apiUrls.slice(0, config.maxApis);
+                console.log(`Found ${apiUrls.length} APIs. Processing ${apisToProcess.length} (max: ${config.maxApis === 0 ? 'unlimited' : config.maxApis})...`);
                 
                 try {
-                    const collections = await crawlApis(apisToProcess, true, config);
-                    console.log(`\nFetched ${collections.length} collections from APIs (sorted by URL).`);
+                    const apiResults = await crawlApis(apisToProcess, true, config);
+                    const collections = apiResults.collections || [];
+                    console.log(`\nFetched ${collections.length} collections from APIs.`);
                     
                     if (collections.length > 0) {
                         console.log('First 3 collections found:');
                         collections.slice(0, 3).forEach(c => {
-                            const selfLink = c.links?.find(l => l.rel === 'self')?.href;
-                            console.log(` - ${c.id}: ${selfLink}`);
+                            console.log(` - ${c.id}: ${c.title}`);
                         });
                         
                         // Save API collections to database
@@ -136,10 +114,10 @@ const crawler = async () => {
                         for (const collection of collections) {
                             try {
                                 const collectionId = await db.insertOrUpdateCollection(collection);
-                                console.log(`  ✓ Saved: ${collection.title || collection.id} (DB ID: ${collectionId})`);
+                                console.log(`  Saved: ${collection.title || collection.id} (DB ID: ${collectionId})`);
                                 apiCollectionsSaved++;
                             } catch (err) {
-                                console.error(`  ✗ Failed: ${collection.title || collection.id} - ${err.message}`);
+                                console.error(`  Failed: ${collection.title || collection.id} - ${err.message}`);
                                 apiCollectionsFailed++;
                             }
                         }
