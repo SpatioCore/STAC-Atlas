@@ -4,63 +4,10 @@
  */
 
 import dotenv from 'dotenv';
+import { parseCliArgs } from './cli.js';
 
 // Load environment variables from .env file
 dotenv.config();
-
-/**
- * Parse command line arguments
- * @returns {Object} Parsed CLI arguments
- */
-function parseCliArgs() {
-    const args = process.argv.slice(2);
-    const config = {};
-    
-    for (let i = 0; i < args.length; i++) {
-        const arg = args[i];
-        
-        if (arg === '--mode' || arg === '-m') {
-            config.mode = args[++i];
-        } else if (arg === '--max-catalogs' || arg === '-c') {
-            config.maxCatalogs = parseInt(args[++i], 10);
-        } else if (arg === '--max-apis' || arg === '-a') {
-            config.maxApis = parseInt(args[++i], 10);
-        } else if (arg === '--timeout' || arg === '-t') {
-            config.timeout = parseInt(args[++i], 10);
-        } else if (arg === '--help' || arg === '-h') {
-            printHelp();
-            process.exit(0);
-        }
-    }
-    
-    return config;
-}
-
-/**
- * Print help message
- */
-function printHelp() {
-    console.log(`
-STAC Crawler Configuration Options:
-
-  -m, --mode <mode>              Crawl mode: 'catalogs', 'apis', or 'both' (default: 'both')
-  -c, --max-catalogs <number>    Maximum number of catalogs to crawl (default: 10)
-  -a, --max-apis <number>        Maximum number of APIs to crawl (default: 5)
-  -t, --timeout <milliseconds>   Timeout for each crawl operation in ms (default: 30000)
-  -h, --help                     Show this help message
-
-Environment Variables:
-  CRAWL_MODE          Same as --mode
-  MAX_CATALOGS        Same as --max-catalogs
-  MAX_APIS            Same as --max-apis
-  TIMEOUT_MS          Same as --timeout
-
-Examples:
-  node index.js --mode catalogs --max-catalogs 20
-  node index.js -m apis -a 10 -t 60000
-  CRAWL_MODE=both MAX_CATALOGS=50 node index.js
-    `);
-}
 
 /**
  * Get configuration from environment variables, CLI args, and defaults
@@ -75,7 +22,8 @@ function getConfig() {
         mode: 'both',           // 'catalogs', 'apis', or 'both'
         maxCatalogs: 10,        // Maximum number of catalogs to crawl
         maxApis: 5,             // Maximum number of APIs to crawl
-        timeout: 30000          // Timeout in milliseconds (30 seconds)
+        timeout: 30000,         // Timeout in milliseconds (30 seconds)
+        noDb: false             // Skip database operations
     };
     
     // Build configuration with precedence: CLI > ENV > Defaults
@@ -86,7 +34,9 @@ function getConfig() {
         maxApis: cliArgs.maxApis !== undefined ? cliArgs.maxApis : 
                  (process.env.MAX_APIS ? parseInt(process.env.MAX_APIS, 10) : defaults.maxApis),
         timeout: cliArgs.timeout !== undefined ? cliArgs.timeout : 
-                 (process.env.TIMEOUT_MS ? parseInt(process.env.TIMEOUT_MS, 10) : defaults.timeout)
+                 (process.env.TIMEOUT_MS ? parseInt(process.env.TIMEOUT_MS, 10) : defaults.timeout),
+        noDb: cliArgs.noDb !== undefined ? cliArgs.noDb :
+              (process.env.NO_DB === 'true' ? true : defaults.noDb)
     };
     
     // Validate mode
@@ -144,8 +94,6 @@ async function withTimeout(promise, ms, operation = 'Operation') {
 
 export {
     getConfig,
-    parseCliArgs,
-    printHelp,
     withTimeout,
     createTimeout
 };

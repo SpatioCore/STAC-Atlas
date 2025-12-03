@@ -37,7 +37,9 @@ export async function handleCatalog({ request, json, crawler, log, indent, resul
             log.info(`${indent}STAC Collection validated: ${catalogId}`);
         }
     } catch (parseError) {
-        log.warning(`${indent}Non-compliant STAC catalog ${catalogId}: ${parseError.message}`);
+        log.warning(`${indent}Non-compliant STAC catalog ${catalogId} at ${request.url}`);
+        log.warning(`${indent}Error details: ${parseError.message}`);
+        log.debug(`${indent}Response preview: ${JSON.stringify(json).substring(0, 200)}...`);
         throw new Error(`STAC validation failed: ${parseError.message}`);
     }
     

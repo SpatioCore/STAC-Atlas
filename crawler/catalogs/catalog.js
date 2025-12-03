@@ -60,13 +60,22 @@ async function crawlCatalogs(initialCatalogs, config = {}) {
             results.stats.failedRequests++;
             const depth = request.userData?.depth || 0;
             const indent = '  '.repeat(depth);
+            const catalogId = request.userData?.catalogId || 'unknown';
             
-            // Log non-compliant STAC or failed requests
-            if (error.message.includes('STAC') || error.message.includes('validation')) {
-                log.info(`${indent}Skipping non-compliant STAC: ${request.url}`);
+            // Log detailed failure information
+            if (error.message.includes('STAC validation')) {
+                log.info(`${indent}[STAC VALIDATION FAILED] ${catalogId} at ${request.url}`);
+                log.info(`${indent}   Reason: ${error.message}`);
                 results.stats.nonCompliant++;
+            } else if (error.message.includes('timeout')) {
+                log.warning(`${indent}[TIMEOUT] ${catalogId} at ${request.url}`);
+            } else if (error.message.includes('ENOTFOUND') || error.message.includes('ECONNREFUSED')) {
+                log.warning(`${indent}[CONNECTION FAILED] ${catalogId} at ${request.url}`);
+            } else if (error.code === 'ERR_NON_2XX_3XX_RESPONSE') {
+                log.warning(`${indent}[HTTP ERROR] ${catalogId} at ${request.url} - Status: ${error.statusCode}`);
             } else {
-                log.warning(`${indent}Failed request: ${request.url} - ${error.message}`);
+                log.warning(`${indent}[FAILED] ${catalogId} at ${request.url}`);
+                log.warning(`${indent}   Error: ${error.message}`);
             }
         }
     });
