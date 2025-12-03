@@ -26,11 +26,11 @@ function buildCollectionSearchQuery(params) {
       title,
       description,
       license,
-      spatial_extent,
-      temporal_extent_start,
-      temporal_extent_end,
-      created,
-      updated
+      spatial_extend,
+      temporal_extend_start,
+      temporal_extend_end,
+      created_at,
+      updated_at
   `;
 
   // Note: For production performance, consider adding a persistent `tsvector` column
@@ -60,15 +60,15 @@ function buildCollectionSearchQuery(params) {
     const queryIndex = i; // remember index to reuse for rank and condition
 
     // Weighted combined tsvector expression
-    const vectorExpr = `(\n      setweight(to_tsvector('english', coalesce(title, '')), 'A') ||\n      setweight(to_tsvector('english', coalesce(description, '')), 'B')\n    )`;
+    const vectorExpr = `to_tsvector('simple', coalesce(title,'') || ' ' || coalesce(description,''))`;
 
     // Add rank to selected columns (ts_rank_cd => constant-duration ranking function)
     // The computed `rank` is available in the result rows and used for ordering
     // when no explicit `sortby` is provided.
-    selectPart += `, ts_rank_cd(${vectorExpr}, plainto_tsquery('english', $${queryIndex})) AS rank`;
+    selectPart += `, ts_rank_cd(${vectorExpr}, plainto_tsquery('simple', $${queryIndex})) AS rank`;
 
     // WHERE clause uses plainto_tsquery for user-entered search text
-    where.push(`${vectorExpr} @@ plainto_tsquery('english', $${queryIndex})`);
+    where.push(`${vectorExpr} @@ plainto_tsquery('simple', $${queryIndex})`);
 
     values.push(q);
     i++;
@@ -81,7 +81,7 @@ function buildCollectionSearchQuery(params) {
     // TODO: ask if spatial_extend or spatial_extent?
     where.push(`
       ST_Intersects(
-        spatial_extent, 
+        spatial_extend, 
         ST_MakeEnvelope($${i}, $${i+1}, $${i+2}, $${i+3}, 4326)
       )
     `);
@@ -99,22 +99,22 @@ function buildCollectionSearchQuery(params) {
 
       if (start !== '..') {
         // Collection should run after start
-        where.push(`temporal_extent_end >= $${i}`);
+        where.push(`temporal_extend_end >= $${i}`);
         values.push(start);
         i++;
       }
 
       if (end !== '..') {
         // Collection should run before end
-        where.push(`temporal_extent_start <= $${i}`);
+        where.push(`temporal_extend_start <= $${i}`);
         values.push(end);
         i++;
       }
     } else {
       // single datetime: collections active at that time
       where.push(`
-        temporal_extent_start <= $${i}
-        AND temporal_extent_end >= $${i}
+        temporal_extend_start <= $${i}
+        AND temporal_extend_end >= $${i}
       `);
       values.push(datetime);
       i++;
