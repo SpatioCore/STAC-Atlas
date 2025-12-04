@@ -1,7 +1,67 @@
-// api/db/buildCollectionSearchQuery.js
 
-/**
- * Build SQL + params dynamically for /collections search
+/* function buildCollectionSearchQuery
+ * Dynamically constructs a parameterized SQL query for the /collections endpoint.
+ *
+ * This function converts validated API search parameters into a safe, optimized,
+ * database-ready SQL statement. It supports multiple filter types (full-text, spatial,
+ * temporal), dynamic SELECT column injection (rank), sorting and pagination.
+ *
+ * @param {Object} params
+ * @param {string|undefined} params.q
+ *        Full-text search query. If present, a weighted tsvector expression is added:
+ *
+ *        - title and description are combined into a tsvector
+ *        - plainto_tsquery() is used for parsing user input
+ *        - ts_rank_cd() is added to SELECT as "rank"
+ *        - WHERE clause uses the same tsvector expression 
+ *
+ * Note: Keywords are not yet part of the full-text vector. They will be added 
+ * in a follow-up step once the database exposes a canonical keyword aggregation
+ *
+ * @param {Array<number>|undefined} params.bbox
+ *        Bounding box in [minX, minY, maxX, maxY]
+ *        Generates a PostGIS ST_Intersects() filter using ST_MakeEnvelope()
+ *
+ * @param {string|undefined} params.datetime
+ *        ISO8601 datetime or interval (e.g. "2020-01-01", "2020-01-01/2021-01-01",
+ *        "../2020-12-31"). Produces:
+ *          - temporal_extend_end >= <start>
+ *          - temporal_extend_start <= <end>
+ *        Ensures collections overlap the requested time window
+ *
+ * @param {Object|undefined} params.sortby
+ *        Pre-normalized object { field, direction }, optional
+ *        If absent and q is present → ORDER BY rank DESC, id ASC
+ *        If absent and no q → ORDER BY id ASC
+ *
+ * @param {number} params.limit
+ *        Pagination limit. Used as SQL LIMIT
+ *
+ * @param {number} params.token
+ *        Pagination offset. Used as SQL OFFSET
+ *
+ *
+ * SQL construction logic:
+ * 1. The SELECT clause is built first (selectPart).
+ *    - If q is present, the "rank" column is appended to SELECT at this stage
+ *
+ * 2. Conditions are accumulated in a `where[]` array and later joined with AND
+ *    - Parameter placeholders ($1, $2, ...) are assigned in order
+ *    - All values are stored in `values[]` in matching order
+ *
+ * 3. Only after SELECT is complete, the FROM clause is appended
+ *
+ * 4. WHERE clause is added if any conditions exist
+ *
+ * 5. Sorting is appended based on rules described above
+ *
+ * 6. Pagination uses LIMIT $n and OFFSET $n+1 (last two parameters)
+ * 
+ * @returns {Object}
+ *   {
+ *     sql: <string>,      // fully constructed SQL query
+ *     values: <Array>     // parameter list matching placeholder order
+ *   }
  */
 function buildCollectionSearchQuery(params) {
   const {
@@ -33,10 +93,9 @@ function buildCollectionSearchQuery(params) {
       updated_at
   `;
 
-  // Note: For production performance, consider adding a persistent `tsvector` column
-  // (for example `search_vector`) and a GIN index on it. The expressions below
-  // compute the tsvector on-the-fly which is fine for functionality and testing.
-
+  // Note: currently we are using on-the-fly tsvector expressions (matching to the 05_indexes.sql)
+  // a persistant tsvector collumn could be added later for large-scale indexing (watch Database Issues)
+  
   const where = [];
   const values = [];
   let i = 1;
@@ -44,8 +103,9 @@ function buildCollectionSearchQuery(params) {
   // Full-text search using weighted tsvector across title (weight A) and description (weight B).
   //
   // Notes:
-  // - We weight `title` higher ('A') than `description` ('B') so matches in titles
-  //   influence relevance more strongly.
+  // - Currently only title and description are included in the weighted tsvector.
+  //   Collection keywords must also participate in full-text search.
+  //   This will be added once the database team finalizes how keywords should be aggregated (JOIN + string_agg or dedicated tsvector).
   // - We use `plainto_tsquery` to convert user-entered text into a tsquery. This keeps
   //   behaviour simple and predictable for short queries entered by users.
   // - `ts_rank_cd` computes a relevance score; we add it to the SELECT list as `rank`
