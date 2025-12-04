@@ -14,9 +14,9 @@ CREATE TABLE collection (
     created_at TIMESTAMP DEFAULT now(),
     updated_at TIMESTAMP DEFAULT now(),
 
-    spatial_extend GEOMETRY(POLYGON, 4326),
-    temporal_extend_start TIMESTAMP,
-    temporal_extend_end TIMESTAMP,
+    spatial_extent GEOMETRY(POLYGON, 4326),
+    temporal_extent_start TIMESTAMP,
+    temporal_extent_end TIMESTAMP,
 
     is_api BOOLEAN DEFAULT FALSE,
     is_active BOOLEAN DEFAULT TRUE,
