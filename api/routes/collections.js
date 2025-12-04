@@ -5,7 +5,7 @@ const { validateCollectionSearchParams } = require('../middleware/validateCollec
 const { query } = require('../db/db_APIconnection');
 const { buildCollectionSearchQuery } = require('../db/buildCollectionSearchQuery');
 
-// helpers to run the built query (from documentation)
+// helper to run the built query (from documentation)
 async function runQuery(sql, params = []) {
   try {
     const result = await query(sql, params);
