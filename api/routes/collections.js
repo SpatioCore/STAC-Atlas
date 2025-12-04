@@ -34,7 +34,6 @@ async function runQuery(sql, params = []) {
 router.get('/', validateCollectionSearchParams, async (req, res, next) => {
   // TODO: Think about the parameters `provider` and `license` - They are mentioned in the bid, but not in the STAC spec
   // TODO: Implement CQL2 filtering (GET endpoint) and add validator for `filter`, filter-lang` parameters
-  // TODO: Apply sorting based on sortby parameter, when querying the database
   // TODO: Apply filters to database query once DB is connected
   try {
     // validated parameters from middleware
