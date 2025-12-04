@@ -6,6 +6,7 @@
 CREATE TABLE collection (
     id SERIAL PRIMARY KEY,
     stac_version TEXT,
+    stac_id INTEGER,
     type TEXT,
     title TEXT,
     description TEXT,
