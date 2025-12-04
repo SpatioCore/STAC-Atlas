@@ -195,6 +195,15 @@ function validateSortby(sortby) {
   
   const allowedFields = ['title', 'id', 'license', 'created', 'updated'];
   
+  // Map API field names to database column names
+  const fieldMapping = {
+    'title': 'title',
+    'id': 'id',
+    'license': 'license',
+    'created': 'created_at',
+    'updated': 'updated_at'
+  };
+  
   if (typeof sortby !== 'string') {
     return { valid: false, error: 'Parameter "sortby" must be a string' };
   }
@@ -218,7 +227,10 @@ function validateSortby(sortby) {
     };
   }
   
-  return { valid: true, normalized: { field, direction } };
+  // Map to actual database column name
+  const dbField = fieldMapping[field];
+  
+  return { valid: true, normalized: { field: dbField, direction } };
 }
 
 /**

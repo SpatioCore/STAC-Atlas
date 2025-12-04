@@ -60,15 +60,15 @@ function buildCollectionSearchQuery(params) {
     const queryIndex = i; // remember index to reuse for rank and condition
 
     // Weighted combined tsvector expression
-    const vectorExpr = `to_tsvector('simple', coalesce(title,'') || ' ' || coalesce(description,''))`;
+    const vectorExpr = `to_tsvector('english', coalesce(title,'') || ' ' || coalesce(description,''))`;
 
     // Add rank to selected columns (ts_rank_cd => constant-duration ranking function)
     // The computed `rank` is available in the result rows and used for ordering
     // when no explicit `sortby` is provided.
-    selectPart += `, ts_rank_cd(${vectorExpr}, plainto_tsquery('simple', $${queryIndex})) AS rank`;
+    selectPart += `, ts_rank_cd(${vectorExpr}, plainto_tsquery('english', $${queryIndex})) AS rank`;
 
     // WHERE clause uses plainto_tsquery for user-entered search text
-    where.push(`${vectorExpr} @@ plainto_tsquery('simple', $${queryIndex})`);
+    where.push(`${vectorExpr} @@ plainto_tsquery('english', $${queryIndex})`);
 
     values.push(q);
     i++;
@@ -146,9 +146,11 @@ function buildCollectionSearchQuery(params) {
     sql += ` ORDER BY id ASC`;
   }
 
-  // Pagination
-  sql += ` LIMIT $${i} OFFSET $${i + 1}`;
-  values.push(limit, token);
+  // Pagination (only add if limit is provided)
+  if (limit !== null && limit !== undefined) {
+    sql += ` LIMIT $${i} OFFSET $${i + 1}`;
+    values.push(limit, token || 0);
+  }
 
   return { sql, values };
 }

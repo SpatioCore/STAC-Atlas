@@ -54,6 +54,26 @@ router.get('/', validateCollectionSearchParams, async (req, res, next) => {
     const collections = await runQuery(sql, values);
     const returned = collections.length;
 
+    // Get total count for matched field
+    // Build count query using same WHERE conditions
+    const { sql: countSql, values: countValues } = buildCollectionSearchQuery({
+      q,
+      bbox,
+      datetime,
+      limit: null, // No limit for count
+      sortby: null, // No sorting for count
+      token: null   // No offset for count
+    });
+    
+    // Replace SELECT with COUNT(*)
+    const countQuery = countSql
+      .replace(/SELECT[\s\S]*?FROM/, 'SELECT COUNT(*) as total FROM')
+      .replace(/ORDER BY.*$/, '')
+      .replace(/LIMIT.*$/, '');
+    
+    const countResult = await runQuery(countQuery, countValues);
+    const matched = parseInt(countResult[0]?.total || 0);
+
     // Base URL for links
     const baseHost = `${req.protocol}://${req.get('host')}`;
     const baseUrl = `${baseHost}${req.baseUrl}`;
@@ -73,9 +93,8 @@ router.get('/', validateCollectionSearchParams, async (req, res, next) => {
       }
     ];
 
-    // "next": only if returned === limit,
-    // indicating there may be more results
-    if (returned === limit) {
+    // "next": only if returned === limit AND token + limit < matched
+    if (returned === limit && token + limit < matched) {
       links.push(buildLink('next', token + limit));
     }
 
@@ -85,7 +104,6 @@ router.get('/', validateCollectionSearchParams, async (req, res, next) => {
       links.push(buildLink('prev', prevToken));
     }
 
-    // matched (total results) not implemented yet: needs extra COUNT(*) query
     res.json({
       type: 'FeatureCollection',
       collections,
@@ -93,7 +111,7 @@ router.get('/', validateCollectionSearchParams, async (req, res, next) => {
       context: {
         returned,
         limit,
-        matched: null // TODO: implement COUNT(*) for total matches
+        matched
       }
     });
   } catch (error) {
