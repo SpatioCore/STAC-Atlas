@@ -6,63 +6,66 @@
  * database-ready SQL statement. It supports multiple filter types (full-text, spatial,
  * temporal), dynamic SELECT column injection (rank), sorting and pagination.
  *
+* The SELECT part focuses on the core STAC collection metadata, as described in the bid
+ * and the database schema:
+ * - id, stac_version, type, title, description, license
+ * - spatial_extend, temporal_extend_start, temporal_extend_end
+ * - created_at, updated_at, is_api, is_active
+ * - full_json (complete STAC Collection document as JSONB)
+ *
  * @param {Object} params
  * @param {string|undefined} params.q
- *        Full-text search query. If present, a weighted tsvector expression is added:
+ *       Full-text search query. Currently searches in:
+ *        - collection.title
+ *        - collection.description
  *
- *        - title and description are combined into a tsvector
- *        - plainto_tsquery() is used for parsing user input
- *        - ts_rank_cd() is added to SELECT as "rank"
- *        - WHERE clause uses the same tsvector expression 
+ *        The bid requires full-text search across title, description and keywords
+ *        (and possibly providers). Integration of keywords/providers into the
+ *        tsvector (via join or dedicated search_vector column) is planned as a
+ *        follow-up refinement. 
  *
  * Note: Keywords are not yet part of the full-text vector. They will be added 
  * in a follow-up step once the database exposes a canonical keyword aggregation
+ * 
+ * When `q` is present, a tsvector is built from title/description
+ *        using the same expression as the GIN index
+ *        (to_tsvector('simple', coalesce(title,'') || ' ' || coalesce(description,''))).
+ *        We use plainto_tsquery('simple', $n) and add ts_rank_cd(...) AS rank
+ *        to the SELECT list so we can order by relevance.
  *
- * @param {Array<number>|undefined} params.bbox
- *        Bounding box in [minX, minY, maxX, maxY]
- *        Generates a PostGIS ST_Intersects() filter using ST_MakeEnvelope()
+ @param {number[]|undefined} params.bbox
+ *        Spatial filter as [minX, minY, maxX, maxY] in EPSG:4326.
+ *        When present, the query adds:
+ *        ST_Intersects(spatial_extend, ST_MakeEnvelope($x, $y, $z, $w, 4326))
  *
  * @param {string|undefined} params.datetime
- *        ISO8601 datetime or interval (e.g. "2020-01-01", "2020-01-01/2021-01-01",
- *        "../2020-12-31"). Produces:
- *          - temporal_extend_end >= <start>
- *          - temporal_extend_start <= <end>
- *        Ensures collections overlap the requested time window
+ *        Temporal filter in ISO8601:
+ *        - single instant: "2020-01-01T00:00:00Z"
+ *        - closed interval: "2019-01-01/2021-12-31"
+ *        - open start/end: "../2021-12-31" or "2019-01-01/.."
  *
- * @param {Object|undefined} params.sortby
- *        Pre-normalized object { field, direction }, optional
- *        If absent and q is present → ORDER BY rank DESC, id ASC
- *        If absent and no q → ORDER BY id ASC
+ *        The collection is matched if its temporal_extend_start/temporal_extend_end
+ *        overlap the requested interval.
+ *
+ * @param {{field: string, direction: 'ASC'|'DESC'}|undefined} params.sortby
+ *        Normalized sort description. Field is restricted to an allowed
+ *        whitelist (id, title, license, created_at, updated_at, …).
+ *        If provided, ORDER BY <field> <direction> is used.
+ *        If omitted and `q` is present, results are ordered by rank DESC, id ASC.
+ *        If omitted and `q` is not present, results are ordered by id ASC.
  *
  * @param {number} params.limit
- *        Pagination limit. Used as SQL LIMIT
+ *        Maximum number of rows to return. Already validated to be
+ *        within [1, 10000]. Translated to LIMIT $n.
  *
  * @param {number} params.token
- *        Pagination offset. Used as SQL OFFSET
+ *        Offset for pagination (0-based). Translated to OFFSET $n.
  *
- *
- * SQL construction logic:
- * 1. The SELECT clause is built first (selectPart).
- *    - If q is present, the "rank" column is appended to SELECT at this stage
- *
- * 2. Conditions are accumulated in a `where[]` array and later joined with AND
- *    - Parameter placeholders ($1, $2, ...) are assigned in order
- *    - All values are stored in `values[]` in matching order
- *
- * 3. Only after SELECT is complete, the FROM clause is appended
- *
- * 4. WHERE clause is added if any conditions exist
- *
- * 5. Sorting is appended based on rules described above
- *
- * 6. Pagination uses LIMIT $n and OFFSET $n+1 (last two parameters)
- * 
- * @returns {Object}
- *   {
- *     sql: <string>,      // fully constructed SQL query
- *     values: <Array>     // parameter list matching placeholder order
- *   }
+ * @returns {{ sql: string, values: any[] }}
+ *          sql    – complete parameterized SQL string
+ *          values – array of bind parameters in the correct order
  */
+ 
 function buildCollectionSearchQuery(params) {
   const {
     q,
@@ -82,7 +85,10 @@ function buildCollectionSearchQuery(params) {
   // harder and error-prone when building the query dynamically.
   let selectPart = `
     SELECT
+      SELECT
       id,
+      stac_version,
+      type,
       title,
       description,
       license,
@@ -90,11 +96,11 @@ function buildCollectionSearchQuery(params) {
       temporal_extend_start,
       temporal_extend_end,
       created_at,
-      updated_at
+      updated_at,
+      is_api,
+      is_active,
+      full_json
   `;
-
-  // Note: currently we are using on-the-fly tsvector expressions (matching to the 05_indexes.sql)
-  // a persistant tsvector collumn could be added later for large-scale indexing (watch Database Issues)
   
   const where = [];
   const values = [];
@@ -110,9 +116,8 @@ function buildCollectionSearchQuery(params) {
   //   behaviour simple and predictable for short queries entered by users.
   // - `ts_rank_cd` computes a relevance score; we add it to the SELECT list as `rank`
   //   so it can be used for ordering (when no explicit `sortby` is provided).
-  // - For production, computing the tsvector on the fly is fine for functionality,
-  //   but you should add a persistent `tsvector` column (for example `search_vector`)
-  //   and a GIN index to speed up large-scale searches.
+  // - currently we are using on-the-fly tsvector expressions (matching to the 05_indexes.sql):
+  //   A persistant tsvector collumn could be added later for large-scale indexing (watch Database Issues)
   //
   // Use the same parameter index for both the WHERE clause and the computed rank so the
   // prepared statement uses a single bind parameter for the query text.
@@ -120,15 +125,15 @@ function buildCollectionSearchQuery(params) {
     const queryIndex = i; // remember index to reuse for rank and condition
 
     // Weighted combined tsvector expression
-    const vectorExpr = `to_tsvector('english', coalesce(title,'') || ' ' || coalesce(description,''))`;
+    const vectorExpr = `to_tsvector('simple', coalesce(title,'') || ' ' || coalesce(description,''))`;
 
     // Add rank to selected columns (ts_rank_cd => constant-duration ranking function)
     // The computed `rank` is available in the result rows and used for ordering
     // when no explicit `sortby` is provided.
-    selectPart += `, ts_rank_cd(${vectorExpr}, plainto_tsquery('english', $${queryIndex})) AS rank`;
+    selectPart += `, ts_rank_cd(${vectorExpr}, plainto_tsquery('simple', $${queryIndex})) AS rank`;
 
     // WHERE clause uses plainto_tsquery for user-entered search text
-    where.push(`${vectorExpr} @@ plainto_tsquery('english', $${queryIndex})`);
+    where.push(`${vectorExpr} @@ plainto_tsquery('simple', $${queryIndex})`);
 
     values.push(q);
     i++;
@@ -138,7 +143,6 @@ function buildCollectionSearchQuery(params) {
   if (bbox) {
     const [minX, minY, maxX, maxY] = bbox;
 
-    // TODO: ask if spatial_extend or spatial_extent?
     where.push(`
       ST_Intersects(
         spatial_extend, 
@@ -151,7 +155,6 @@ function buildCollectionSearchQuery(params) {
   }
 
   // datetime: Point or interval
-  // TODO: ask if temporal_extent_start/end or temporal_extent?
   if (datetime) {
     if (datetime.includes('/')) {
       // interval: start/end, ../end, start/..
