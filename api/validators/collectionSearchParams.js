@@ -191,7 +191,8 @@ function validateLimit(limit) {
  * @returns {Object} { valid: boolean, error?: string, normalized?: Object }
  */
 function validateSortby(sortby) {
-  if (!sortby) return { valid: true }; // optional
+  if (!sortby){
+    return { valid: true, normalized: undefined }; // explizit
   
   const allowedFields = ['title', 'id', 'license', 'created', 'updated'];
   
