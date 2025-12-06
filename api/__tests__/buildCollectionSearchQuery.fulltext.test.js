@@ -5,7 +5,7 @@ describe('buildCollectionSearchQuery - full-text search and ranking', () => {
     const { sql, values } = buildCollectionSearchQuery({ q: 'forest', limit: 20, token: 0 });
 
     // should contain plainto_tsquery and @@ operator
-    expect(sql).toMatch(/plainto_tsquery\('english', \$1\)/);
+    expect(sql).toMatch(/plainto_tsquery\('simple', \$1\)/);
     expect(sql).toMatch(/@@/);
 
     // rank should be part of the SELECT list
@@ -34,7 +34,7 @@ describe('buildCollectionSearchQuery - full-text search and ranking', () => {
     const { sql, values } = buildCollectionSearchQuery({ q: 'river', bbox, limit: 2, token: 0 });
 
     // q uses $1, bbox uses $2..$5, then limit/token
-    expect(sql).toMatch(/plainto_tsquery\('english', \$1\)/);
+    expect(sql).toMatch(/plainto_tsquery\('simple', \$1\)/);
     expect(sql).toMatch(/ST_MakeEnvelope\(\$2, \$3, \$4, \$5, 4326\)/);
 
     expect(values[0]).toBe('river');
