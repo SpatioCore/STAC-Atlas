@@ -5,4 +5,10 @@
 @import './base/vars.css';
 @import './base/base.css';
 
-/* Component styles will be imported here */
+/* Component styles */
+@import './components/app-layout.css';
+@import './components/navbar.css';
+@import './components/filter-section.css';
+@import './components/custom-select.css';
+@import './components/search-section.css';
+@import './components/search-results.css';

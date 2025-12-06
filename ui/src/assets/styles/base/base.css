@@ -47,11 +47,6 @@ button {
   transition: background-color var(--transition-fast), color var(--transition-fast);
 }
 
-button:hover {
-  background-color: var(--secondary);
-  color: var(--text-hover);
-}
-
 /* Utilities */
 .container {
   width: 100%;
