@@ -232,6 +232,7 @@ function validateSortby(sortby) {
   const dbField = fieldMapping[field];
   
   return { valid: true, normalized: { field: dbField, direction } };
+  }
 }
 
 /**
