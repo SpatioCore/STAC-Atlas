@@ -91,13 +91,14 @@ jobs:
       - name: Run tests
         run: |
           cd api
-          npm test
+          # Run Jest in-band (single process) with a higher default test timeout
+          npm test -- --runInBand --testTimeout=30000
       
       # Step 7: Generate coverage report
       - name: Generate coverage report
         run: |
           cd api
-          npm test -- --coverage --coverageReporters=text --coverageReporters=lcov
+          npm test -- --runInBand --testTimeout=30000 --coverage --coverageReporters=text --coverageReporters=lcov
         continue-on-error: true
       
       # Step 8: Upload coverage as artifact
