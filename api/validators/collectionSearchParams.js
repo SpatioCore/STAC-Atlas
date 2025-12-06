@@ -1,5 +1,3 @@
-// validators/collectionSearchParams.js
-
 /**
  * Validators for STAC Collection Search query parameters
  * 
@@ -191,34 +189,64 @@ function validateLimit(limit) {
  * @returns {Object} { valid: boolean, error?: string, normalized?: Object }
  */
 function validateSortby(sortby) {
-  if (!sortby) return { valid: true }; // optional
-  
+  // sortby is optional – if not provided, validation passes with undefined normalized value
+  if (sortby === undefined) {
+    return { valid: true, normalized: undefined };
+  }
+
   const allowedFields = ['title', 'id', 'license', 'created', 'updated'];
+  
+  // Map API field names to database column names
+  const fieldMapping = {
+    'title': 'title',
+    'id': 'id',
+    'license': 'license',
+    'created': 'created_at',
+    'updated': 'updated_at'
+  };
   
   if (typeof sortby !== 'string') {
     return { valid: false, error: 'Parameter "sortby" must be a string' };
   }
+
+  const raw = sortby.trim();
+  if (!raw) {
+    return { 
+      valid: false, 
+      error: `Parameter "sortby" field "" is not supported. Allowed fields: ${allowedFields.join(', ')}`
+    };
+  }
   
   // Determine direction and field
   let direction = 'ASC';
-  let field = sortby;
+  let field = raw;
   
-  if (sortby[0] === '+') {
+  if (raw[0] === '+') {
     direction = 'ASC';
-    field = sortby.substring(1);
-  } else if (sortby[0] === '-') {
+    field = raw.substring(1).trim();
+  } else if (raw[0] === '-') {
     direction = 'DESC';
-    field = sortby.substring(1);
+    field = raw.substring(1).trim();
+  }
+
+  if (!field) {
+    return { 
+      valid: false, 
+      error: `Parameter "sortby" field "" is not supported. Allowed fields: ${allowedFields.join(', ')}`
+    };
   }
   
   if (!allowedFields.includes(field)) {
     return { 
       valid: false, 
-      error: `Parameter "sortby" field "${field}" is not supported. Allowed fields: ${allowedFields.join(', ')}` 
+      error: `Parameter "sortby" field "${field}" is not supported. Allowed fields: ${allowedFields.join(', ')}`
     };
   }
   
-  return { valid: true, normalized: { field, direction } };
+  // Map to actual database column name
+  const dbField = fieldMapping[field];
+  
+  return { valid: true, normalized: { field: dbField, direction } };
 }
 
 /**
