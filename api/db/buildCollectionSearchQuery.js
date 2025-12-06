@@ -85,7 +85,6 @@ function buildCollectionSearchQuery(params) {
   // harder and error-prone when building the query dynamically.
   let selectPart = `
     SELECT
-      SELECT
       id,
       stac_version,
       type,
