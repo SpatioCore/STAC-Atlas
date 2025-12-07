@@ -1,0 +1,21 @@
+.search-results {
+  padding: var(--spacing-xl);
+  background: var(--bg);
+  min-height: calc(100vh - var(--search-section-height) - var(--navbar-height));
+}
+
+.results-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: var(--spacing-lg);
+}
+
+@media (max-width: 768px) {
+  .search-results {
+    padding: var(--spacing-md);
+  }
+  
+  .results-grid {
+    grid-template-columns: 1fr;
+  }
+}

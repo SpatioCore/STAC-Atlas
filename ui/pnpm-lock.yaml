@@ -11,6 +11,9 @@ importers:
       '@vueuse/core':
         specifier: ^14.1.0
         version: 14.1.0(vue@3.5.25(typescript@5.9.3))
+      lucide-vue-next:
+        specifier: ^0.556.0
+        version: 0.556.0(vue@3.5.25(typescript@5.9.3))
       maplibre-gl:
         specifier: ^5.13.0
         version: 5.13.0
@@ -539,6 +542,11 @@ packages:
 
   kdbush@4.0.2:
     resolution: {integrity: sha512-WbCVYJ27Sz8zi9Q7Q0xHC+05iwkm3Znipc2XTlrnJbsHMYktW4hPhXUE8Ys1engBrvffoSCqbil1JQAa7clRpA==}
+
+  lucide-vue-next@0.556.0:
+    resolution: {integrity: sha512-JvdCM2smkWrMDhkfD/FpZiWekkbWD6MZLstIFx/FOVZgULrnMr5hegCB9LlTdgllEFnQYQs8hhHC1WYcAV9HTA==}
+    peerDependencies:
+      vue: '>=3.0.1'
 
   magic-string@0.30.21:
     resolution: {integrity: sha512-vd2F4YUyEXKGcLHoq+TEyCjxueSeHnFxyyjNp80yg0XV4vUhnDer/lvvlqM/arB5bXQN5K2/3oinyCRyx8T2CQ==}
@@ -1122,6 +1130,10 @@ snapshots:
   json-stringify-pretty-compact@4.0.0: {}
 
   kdbush@4.0.2: {}
+
+  lucide-vue-next@0.556.0(vue@3.5.25(typescript@5.9.3)):
+    dependencies:
+      vue: 3.5.25(typescript@5.9.3)
 
   magic-string@0.30.21:
     dependencies:

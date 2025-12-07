@@ -1,16 +1,32 @@
 <script setup lang="ts">
-import HelloWorld from './components/HelloWorld.vue'
+import { ref } from 'vue'
+import Navbar from '@/components/Navbar.vue'
+import FilterSection from '@/components/FilterSection.vue'
+import SearchSection from '@/components/SearchSection.vue'
+import SearchResults from '@/components/SearchResults.vue'
+
+const searchQuery = ref('')
+
+// Collections would typically be fetched from an API
+const Collections = ref([])
 </script>
 
 <template>
-  <div>
-    <a href="https://vite.dev" target="_blank">
-      <img src="/vite.svg" class="logo" alt="Vite logo" />
-    </a>
-    <a href="https://vuejs.org/" target="_blank">
-      <img src="./assets/vue.svg" class="logo vue" alt="Vue logo" />
-    </a>
+  <div class="app-layout">
+    <Navbar />
+    
+    <div class="main-content">
+      <FilterSection />
+      
+      <div class="content-area">
+        <SearchSection 
+          v-model="searchQuery"
+          :result-count="Collections.length"
+        />
+        
+        <SearchResults :collections="Collections" />
+      </div>
+    </div>
   </div>
-  <HelloWorld msg="Vite + Vue" />
 </template>
 
