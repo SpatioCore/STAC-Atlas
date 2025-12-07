@@ -12,6 +12,7 @@
   height: 1px;
   background: var(--border);
   margin: var(--spacing-sm) calc(-1 * var(--spacing-md));
+  box-shadow: var(--shadow);
 }
 
 .filter-group {
