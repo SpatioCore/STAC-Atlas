@@ -342,10 +342,16 @@ describe('Collection Search Parameter Validators', () => {
       expect(result.error).toContain('must be a string');
     });
 
-    it('should reject empty field name', () => {
+    it('should reject empty field name (with + prefix)', () => {
       const result = validateSortby('+');
       expect(result.valid).toBe(false);
-      expect(result.error).toContain('not supported');
+      expect(result.error).toContain('must specify a field');
+    });
+
+    it('should reject empty field name (without prefix)', () => {
+      const result = validateSortby("");
+      expect(result.valid).toBe(false);
+      expect(result.error).toContain('must specify a field');
     });
   });
 

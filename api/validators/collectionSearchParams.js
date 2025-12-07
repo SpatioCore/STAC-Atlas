@@ -190,7 +190,7 @@ function validateLimit(limit) {
  */
 function validateSortby(sortby) {
   // sortby is optional – if not provided, validation passes with undefined normalized value
-  if (sortby === undefined) {
+  if (sortby === undefined || sortby === null) {
     return { valid: true, normalized: undefined };
   }
 
@@ -208,34 +208,28 @@ function validateSortby(sortby) {
   if (typeof sortby !== 'string') {
     return { valid: false, error: 'Parameter "sortby" must be a string' };
   }
-
-  const raw = sortby.trim();
-  if (!raw) {
-    return { 
-      valid: false, 
-      error: `Parameter "sortby" field "" is not supported. Allowed fields: ${allowedFields.join(', ')}`
-    };
-  }
   
-  // Determine direction and field
+  // Extract direction prefix and field name
   let direction = 'ASC';
-  let field = raw;
+  let field = sortby.trim();
   
-  if (raw[0] === '+') {
+  if (field.startsWith('+')) {
     direction = 'ASC';
-    field = raw.substring(1).trim();
-  } else if (raw[0] === '-') {
+    field = field.substring(1).trim();
+  } else if (field.startsWith('-')) {
     direction = 'DESC';
-    field = raw.substring(1).trim();
+    field = field.substring(1).trim();
   }
 
+  // Check if field is empty (either empty string or only prefix without field name)
   if (!field) {
     return { 
       valid: false, 
-      error: `Parameter "sortby" field "" is not supported. Allowed fields: ${allowedFields.join(', ')}`
+      error: `Parameter "sortby" must specify a field. Allowed fields: ${allowedFields.join(', ')}`
     };
   }
   
+  // Check if field is in allowed list
   if (!allowedFields.includes(field)) {
     return { 
       valid: false, 
