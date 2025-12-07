@@ -6,7 +6,7 @@
  * database-ready SQL statement. It supports multiple filter types (full-text, spatial,
  * temporal), dynamic SELECT column injection (rank), sorting and pagination.
  *
-* The SELECT part focuses on the core STAC collection metadata, as described in the bid
+ * The SELECT part focuses on the core STAC collection metadata, as described in the bid
  * and the database schema:
  * - id, stac_version, type, title, description, license
  * - spatial_extend, temporal_extend_start, temporal_extend_end
@@ -33,7 +33,7 @@
  *        We use plainto_tsquery('simple', $n) and add ts_rank_cd(...) AS rank
  *        to the SELECT list so we can order by relevance.
  *
- @param {number[]|undefined} params.bbox
+ * @param {number[]|undefined} params.bbox
  *        Spatial filter as [minX, minY, maxX, maxY] in EPSG:4326.
  *        When present, the query adds:
  *        ST_Intersects(spatial_extend, ST_MakeEnvelope($x, $y, $z, $w, 4326))
@@ -65,7 +65,7 @@
  *          sql    – complete parameterized SQL string
  *          values – array of bind parameters in the correct order
  */
- 
+
 function buildCollectionSearchQuery(params) {
   const {
     q,
@@ -100,7 +100,7 @@ function buildCollectionSearchQuery(params) {
       is_active,
       full_json
   `;
-  
+
   const where = [];
   const values = [];
   let i = 1;
