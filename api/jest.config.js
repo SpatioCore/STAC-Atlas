@@ -9,10 +9,10 @@ module.exports = {
   ],
   testMatch: ['**/__tests__/**/*.js', '**/?(*.)+(spec|test).js'],
   verbose: true,
-  // Global teardown to close database connections
-  globalTeardown: './jest.teardown.js',
   // Force exit after tests to prevent hanging
   forceExit: true,
   // Detect open handles (useful for debugging)
-  detectOpenHandles: false
+  detectOpenHandles: false,
+  // Increase test timeout for slow database queries in CI
+  testTimeout: 30000
 };
