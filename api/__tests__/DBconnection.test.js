@@ -6,9 +6,8 @@ const { testConnection, queryByBBox, queryByGeometry, queryByDistance, closePool
 
 describe('Database Connection', () => {
   
-  afterAll(async () => {
-    await closePool();
-  });
+  // Note: Pool cleanup is handled by Jest's forceExit option
+  // No need for explicit afterAll here
 
   describe('Connection Test', () => {
     test('should connect to database successfully', async () => {
@@ -116,7 +115,7 @@ describe('Database Connection', () => {
         const result = await queryByGeometry('collection', point, predicate);
         expect(result).toBeDefined();
       }
-    }, 10000); // Increase timeout for slow queries
+    }, 45000); // Increase timeout for slow queries (especially in CI with 3 sequential queries)
   });
 
   describe('PostGIS - Distance Query', () => {

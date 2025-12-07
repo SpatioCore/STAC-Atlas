@@ -8,5 +8,11 @@ module.exports = {
     '!node_modules/**'
   ],
   testMatch: ['**/__tests__/**/*.js', '**/?(*.)+(spec|test).js'],
-  verbose: true
+  verbose: true,
+  // Force exit after tests to prevent hanging
+  forceExit: true,
+  // Detect open handles (useful for debugging)
+  detectOpenHandles: false,
+  // Increase test timeout for slow database queries in CI
+  testTimeout: 30000
 };

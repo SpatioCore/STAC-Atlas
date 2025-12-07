@@ -45,18 +45,20 @@ pool.on('error', (err) => {
   console.error('Unexpected database pool error:', err);
 });
 
-// Handle pool connection events for monitoring
-pool.on('connect', (client) => {
-  console.log('New client connected to pool');
-});
+// Handle pool connection events for monitoring (only in non-test environments)
+if (process.env.NODE_ENV !== 'test') {
+  pool.on('connect', (client) => {
+    console.log('New client connected to pool');
+  });
 
-pool.on('acquire', (client) => {
-  console.log('Client acquired from pool');
-});
+  pool.on('acquire', (client) => {
+    console.log('Client acquired from pool');
+  });
 
-pool.on('remove', (client) => {
-  console.log('Client removed from pool');
-});
+  pool.on('remove', (client) => {
+    console.log('Client removed from pool');
+  });
+}
 
 // Graceful shutdown handlers
 process.on('SIGTERM', async () => {

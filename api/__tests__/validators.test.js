@@ -295,7 +295,8 @@ describe('Collection Search Parameter Validators', () => {
     it('should accept descending sort with - prefix', () => {
       const result = validateSortby('-created');
       expect(result.valid).toBe(true);
-      expect(result.normalized).toEqual({ field: 'created', direction: 'DESC' });
+      // Field is mapped to database column name
+      expect(result.normalized).toEqual({ field: 'created_at', direction: 'DESC' });
     });
 
     it('should default to ascending without prefix', () => {
@@ -305,11 +306,20 @@ describe('Collection Search Parameter Validators', () => {
     });
 
     it('should accept all allowed fields', () => {
+      const fieldMapping = {
+        'title': 'title',
+        'id': 'id',
+        'license': 'license',
+        'created': 'created_at',
+        'updated': 'updated_at'
+      };
+      
       const fields = ['title', 'id', 'license', 'created', 'updated'];
       fields.forEach(field => {
         const result = validateSortby(field);
         expect(result.valid).toBe(true);
-        expect(result.normalized.field).toBe(field);
+        // Should be mapped to database column name
+        expect(result.normalized.field).toBe(fieldMapping[field]);
       });
     });
 
@@ -332,10 +342,16 @@ describe('Collection Search Parameter Validators', () => {
       expect(result.error).toContain('must be a string');
     });
 
-    it('should reject empty field name', () => {
+    it('should reject empty field name (with + prefix)', () => {
       const result = validateSortby('+');
       expect(result.valid).toBe(false);
-      expect(result.error).toContain('not supported');
+      expect(result.error).toContain('must specify a field');
+    });
+
+    it('should reject empty field name (without prefix)', () => {
+      const result = validateSortby("");
+      expect(result.valid).toBe(false);
+      expect(result.error).toContain('must specify a field');
     });
   });
 
