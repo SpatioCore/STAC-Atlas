@@ -147,10 +147,6 @@ router.get('/:id', validateCollectionId, async (req, res, next) => {
       id: numericId,
       limit: 1,
       token: 0,
-      q: undefined,
-      bbox: undefined,
-      datetime: undefined,
-      sortby: undefined
     });
 
     const rows = await runQuery(sql, values);
