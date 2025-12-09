@@ -51,10 +51,10 @@ describe('GET /collections/:id - Single collection retrieval', () => {
     expect(selfLink.href).toContain(`/collections/${existingId}`);
   });
 
-  test('should return 400 for an invalid (non-numeric) id', async () => {
+  test('should return 404 for an invalid (non-numeric) id', async () => {
     const res = await request(app)
       .get('/collections/not-a-number')
-      .expect(400);
+      .expect(404);
 
     //at least expect an error code and message.
     expect(res.body).toHaveProperty('code');

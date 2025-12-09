@@ -164,7 +164,7 @@ router.get('/:id', validateCollectionId, async (req, res, next) => {
 
     // Build STAC-style navigation links (self, root, parent).
     const baseHost = `${req.protocol}://${req.get('host')}`;
-    const selfHref = `${baseHost}${req.baseUrl}`; // req.baseUrl is "/collections/:id" here
+    const selfHref = `${baseHost}${req.baseUrl}/${id}`;
     const rootHref = baseHost;
 
     // Start from any existing links on the collection (if the query builder
