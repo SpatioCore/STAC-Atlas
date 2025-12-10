@@ -23,6 +23,9 @@ const targetUrl = 'https://www.stacindex.org/api/catalogs';
  * @returns {Promise<void>}
  */
 const crawler = async () => {
+    // Start the timer
+    const startTime = Date.now();
+    
     try {
         // Load configuration
         const config = getConfig();
@@ -140,6 +143,27 @@ const crawler = async () => {
         // Close database connection
         await db.close();
         console.log('\nDatabase connection closed.');
+        
+        // Display total running time
+        const endTime = Date.now();
+        const elapsedTime = endTime - startTime;
+        const seconds = Math.floor(elapsedTime / 1000);
+        const minutes = Math.floor(seconds / 60);
+        const hours = Math.floor(minutes / 60);
+        
+        const displaySeconds = seconds % 60;
+        const displayMinutes = minutes % 60;
+        
+        console.log('\n=== Crawler Time Statistics ===');
+        if (hours > 0) {
+            console.log(`Total Running Time: ${hours}h ${displayMinutes}m ${displaySeconds}s`);
+        } else if (minutes > 0) {
+            console.log(`Total Running Time: ${displayMinutes}m ${displaySeconds}s`);
+        } else {
+            console.log(`Total Running Time: ${displaySeconds}s`);
+        }
+        console.log(`Total Running Time (ms): ${elapsedTime}ms`);
+    
     }
 };
 
