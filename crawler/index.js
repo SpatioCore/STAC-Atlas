@@ -20,15 +20,26 @@ const targetUrl = 'https://www.stacindex.org/api/catalogs';
  * Fetches catalog data from the STAC Index API and processes it
  * @async
  * @function crawler
- * @returns {Promise<void>}
+ * @returns {Promise<Object>} Returns statistics about the crawl including success status and runtime
  */
-const crawler = async () => {
+export const crawler = async () => {
+    // Start the timer
+    const startTime = Date.now();
+    let dbError = false;
+    let crawlError = false;
+    
     try {
         // Load configuration
         const config = getConfig();
         
         // Initialize database connection
-        await db.initDb();
+        try {
+            await db.initDb();
+        } catch (err) {
+            console.error(`\nDatabase initialization failed: ${err.message}`);
+            dbError = true;
+            throw err;
+        }
         
         // Display configuration
         console.log('\n=== STAC Crawler Configuration ===');
@@ -136,11 +147,43 @@ const crawler = async () => {
 
     } catch (error) {
         console.error(`Error fetching ${targetUrl}: ${error.message}`);
+        if (!dbError) {
+            crawlError = true;
+        }
     } finally {
         // Close database connection
-        await db.close();
-        console.log('\nDatabase connection closed.');
+        if (!dbError) {
+            try {
+                await db.close();
+                console.log('\nDatabase connection closed.');
+            } catch (err) {
+                console.error(`Error closing database: ${err.message}`);
+            }
+        }
+        
+        // Display total running time
+        const endTime = Date.now();
+        const elapsedTime = endTime - startTime;
+        
+        console.log('\n=== Crawler Time Statistics ===');
+        console.log(`Total Running Time: ${formatDuration(elapsedTime)}`);
+        console.log(`Total Running Time (ms): ${elapsedTime}ms`);
+        console.log(`Status: ${dbError ? 'Database Error' : crawlError ? 'Crawl Error' : 'Success'}`);
+        console.log('================================\n');
+        
+        // Return statistics
+        return {
+            success: !dbError && !crawlError,
+            dbError,
+            crawlError,
+            elapsedTime,
+            startTime,
+            endTime
+        };
     }
 };
 
-crawler();
+// Run crawler if this file is executed directly
+if (import.meta.url === `file:///${process.argv[1].replace(/\\/g, '/')}`) {
+    crawler();
+}
