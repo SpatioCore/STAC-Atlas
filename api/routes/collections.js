@@ -160,36 +160,28 @@ router.get('/:id', validateCollectionId, async (req, res, next) => {
       });
     }
 
-    const collection = rows[0];
+        const collection = rows[0];
 
-    // Build STAC-style navigation links (self, root, parent).
     const baseHost = `${req.protocol}://${req.get('host')}`;
-    const selfHref = `${baseHost}${req.baseUrl}/${id}`;
+    // originalUrl enthält /collections/:id (inkl. evtl. Query-Params, die du hier aber nicht hast)
+    const selfHref = `${baseHost}${req.originalUrl}`;
     const rootHref = baseHost;
 
-    // Start from any existing links on the collection (if the query builder
-    // or a mapper already provides them)
-    const existingLinks = Array.isArray(collection.links) ? collection.links.slice() : [];
-
-    const hasRel = (rel) => existingLinks.some(l => l && l.rel === rel);
-
-    if (!hasRel('self')) {
-      existingLinks.push({ rel: 'self', href: selfHref, type: 'application/json' });
-    }
-
-    if (!hasRel('root')) {
-      existingLinks.push({ rel: 'root', href: rootHref, type: 'application/json' });
-    }
-
-    // Prefer an existing parent link if present, otherwise fall back to root.
-    if (!hasRel('parent')) {
-      existingLinks.push({ rel: 'parent', href: rootHref, type: 'application/json' });
-    }
+    // TODO:
+    //   Currently we always construct a minimal set of STAC-style links here.
+    //   The crawler already stores the upstream links in full_json, but we do
+    //   not extract or persist them as a separate links column yet.
+    //   In the future we might want to parse those links and merge them here.
+    const links = [
+      { rel: 'self', href: selfHref, type: 'application/json' },
+      { rel: 'root', href: rootHref, type: 'application/json' },
+      { rel: 'parent', href: rootHref, type: 'application/json' }
+    ];
 
     // Return the collection with a normalized `links` array.
     // The rest of the attributes (id, title, extent, full_json, …) come directly
     // from the query builder / database.
-    res.json(Object.assign({}, collection, { links: existingLinks }));
+    res.json(Object.assign({}, collection, { links }));
   } catch (error) {
     next(error);
   }
