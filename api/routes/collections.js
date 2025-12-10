@@ -138,7 +138,7 @@ router.get('/:id', validateCollectionId, async (req, res, next) => {
     const { id } = req.params;
 
     // id is already syntactically validated by validateCollectionId.
-    // For the database we use a numeric id, matching the collection.id column type.
+    // For the database we use a numeric id, matching the c.collection.id column type.
     const numericId = parseInt(id, 10);
 
     // Reuse the shared query builder with an exact id filter.
