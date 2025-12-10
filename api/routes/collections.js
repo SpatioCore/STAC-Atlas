@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const collectionsStore = require('../data/collections'); // change with the real collections when we have them
+const { validateCollectionId } = require('../middleware/validateCollectionId');
 const { validateCollectionSearchParams } = require('../middleware/validateCollectionSearch');
 const { query } = require('../db/db_APIconnection');
 const { buildCollectionSearchQuery } = require('../db/buildCollectionSearchQuery');
@@ -119,56 +119,80 @@ router.get('/', validateCollectionSearchParams, async (req, res, next) => {
 
 /**
  * GET /collections/:id
- * Returns a single collection by ID. Includes all STAC Collection fields
- * (stac_version, type, title, description, license, extent, links, etc).
- * 
- * Returns:
- * - 200 OK with full Collection object if found
- * - 404 NotFound with proper error format if collection does not exist
+ * Returns a single collection by ID.
+ *
+ * Behaviour:
+ * - Uses the shared buildCollectionSearchQuery helper with an `id` filter
+ *   so that GET /collections and GET /collections/:id stay aligned.
+ * - Returns:
+ *   - 200 OK with a single Collection object if found
+ *   - 404 NotFound with standardized error body if the collection does not exist
+ *
+ * Note:
+ * - The exact shape / fields of the returned collection are controlled by the
+ *   SELECT part in buildCollectionSearchQuery. This allows the query builder
+ *   (and later a mapping layer) to evolve without touching this route.
  */
-router.get('/:id', (req, res) => {
-  // TODO: Create a proper validator middleware for :id parameter to avoid SQL injection, etc.
-  const { id } = req.params;
-  
-  // Look up the collection in the data store by ID
-  // When connected to a DB, replace this with a SQL query (SELECT * FROM collections WHERE id = ?)
-  const collection = collectionsStore.find(c => c.id === id);
-  
-  if (!collection) {
-    // Return 404 with standardized error format
-    return res.status(404).json({
-      code: 'NotFound',
-      description: `Collection with id '${id}' not found`,
-      id: id
+router.get('/:id', validateCollectionId, async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    // id is already syntactically validated by validateCollectionId.
+    // For the database we use a numeric id, matching the collection.id column type.
+    const numericId = parseInt(id, 10);
+
+    // Reuse the shared query builder with an exact id filter.
+    // We request a single row (LIMIT 1) and no offset.
+    const { sql, values } = buildCollectionSearchQuery({
+      id: numericId,
+      limit: 1,
+      token: 0,
     });
+
+    const rows = await runQuery(sql, values);
+
+    if (!rows || rows.length === 0) {
+      // Return 404 with standardized error format
+      return res.status(404).json({
+        code: 'NotFound',
+        description: `Collection with id '${id}' not found`,
+        id: id
+      });
+    }
+
+    const collection = rows[0];
+
+    // Build STAC-style navigation links (self, root, parent).
+    const baseHost = `${req.protocol}://${req.get('host')}`;
+    const selfHref = `${baseHost}${req.baseUrl}/${id}`;
+    const rootHref = baseHost;
+
+    // Start from any existing links on the collection (if the query builder
+    // or a mapper already provides them)
+    const existingLinks = Array.isArray(collection.links) ? collection.links.slice() : [];
+
+    const hasRel = (rel) => existingLinks.some(l => l && l.rel === rel);
+
+    if (!hasRel('self')) {
+      existingLinks.push({ rel: 'self', href: selfHref, type: 'application/json' });
+    }
+
+    if (!hasRel('root')) {
+      existingLinks.push({ rel: 'root', href: rootHref, type: 'application/json' });
+    }
+
+    // Prefer an existing parent link if present, otherwise fall back to root.
+    if (!hasRel('parent')) {
+      existingLinks.push({ rel: 'parent', href: rootHref, type: 'application/json' });
+    }
+
+    // Return the collection with a normalized `links` array.
+    // The rest of the attributes (id, title, extent, full_json, …) come directly
+    // from the query builder / database.
+    res.json(Object.assign({}, collection, { links: existingLinks }));
+  } catch (error) {
+    next(error);
   }
-  
-  // Return the full STAC Collection object
-  // Ensure the response includes at least self, root and parent links.
-  // Start from any links the collection already provides and add missing ones.
-  const baseHost = `${req.protocol}://${req.get('host')}`;
-  const selfHref = `${baseHost}/collections/${id}`;
-  const rootHref = baseHost;
-
-  const existingLinks = Array.isArray(collection.links) ? collection.links.slice() : [];
-
-  const hasRel = (rel) => existingLinks.some(l => l && l.rel === rel);
-
-  if (!hasRel('self')) {
-    existingLinks.push({ rel: 'self', href: selfHref, type: 'application/json' });
-  }
-
-  if (!hasRel('root')) {
-    existingLinks.push({ rel: 'root', href: rootHref, type: 'application/json' });
-  }
-
-  // Prefer an existing parent link if present, otherwise fall back to root
-  if (!hasRel('parent')) {
-    existingLinks.push({ rel: 'parent', href: rootHref, type: 'application/json' });
-  }
-
-  // Return the collection with a normalized `links` array
-  res.json(Object.assign({}, collection, { links: existingLinks }));
 });
 
 module.exports = router;
