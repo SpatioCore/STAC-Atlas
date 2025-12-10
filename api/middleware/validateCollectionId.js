@@ -9,16 +9,16 @@
 function validateCollectionId(req, res, next) {
   const { id } = req.params;
 
-  // Require a non-empty string of digits (no negatives, no letters, no junk)
+   // id must be present and must be a sequence of digits (no minus, no spaces, no letters)
   if (!id || !/^\d+$/u.test(id)) {
-    return res.status(404).json({
-      code: 'NotFound',
-      description: `Collection with id '${id}' not found`,
-      id: id
+    return res.status(400).json({
+      code: 'InvalidParameter',
+      description: 'The "id" parameter must be a non-negative integer (digits only).',
+      parameter: 'id',
+      value: id
     });
   }
 
-  // You _could_ noch num < 0 prüfen, aber mit dem Regex oben kann das nicht vorkommen.
   next();
 }
 
