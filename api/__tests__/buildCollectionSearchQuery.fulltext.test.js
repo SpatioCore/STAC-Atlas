@@ -13,7 +13,7 @@ describe('buildCollectionSearchQuery - full-text search and ranking', () => {
     expect(sql).toMatch(/AS rank/);
 
     // Ordering defaults to rank DESC when q present and no sortby
-    expect(sql).toMatch(/ORDER BY rank DESC, c\.id ASC/);
+    expect(sql).toMatch(/ORDER BY rank DESC, id ASC/);
 
     // values: [q, limit, token]
     expect(values[0]).toBe('forest');
@@ -24,7 +24,7 @@ describe('buildCollectionSearchQuery - full-text search and ranking', () => {
   test('explicit sortby overrides rank ordering', () => {
     const { sql } = buildCollectionSearchQuery({ q: 'lake', sortby: { field: 'title', direction: 'ASC' }, limit: 5, token: 0 });
 
-    expect(sql).toMatch(/ORDER BY c\.title ASC/);
+    expect(sql).toMatch(/ORDER BY title ASC/);
     // rank still present in select
     expect(sql).toMatch(/AS rank/);
   });
