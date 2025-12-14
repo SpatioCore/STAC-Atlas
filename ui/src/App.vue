@@ -29,4 +29,3 @@ const Collections = ref([])
     </div>
   </div>
 </template>
-
