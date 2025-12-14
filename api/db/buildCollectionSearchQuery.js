@@ -83,22 +83,31 @@ function buildCollectionSearchQuery(params) {
   // full-text search) *before* the `FROM` clause. Keeping `sql` fixed with a
   // `FROM` already included would make inserting additional selected columns
   // harder and error-prone when building the query dynamically.
+  //
+  // We use alias 'c' for the collection table to simplify JOIN expressions and
+  // distinguish collection columns from aggregated relation data (keywords, providers, etc.).
   let selectPart = `
     SELECT
-      id,
-      stac_version,
-      type,
-      title,
-      description,
-      license,
-      spatial_extend,
-      temporal_extend_start,
-      temporal_extend_end,
-      created_at,
-      updated_at,
-      is_api,
-      is_active,
-      full_json
+      c.id,
+      c.stac_version,
+      c.type,
+      c.title,
+      c.description,
+      c.license,
+      c.spatial_extend,
+      c.temporal_extend_start,
+      c.temporal_extend_end,
+      c.created_at,
+      c.updated_at,
+      c.is_api,
+      c.is_active,
+      c.full_json,
+      kw.keywords,
+      ext.stac_extensions,
+      prov.providers,
+      a.assets,
+      s.summaries,
+      cl.last_crawled
   `;
 
   const where = [];
@@ -123,8 +132,8 @@ function buildCollectionSearchQuery(params) {
   if (q) {
     const queryIndex = i; // remember index to reuse for rank and condition
 
-    // Weighted combined tsvector expression
-    const vectorExpr = `to_tsvector('simple', coalesce(title,'') || ' ' || coalesce(description,''))`;
+    // Weighted combined tsvector expression (using alias 'c' for collection table)
+    const vectorExpr = `to_tsvector('simple', coalesce(c.title,'') || ' ' || coalesce(c.description,''))`;
 
     // Add rank to selected columns (ts_rank_cd => constant-duration ranking function)
     // The computed `rank` is available in the result rows and used for ordering
@@ -144,7 +153,7 @@ function buildCollectionSearchQuery(params) {
 
     where.push(`
       ST_Intersects(
-        spatial_extend, 
+        c.spatial_extend, 
         ST_MakeEnvelope($${i}, $${i + 1}, $${i + 2}, $${i + 3}, 4326)
       )
     `);
@@ -161,33 +170,92 @@ function buildCollectionSearchQuery(params) {
 
       if (start !== '..') {
         // Collection should run after start
-        where.push(`temporal_extend_end >= $${i}`);
+        where.push(`c.temporal_extend_end >= $${i}`);
         values.push(start);
         i++;
       }
 
       if (end !== '..') {
         // Collection should run before end
-        where.push(`temporal_extend_start <= $${i}`);
+        where.push(`c.temporal_extend_start <= $${i}`);
         values.push(end);
         i++;
       }
     } else {
       // single datetime: collections active at that time
       where.push(`
-        temporal_extend_start <= $${i}
-        AND temporal_extend_end >= $${i}
+        c.temporal_extend_start <= $${i}
+        AND c.temporal_extend_end >= $${i}
       `);
       values.push(datetime);
       i++;
     }
   }
 
-  // Build final SQL from selectPart and add FROM clause.
+  // Build final SQL from selectPart and add FROM clause with LATERAL JOINs.
   // We delayed adding `FROM collection` to allow conditional additions to the
   // selected columns above (notably `rank`). The final `sql` string includes the
   // selected columns, the source table and any WHERE conditions constructed earlier.
-  let sql = selectPart + `\n    FROM collection\n  `;
+  //
+  // LATERAL JOINs aggregate related data (keywords, extensions, providers, assets, summaries,
+  // and crawl timestamps) from normalized tables without duplicating collection rows.
+  // Each LEFT JOIN LATERAL subquery returns a single aggregated row per collection.
+  let sql = selectPart + `
+    FROM collection c
+    LEFT JOIN LATERAL (
+      SELECT jsonb_agg(k.keyword ORDER BY k.keyword) AS keywords
+      FROM collection_keywords ck
+      JOIN keywords k ON k.id = ck.keyword_id
+      WHERE ck.collection_id = c.id
+    ) kw ON TRUE
+    LEFT JOIN LATERAL (
+      SELECT jsonb_agg(se.stac_extension ORDER BY se.stac_extension) AS stac_extensions
+      FROM collection_stac_extension cse
+      JOIN stac_extensions se ON se.id = cse.stac_extension_id
+      WHERE cse.collection_id = c.id
+    ) ext ON TRUE
+    LEFT JOIN LATERAL (
+      SELECT jsonb_agg(jsonb_build_object(
+        'name', p.provider,
+        'roles', cpr.collection_provider_roles
+      ) ORDER BY p.provider) AS providers
+      FROM collection_providers cpr
+      JOIN providers p ON p.id = cpr.provider_id
+      WHERE cpr.collection_id = c.id
+    ) prov ON TRUE
+    LEFT JOIN LATERAL (
+      SELECT jsonb_agg(jsonb_build_object(
+        'name', a.name,
+        'href', a.href,
+        'type', a.type,
+        'roles', a.roles,
+        'metadata', a.metadata,
+        'collection_roles', ca.collection_asset_roles
+      ) ORDER BY a.name) AS assets
+      FROM collection_assets ca
+      JOIN assets a ON a.id = ca.asset_id
+      WHERE ca.collection_id = c.id
+    ) a ON TRUE
+    LEFT JOIN LATERAL (
+      SELECT jsonb_object_agg(s.name, s.s_summary) AS summaries
+      FROM (
+        SELECT
+          cs.name,
+          CASE
+            WHEN cs.kind = 'range' THEN jsonb_build_object('min', cs.range_min, 'max', cs.range_max)
+            WHEN cs.kind = 'set' THEN to_jsonb(cs.set_value)
+            ELSE cs.json_schema
+          END AS s_summary
+        FROM collection_summaries cs
+        WHERE cs.collection_id = c.id
+      ) s
+    ) s ON TRUE
+    LEFT JOIN LATERAL (
+      SELECT MAX(clc.last_crawled) AS last_crawled
+      FROM crawllog_collection clc
+      WHERE clc.collection_id = c.id
+    ) cl ON TRUE
+  `;
 
   if (where.length > 0) {
     sql += ` WHERE ` + where.join(' AND ');
@@ -197,15 +265,18 @@ function buildCollectionSearchQuery(params) {
   // a text query was provided (descending), falling back to id ascending.
   //
   // Behaviour summary:
-  // - `sortby` provided → use that (same as before)
-  // - no `sortby` & `q` present → order by `rank DESC, id ASC` so higher relevance comes first
-  // - no `sortby` & no `q` → order by `id ASC` (legacy default)
+  // - `sortby` provided → use that (with 'c.' prefix for collection columns)
+  // - no `sortby` & `q` present → order by `rank DESC, c.id ASC` so higher relevance comes first
+  // - no `sortby` & no `q` → order by `c.id ASC` (legacy default)
+  //
+  // Note: sortby.field is validated against a whitelist in the calling code; only collection
+  // table columns are allowed for sorting (not aggregated fields like keywords/providers).
   if (sortby) {
-    sql += ` ORDER BY ${sortby.field} ${sortby.direction}`;
+    sql += ` ORDER BY c.${sortby.field} ${sortby.direction}`;
   } else if (q) {
-    sql += ` ORDER BY rank DESC, id ASC`;
+    sql += ` ORDER BY rank DESC, c.id ASC`;
   } else {
-    sql += ` ORDER BY id ASC`;
+    sql += ` ORDER BY c.id ASC`;
   }
 
   // Pagination (only add if limit is provided)
