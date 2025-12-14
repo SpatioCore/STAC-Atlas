@@ -1,88 +1,88 @@
 # STAC Atlas API
 
-STAC-konforme API für die Verwaltung und Bereitstellung von STAC Collection Metadaten.
+STAC-compliant API for managing and serving STAC Collection metadata.
 
-## 🚀 Schnellstart
+## 🚀 Quick Start
 
-### Voraussetzungen
+### Prerequisites
 
 - Node.js >= 22.0.0
-- PostgreSQL mit PostGIS Extension
-- npm oder yarn
+- PostgreSQL with PostGIS extension
+- npm or yarn
 
 ### Installation
 
 ```bash
-# Dependencies installieren
+# Install dependencies
 npm install
 
-# Umgebungsvariablen konfigurieren
+# Configure environment variables
 cp .env.example .env
-# .env bearbeiten und DATABASE_URL etc. anpassen
+# Edit .env and set DATABASE_URL etc.
 ```
 
-### Entwicklung
+### Development
 
 ```bash
-# Development Server mit Auto-Reload starten
+# Start development server with auto-reload
 npm run dev
 
-# Oder Production Server
+# Or start production server
 npm start
 ```
 
-Die API läuft dann auf `http://localhost:3000`
+The API will be available at `http://localhost:3000`.
 
 ### Tests
 
 ```bash
-# Alle Tests ausführen
+# Run all tests
 npm test
 
-# Tests im Watch-Mode
+# Run tests in watch mode
 npm run test:watch
 ```
 
-### Code-Qualität
+### Code Quality
 
 ```bash
 # Linting
 npm run lint
 
-# Automatisches Fixing
+# Automatic fixing
 npm run lint:fix
 
-# Code formatieren
+# Code formatting
 npm run format
 ```
 
 ## CI/CD Pipeline
 
-This Project uses GitHub Actions for Continous Integration:
+This project uses GitHub Actions for Continuous Integration:
 
-- **Automatic Tests** at every push and pull request
-- **Branch Protection** prevent merges if tests failed
-- **Code Quality Checks** (ESLint, Tests, Build-Validation)
-- **Test Coverage Reports** as artifacts
+- **Automated tests** on every push and pull request
+- **Branch protection** prevents merges if tests fail
+- **Code quality checks** (ESLint, tests, build validation)
+- **Test coverage reports** as artifacts
 
 **Status:** ![CI Status](https://github.com/SpatioCore/STAC-Atlas/workflows/API%20CI%2FCD%20Pipeline/badge.svg?branch=dev-api)
 
-## 📋 API Endpunkte
+## 📋 API Endpoints
 
 ### Core Endpoints
 
-| Methode | Endpoint | Beschreibung |
+| Method | Endpoint | Description |
 |---------|----------|--------------|
-| GET | `/` | Landing Page (STAC Catalog Root) |
-| GET | `/conformance` | Conformance Classes |
-| GET | `/collections` | Liste aller Collections (mit Filterung) |
-| POST | `/collections` | Collection Search mit CQL2 |
-| GET | `/collections/:id` | Einzelne Collection abrufen |
-| GET | `/collections-queryables` | Queryable Properties Schema |
+| GET | `/` | Landing page (STAC catalog root) |
+| GET | `/conformance` | Conformance classes |
+| GET | `/collections` | List all collections (with filtering) |
+| POST | `/collections` | Collection search with CQL2 |
+| GET | `/collections/:id` | Retrieve a single collection |
+| GET | `/collections-queryables` | Queryable properties schema |
 
 ### Query Parameters (GET /collections)
 
-Die Collection Search API unterstützt folgende Query-Parameter:
+The collection search API supports the following query parameters:
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
@@ -93,7 +93,7 @@ Die Collection Search API unterstützt folgende Query-Parameter:
 | `sortby` | String | No | Sort by field: `+/-field` (title, id, license, created, updated) |
 | `token` | Integer | No | Pagination token (offset, default: 0) |
 
-**Beispiele:**
+**Examples:**
 ```bash
 # Free-text search
 GET /collections?q=sentinel
@@ -105,45 +105,45 @@ GET /collections?bbox=-10,40,10,50&datetime=2020-01-01/2021-12-31
 GET /collections?limit=20&sortby=-created&token=2
 ```
 
-📖 **Detaillierte Dokumentation:** Siehe [docs/collection-search-parameters.md](docs/collection-search-parameters.md)
+📖 **Detailed documentation:** See [docs/collection-search-parameters.md](docs/collection-search-parameters.md)
 
-### API Dokumentation
+### API Documentation
 
-- **Swagger UI**: `http://localhost:3000/api-docs` (wenn `docs/openapi.yaml` existiert)
+- **Swagger UI**: `http://localhost:3000/api-docs` (if `docs/openapi.yaml` exists)
 - **OpenAPI Spec**: `docs/openapi.yaml`
 
-## 🏗️ Projektstruktur
+## 🏗️ Project Structure
 
 ```
 api/
 ├── bin/
-│   └── www                 # Server-Startskript
+│   └── www                 # Server start script
 ├── config/
-│   └── conformanceURIS.js  # STAC Conformance URIs
+│   └── conformanceURIS.js  # STAC conformance URIs
 ├── data/
 │   └── collections.js      # Test collections
 ├── docs/
-│   └── collection-search-parameters.md  # Query Parameter Dokumentation
+│   └── collection-search-parameters.md  # Query parameter documentation
 ├── middleware/
-│   └── validateCollectionSearch.js  # Query Parameter Validation
+│   └── validateCollectionSearch.js  # Query parameter validation
 ├── routes/
-│   ├── index.js            # Landing Page (/)
-│   ├── conformance.js      # Conformance Classes
-│   ├── collections.js      # Collections Endpoints
-│   └── queryables.js       # Queryables Schema
+│   ├── index.js            # Landing page (/)
+│   ├── conformance.js      # Conformance classes
+│   ├── collections.js      # Collections endpoints
+│   └── queryables.js       # Queryables schema
 ├── validators/
-│   └── collectionSearchParams.js  # Parameter Validators
+│   └── collectionSearchParams.js  # Parameter validators
 ├── __tests__/
-│   └── api.test.js         # API Tests
+│   └── api.test.js         # API tests
 ├── app.js                  # Express App Setup
 ├── package.json
-├── .env.example            # Beispiel-Umgebungsvariablen
+├── .env.example            # Example environment variables
 └── README.md
 ```
 
-## 🔧 Konfiguration
+## 🔧 Configuration
 
-Alle Konfigurationen erfolgen über Umgebungsvariablen (`.env`):
+All configuration is managed via environment variables (`.env`):
 
 ```env
 PORT=3000
@@ -154,46 +154,46 @@ CORS_ORIGIN=*
 
 ## 🧪 STAC Conformance
 
-Diese API implementiert:
+This API implements:
 
 - ✅ STAC API Core (v1.0.0)
 - ✅ OGC API Features Core
 - ✅ STAC Collections
 - ✅ Collection Search Extension
-- 🚧 CQL2 Basic Filtering (in Entwicklung)
-- 🚧 CQL2 Advanced Operators (in Entwicklung)
+- 🚧 CQL2 Basic Filtering (in development)
+- 🚧 CQL2 Advanced Operators (in development)
 
-## 📦 Nächste Schritte
+## 📦 Next Steps
 
 ### TODO
 
-- [ ] Datenbank-Integration (PostgreSQL + PostGIS)
+- [ ] Database integration (PostgreSQL + PostGIS)
   - [ ] Implement q (full-text search with TSVector)
   - [ ] Implement bbox (PostGIS spatial queries)
   - [ ] Implement datetime (temporal overlap queries)
   - [ ] Implement sortby (ORDER BY in SQL)
-- [ ] CQL2-Parser Integration (cql2-rs via WASM)
-- [ ] Controller-Layer implementieren
-- [ ] Service-Layer für Business Logic
-- [ ] OpenAPI Dokumentation vervollständigen
-- [ ] Erweiterte Tests (Integration, E2E)
+- [ ] CQL2 parser integration (cql2-rs via WASM)
+- [ ] Implement controller layer
+- [ ] Service layer for business logic
+- [ ] Complete OpenAPI documentation
+- [ ] Advanced tests (integration, E2E)
   - [ ] Unit tests for validators
   - [ ] Integration tests for filtered queries
-- [ ] Docker Setup
-- [ ] CI/CD Pipeline
+- [ ] Docker setup
+- [ ] CI/CD pipeline
 
-### Implementierungsplan (siehe bid.md)
+### Implementation Plan (see bid.md)
 
-1. ✅ **AP-01**: Projekt-Skeleton & Infrastruktur
-2. ✅ **AP-02**: Query Parameter Validation (q, bbox, datetime, limit, sortby, token)
-3. 🚧 **AP-03**: STAC-Core Endpunkte (Basis vorhanden)
-4. 🚧 **AP-04**: Collection Search – Filter-Implementierung (DB-Integration pending)
-5. ⏳ **AP-05**: CQL2-Filtering Integration
+1. ✅ **AP-01**: Project skeleton & infrastructure
+2. ✅ **AP-02**: Query parameter validation (q, bbox, datetime, limit, sortby, token)
+3. 🚧 **AP-03**: STAC core endpoints (baseline implemented)
+4. 🚧 **AP-04**: Collection search – filter implementation (DB integration pending)
+5. ⏳ **AP-05**: CQL2 filtering integration
 
-## 📄 Lizenz
+## 📄 License
 
 Apache-2.0
 
 ## 👥 Team
 
-STAC Atlas API Team - Robin (Teamleiter), Jonas, George, Vincent
+STAC Atlas API Team — Robin (Team lead), Jonas, George, Vincent
