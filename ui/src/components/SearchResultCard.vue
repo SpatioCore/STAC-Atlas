@@ -22,7 +22,7 @@
     </div>
 
     <div class="card-footer">
-      <button class="btn btn-primary">
+      <button class="btn btn-primary" @click="viewDetails">
         View Details
       </button>
       
@@ -36,7 +36,10 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
+import { useRouter } from 'vue-router';
 import { ExternalLink } from 'lucide-vue-next';
+
+const router = useRouter();
 
 const props = defineProps<{
   id: string;
@@ -53,6 +56,10 @@ const tagList = computed(() => {
   if (!props.tags) return [];
   return props.tags.split(',').map(tag => tag.trim());
 });
+
+const viewDetails = () => {
+  router.push(`/collections/${props.id}`);
+};
 </script>
 
 <style scoped>

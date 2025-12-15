@@ -7,10 +7,10 @@
   background-color: var(--bg);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: var(--spacing-lg);
+  padding: var(--spacing-md);
   transition: box-shadow var(--transition-fast);
-  
-  max-width: 400px; 
+  max-width: 400px;
+  gap: var(--spacing-sm);
 }
 
 .search-result-card:hover {
@@ -22,7 +22,7 @@
   display: flex;
   justify-content: space-between; 
   align-items: flex-start;
-  margin-bottom: var(--spacing-xs);
+  /* margin-bottom: var(--spacing-xs); */
 }
 
 .card-title {
@@ -45,21 +45,20 @@
 .provider-info {
   font-size: var(--font-size-sm);
   color: var(--muted-fg);
-  margin-bottom: var(--spacing-md);
+  margin-bottom: var(--spacing-sm);
 }
 
 
 .description {
   font-size: var(--font-size-base);
   color: var(--text);
-  margin-bottom: var(--spacing-md);
+  margin-bottom: 0;
   line-height: var(--line-height-normal);
-  
-  
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  margin-bottom: var(--spacing-md);
 }
 
 /* Tags */
@@ -67,14 +66,14 @@
   display: flex;
   flex-wrap: wrap;
   gap: var(--spacing-sm);
-  margin-bottom: var(--spacing-lg);
+  /* margin-bottom: var(--spacing-lg); */
 }
 
 .tag {
   background-color: var(--muted-bg);
   color: var(--text);
   font-size: var(--font-size-xs);
-  padding: var(--spacing-xs) var(--spacing-sm);
+  padding: 0 var(--spacing-sm);
   border-radius: var(--radius-sm);
   font-weight: var(--font-weight-medium);
   border : 1px solid var(--border);
@@ -95,6 +94,7 @@
   border: none;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: var(--spacing-xs); 
   transition: background-color var(--transition-fast), border-color var(--transition-fast);
 }
@@ -114,6 +114,7 @@
   background-color: transparent;
   color: var(--text);
   border: 1px solid var(--border);
+  flex: 1; 
 }
 
 .btn-secondary:hover {

@@ -27,7 +27,7 @@ h5 { font-size: var(--font-size-lg); }
 h6 { font-size: var(--font-size-base); }
 
 p {
-  margin-bottom: var(--spacing-md);
+  margin-bottom: var(--spacing-sm);
 }
 
 a {

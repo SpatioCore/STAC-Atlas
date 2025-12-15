@@ -101,20 +101,20 @@
 
   /* Other */
   --navbar-height: 58px;
-  --search-section-height: 110px;
+  --search-section-height: 118px;
 }
 
 /* Dark Mode */
 .dark {
-  --bg: oklch(0.145 0 0);
+  --bg: oklch(0.18 0 0);
   --fg: oklch(0.985 0 0);
-  --card: oklch(0.145 0 0);
+  --card: oklch(0.22 0 0);
   --card-fg: oklch(0.985 0 0);
   --popover: oklch(0.145 0 0);
   --popover-fg: oklch(0.985 0 0);
   --destructive: oklch(0.396 0.141 25.723);
   --destructive-fg: oklch(0.637 0.237 25.331);
-  --border: oklch(0.269 0 0);
+  --border: oklch(0.3 0 0);
   --input: oklch(0.25 0 0);
   --ring: oklch(0.439 0 0);
 

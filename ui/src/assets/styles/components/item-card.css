@@ -4,7 +4,7 @@
   display: flex;        
   gap: var(--spacing-md);            
   padding: var(--spacing-md);
-  background-color: var(--bg);
+  background-color: var(--card);
   border: 1px solid var(--border); 
   border-radius: var(--radius);
   cursor: pointer;      
@@ -15,7 +15,6 @@
 
 .item-card:hover {
   background-color: var(--muted);
-  
 }
 
 .item-card__thumbnail {
@@ -37,9 +36,6 @@
   font-weight: var(--font-weight-semibold);
   color: var(--primary);
   font-size: var(--font-size-base);
-  margin-bottom: var(--spacing-xs);
-  
-  
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

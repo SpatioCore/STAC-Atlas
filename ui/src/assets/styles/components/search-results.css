@@ -1,5 +1,5 @@
 .search-results {
-  padding: var(--spacing-xl);
+  padding: var(--spacing-md);
   background: var(--bg);
   min-height: calc(100vh - var(--search-section-height) - var(--navbar-height));
 }
@@ -7,7 +7,7 @@
 .results-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-  gap: var(--spacing-lg);
+  gap: var(--spacing-md);
 }
 
 @media (max-width: 768px) {
