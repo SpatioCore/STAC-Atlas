@@ -105,7 +105,6 @@
 }
 
 .btn-apply {
-  flex: 1;
   padding: var(--spacing-sm) var(--spacing-md);
   border-radius: var(--radius);
   font-size: var(--font-size-sm);
