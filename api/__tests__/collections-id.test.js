@@ -61,14 +61,15 @@ describe('GET /collections/:id - Single collection retrieval', () => {
 });
 
   test('should return 400 for a negative id', async () => {
-    const res = await request(app)
-      // use a negative number
-      .get('collections/-1234')
-      .expect(400);
+  const negativeId = '-1';
 
-      expect(res.body).toHaveProperty('code', 'InvalidParameter');
-      expect(res.body.description).toMatch(/id/i);
-  })
+  const res = await request(app)
+    .get(`/collections/${encodeURIComponent(negativeId)}`)
+    .expect(400);
+
+  expect(res.body).toHaveProperty('code', 'InvalidParameter');
+  expect(res.body.description).toMatch(/id/i);
+})
   
   test('should return 404 for a non-existing numeric id', async () => {
     // use a very large id that is unlikely to exist
