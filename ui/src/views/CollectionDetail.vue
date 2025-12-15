@@ -10,8 +10,8 @@
           <h1 class="collection-detail__title">{{ collectionTitle }}</h1>
           <div class="collection-detail__badges">
             <span class="badge badge--primary">{{ provider }}</span>
-            <span class="badge badge--secondary">{{ platform }}</span>
-            <span class="badge badge--tertiary" v-if="license">{{ license }}</span>
+            <span class="badge">{{ platform }}</span>
+            <span class="badge" v-if="license">{{ license }}</span>
           </div>
         </div>
         <!-- Overview and Bounding Box together -->
