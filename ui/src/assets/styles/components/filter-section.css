@@ -104,8 +104,7 @@
   padding-top: var(--spacing-sm);
 }
 
-.btn-apply,
-.btn-reset {
+.btn-apply {
   flex: 1;
   padding: var(--spacing-sm) var(--spacing-md);
   border-radius: var(--radius);
@@ -114,27 +113,8 @@
   cursor: pointer;
   transition: opacity var(--transition-fast), box-shadow var(--transition-fast);
   box-shadow: var(--shadow);
-}
-
-.btn-apply {
   background: var(--primary);
   color: var(--text-white);
   border: none;
-}
-
-.btn-apply:hover {
-  background-color: var(--secondary);
-  box-shadow: var(--shadow-sm);
-
-}
-
-.btn-reset {
-  background: transparent;
-  color: var(--text);
-  border: 1px solid var(--border);
-}
-
-.btn-reset:hover {
-  background: var(--hover);
-  box-shadow: var(--shadow-sm);
+  width: 100%;
 }

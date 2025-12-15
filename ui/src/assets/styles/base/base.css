@@ -37,14 +37,28 @@ a {
 
 button {
   font-family: var(--font-family-base);
-  font-size: var(--font-size-base);
+  font-size: var(--font-size-sm);
   font-weight: var(--font-weight-medium);
   color: var(--text);
   background-color: var(--bg);
   border: 1px solid var(--border);
-  padding: 0 var(--spacing-md);
+  padding: var(--spacing-xs) var(--spacing-md);
   border-radius: var(--radius-sm);
   transition: background-color var(--transition-fast), color var(--transition-fast);
+  /* flex: 1; */
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  cursor: pointer;
+}
+
+button:hover {
+  border-color: var(--primary);
+  color: var(--text);
+  box-shadow: var(--shadow-md);
+  transform: scale(1.01);
 }
 
 /* Utilities */
