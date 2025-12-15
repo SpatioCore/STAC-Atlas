@@ -51,17 +51,8 @@
   transition: background-color var(--transition-fast);
 }
 
-.filter-action-btn:hover {
-  color: var(--text-white);
-  background: var(--secondary);
-}
-
 .filter-action-btn .icon {
   color: var(--fg);
-}
-
-.filter-action-btn:hover .icon {
-  color: var(--text-white);
 }
 
 .filter-label {
@@ -104,9 +95,7 @@
   padding-top: var(--spacing-sm);
 }
 
-.btn-apply,
-.btn-reset {
-  flex: 1;
+.btn-apply {
   padding: var(--spacing-sm) var(--spacing-md);
   border-radius: var(--radius);
   font-size: var(--font-size-sm);
@@ -114,27 +103,8 @@
   cursor: pointer;
   transition: opacity var(--transition-fast), box-shadow var(--transition-fast);
   box-shadow: var(--shadow);
-}
-
-.btn-apply {
   background: var(--primary);
   color: var(--text-white);
   border: none;
-}
-
-.btn-apply:hover {
-  background-color: var(--secondary);
-  box-shadow: var(--shadow-sm);
-
-}
-
-.btn-reset {
-  background: transparent;
-  color: var(--text);
-  border: 1px solid var(--border);
-}
-
-.btn-reset:hover {
-  background: var(--hover);
-  box-shadow: var(--shadow-sm);
+  width: 100%;
 }

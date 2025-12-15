@@ -55,14 +55,55 @@
             </div>
 
             <div class="bbox-section__actions">
-              <button class="btn btn-primary">
+              <button>
                 <ExternalLink :size="16" />
                 View Source
               </button>
-              <button class="btn btn-primary">
-                <User :size="16" />
-                Contact
-              </button>
+              <div class="contact-wrapper">
+                <button @click="toggleContactModal">
+                  <User :size="16" />
+                  Contact
+                </button>
+                
+                <!-- Contact Popover -->
+                <div v-if="showContactModal" class="contact-popover">
+                  <h3 class="popover-title">Contact Information</h3>
+                  
+                  <div class="contact-field">
+                    <label class="contact-label">Name</label>
+                    <div class="contact-value-wrapper">
+                      <span class="contact-value">{{ collectionData.contact?.name || 'N/A' }}</span>
+                      <button 
+                        class="copy-btn" 
+                        @click="copyToClipboard(collectionData.contact?.name || '')"
+                        title="Copy to clipboard"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="contact-field">
+                    <label class="contact-label">Email</label>
+                    <div class="contact-value-wrapper">
+                      <span class="contact-value">{{ collectionData.contact?.email || 'N/A' }}</span>
+                      <button 
+                        class="copy-btn" 
+                        @click="copyToClipboard(collectionData.contact?.email || '')"
+                        title="Copy to clipboard"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </section>
         </div>
@@ -109,6 +150,19 @@ import ItemCard from '@/components/ItemCard.vue'
 const route = useRoute()
 const collectionId = computed(() => route.params.id as string)
 const mapContainer = ref<HTMLElement | null>(null)
+const showContactModal = ref(false)
+
+const copyToClipboard = async (text: string) => {
+  try {
+    await navigator.clipboard.writeText(text)
+  } catch (err) {
+    console.error('Failed to copy:', err)
+  }
+}
+
+const toggleContactModal = () => {
+  showContactModal.value = !showContactModal.value
+}
 
 // Data would typically be fetched from an API based on collectionId
 const collectionTitle = ref('')
@@ -121,6 +175,7 @@ const bbox = ref({ west: '0', south: '0', east: '0', north: '0' })
 const infoCards = ref<Array<{ icon: string; label: string; value: string }>>([])
 const metadata = ref<Array<{ label: string; value: string }>>([])
 const items = ref<Array<{ id: string; date: string; coverage: string; thumbnail: string }>>([])
+const collectionData = ref<{ contact?: { name: string; email: string } }>({})
 
 onMounted(() => {
   // Fetch collection data here based on collectionId.value

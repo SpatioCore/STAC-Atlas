@@ -22,11 +22,11 @@
     </div>
 
     <div class="card-footer">
-      <button class="btn btn-primary" @click="viewDetails">
+      <button @click="viewDetails">
         View Details
       </button>
       
-      <button class="btn btn-secondary">
+      <button>
         Source
         <ExternalLink :size="16" />
       </button>
