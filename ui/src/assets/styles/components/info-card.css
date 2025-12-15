@@ -4,8 +4,9 @@
   display: flex;       
   align-items: center; 
   gap: var(--spacing-md);           
-  padding: var(--spacing-xs) var(--spacing-sm);   
-  background-color: var(--bg); 
+  padding: var(--spacing-xs) var(--spacing-md);   
+  background-color: var(--card);
+  border: 1px solid var(--border);
   border-radius: var(--radius);  
   box-shadow: var(--shadow);
 }
@@ -14,11 +15,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 40px;         
-  height: 40px;
-  background-color: var(--hover); 
-  border-radius: 50%;  
-  color: var(--muted-fg);
+  color: var(--primary);
   font-size: var(--font-size-lg);   
 }
 
@@ -30,13 +27,11 @@
 .info-card__label {
   font-size: var(--font-size-sm);  
   color: var(--muted-fg);      
-  text-transform: uppercase; 
-  letter-spacing: 0.05em;
   font-weight: var(--font-weight-semibold);
 }
 
 .info-card__value {
-  font-size: var(--font-size-base);   
-  font-weight: var(--font-weight-bold);    
+  font-size: var(--font-size-sm);   
+  font-weight: var(--font-weight-medium);    
   color: var(--text);      
 }

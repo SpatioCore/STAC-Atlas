@@ -1,7 +1,7 @@
 <template>
   <div class="info-card">
     <div class="info-card__icon-wrapper">
-      <span class="material-icons" v-if="false">image</span> <span class="icon-placeholder">{{ icon }}</span> 
+      <component :is="iconComponent" :size="20" />
     </div>
 
     <div class="info-card__content">
@@ -12,12 +12,22 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
+import { FileText, Ruler, Calendar } from 'lucide-vue-next'
 
-defineProps<{
+const props = defineProps<{
   icon: string;
   label: string;
   value: string;
-}>();
+}>()
+
+const iconMap: Record<string, any> = {
+  'file': FileText,
+  'ruler': Ruler,
+  'calendar': Calendar
+}
+
+const iconComponent = computed(() => iconMap[props.icon] || FileText)
 </script>
 
 <style scoped>
