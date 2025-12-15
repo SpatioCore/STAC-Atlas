@@ -10,7 +10,7 @@
   padding: var(--spacing-md);
   transition: box-shadow var(--transition-fast);
   max-width: 400px;
-  gap: var(--spacing-sm);
+  gap: var(--spacing-xs);
 }
 
 .search-result-card:hover {
@@ -45,7 +45,6 @@
 .provider-info {
   font-size: var(--font-size-sm);
   color: var(--muted-fg);
-  margin-bottom: var(--spacing-sm);
 }
 
 
@@ -58,14 +57,14 @@
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  margin-bottom: var(--spacing-md);
+  margin-bottom: var(--spacing-xs);
 }
 
 /* Tags */
 .tags-list {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--spacing-sm);
+  gap: var(--spacing-xs);
   /* margin-bottom: var(--spacing-lg); */
 }
 
