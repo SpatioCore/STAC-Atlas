@@ -51,17 +51,8 @@
   transition: background-color var(--transition-fast);
 }
 
-.filter-action-btn:hover {
-  color: var(--text-white);
-  background: var(--secondary);
-}
-
 .filter-action-btn .icon {
   color: var(--fg);
-}
-
-.filter-action-btn:hover .icon {
-  color: var(--text-white);
 }
 
 .filter-label {

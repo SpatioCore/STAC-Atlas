@@ -56,7 +56,6 @@ button {
 
 button:hover {
   border-color: var(--primary);
-  color: var(--text);
   box-shadow: var(--shadow-md);
   transform: scale(1.01);
 }
