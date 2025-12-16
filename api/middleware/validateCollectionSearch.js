@@ -6,7 +6,9 @@ const {
   validateDatetime,
   validateLimit,
   validateSortby,
-  validateToken
+  validateToken,
+  validateProvider,
+  validateLicense
 } = require('../validators/collectionSearchParams');
 
 /**
@@ -23,6 +25,8 @@ const {
  * - limit: Result limit (default 10, max 10000)
  * - sortby: Sort specification (+/-field)
  * - token: Pagination continuation token
+ * - provider: Provider name — filter by data provider
+ * - license: License identifier — filter by collection license
  * 
  * @param {Request} req - Express request object
  * @param {Response} res - Express response object
@@ -81,6 +85,23 @@ function validateCollectionSearchParams(req, res, next) {
     errors.push(tokenResult.error);
   } else {
     normalized.token = tokenResult.normalized;
+  }
+
+  // Validate provider (filter by data provider)
+  const { provider, license } = req.query;
+  const providerResult = validateProvider(provider);
+  if (!providerResult.valid) {
+    errors.push(providerResult.error);
+  } else if (providerResult.normalized !== undefined) {
+    normalized.provider = providerResult.normalized;
+  }
+
+  // Validate license (filter by collection license)
+  const licenseResult = validateLicense(license);
+  if (!licenseResult.valid) {
+    errors.push(licenseResult.error);
+  } else if (licenseResult.normalized !== undefined) {
+    normalized.license = licenseResult.normalized;
   }
   
   // If any validation errors occurred, return 400 with details
