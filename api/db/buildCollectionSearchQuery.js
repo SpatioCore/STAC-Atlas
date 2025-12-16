@@ -217,7 +217,7 @@ function buildCollectionSearchQuery(params) {
     LEFT JOIN LATERAL (
       SELECT jsonb_agg(jsonb_build_object(
         'name', p.provider,
-        'roles', cpr.collection_provider_roles
+        'roles', string_to_array(cpr.collection_provider_roles, ',')
       ) ORDER BY p.provider) AS providers
       FROM collection_providers cpr
       JOIN providers p ON p.id = cpr.provider_id
@@ -272,7 +272,10 @@ function buildCollectionSearchQuery(params) {
   // Note: sortby.field is validated against a whitelist in the calling code; only collection
   // table columns are allowed for sorting (not aggregated fields like keywords/providers).
   if (sortby) {
-    sql += ` ORDER BY c.${sortby.field} ${sortby.direction}`;
+    const sortField = sortby.field;
+    const dir = sortby.direction;
+    const collate = sortField === 'license' ? ' COLLATE "C"' : '';
+    sql += ` ORDER BY c.${sortField}${collate} ${dir}, c.id ASC`;
   } else if (q) {
     sql += ` ORDER BY rank DESC, c.id ASC`;
   } else {

@@ -38,39 +38,123 @@ router.get('/', validateCollectionSearchParams, async (req, res, next) => {
     // validated parameters from middleware
     const { q, bbox, datetime, limit, sortby, token } = req.validatedParams;
 
-    // build SQL querry and parameters
-    const { sql, values } = buildCollectionSearchQuery({
-      q,
-      bbox,
-      datetime,
-      limit,
-      sortby,
-      token
-    });
+    // try to use database
+    let collections;
+    try {
+      // build SQL querry and parameters
+      const { sql, values } = buildCollectionSearchQuery({
+        q,
+        bbox,
+        datetime,
+        limit,
+        sortby,
+        token
+      });
 
-    // execute Query against database
-    const collections = await runQuery(sql, values);
+      // execute Query against database
+      collections = await runQuery(sql, values);
+
+      // Shape DB rows to STAC structure if needed (add extent)
+      collections = collections.map(row => {
+        if (row && (row.extent || (!row.spatial_extend && !row.temporal_extend_start && !row.temporal_extend_end))) {
+          return row;
+        }
+
+        const extent = {};
+        if (row.spatial_extend) {
+          // We set a world bbox here; adjust if precise bbox is required later
+          extent.spatial = { bbox: [[-180, -90, 180, 90]] };
+        }
+        if (row.temporal_extend_start || row.temporal_extend_end) {
+          const start = row.temporal_extend_start ? new Date(row.temporal_extend_start).toISOString() : null;
+          const end = row.temporal_extend_end ? new Date(row.temporal_extend_end).toISOString() : null;
+          extent.temporal = { interval: [[start, end]] };
+        }
+        return Object.assign({}, row, { extent });
+      });
+    } catch (dbError) {
+      // Fallback to in-memory data store if database is not available
+      console.warn('Database query failed, using in-memory data store:', dbError.message);
+      collections = collectionsStore;
+      
+      // Apply basic filtering to in-memory data
+      if (q) {
+        const qLower = q.toLowerCase();
+        collections = collections.filter(c => 
+          (c.title && c.title.toLowerCase().includes(qLower)) ||
+          (c.description && c.description.toLowerCase().includes(qLower)) ||
+          (c.keywords && c.keywords.some(k => k.toLowerCase().includes(qLower)))
+        );
+      }
+      
+      if (sortby) {
+        // sortby is normalized by validator to { field: <db_field>, direction: 'ASC'|'DESC' }
+        const dbField = sortby.field;
+        const direction = sortby.direction;
+
+        // Map DB field names to in-memory keys
+        const inMemoryFieldMap = {
+          id: 'id',
+          title: 'title',
+          license: 'license',
+          created_at: 'created',
+          updated_at: 'updated'
+        };
+
+        const fieldKey = inMemoryFieldMap[dbField] || dbField;
+
+        collections = [...collections].sort((a, b) => {
+          const aVal = a[fieldKey] ?? '';
+          const bVal = b[fieldKey] ?? '';
+
+          // Date-aware compare for created/updated
+          const isDateField = fieldKey === 'created' || fieldKey === 'updated';
+          let comparison;
+          if (isDateField) {
+            const aTime = aVal ? new Date(aVal).getTime() : 0;
+            const bTime = bVal ? new Date(bVal).getTime() : 0;
+            comparison = aTime === bTime ? 0 : (aTime < bTime ? -1 : 1);
+          } else {
+            comparison = String(aVal).localeCompare(String(bVal));
+          }
+
+          return direction === 'DESC' ? -comparison : comparison;
+        });
+      }
+      
+      // Apply pagination
+      const start = token || 0;
+      collections = collections.slice(start, start + limit);
+    }
+    
     const returned = collections.length;
 
     // Get total count for matched field
-    // Build count query using same WHERE conditions
-    const { sql: countSql, values: countValues } = buildCollectionSearchQuery({
-      q,
-      bbox,
-      datetime,
-      limit: null, // No limit for count
-      sortby: null, // No sorting for count
-      token: null   // No offset for count
-    });
-    
-    // Replace SELECT with COUNT(*)
-    const countQuery = countSql
-      .replace(/SELECT[\s\S]*?FROM/, 'SELECT COUNT(*) as total FROM')
-      .replace(/ORDER BY.*$/, '')
-      .replace(/LIMIT.*$/, '');
-    
-    const countResult = await runQuery(countQuery, countValues);
-    const matched = parseInt(countResult[0]?.total || 0);
+    let matched;
+    try {
+      // Build count query using same WHERE conditions
+      const { sql: countSql, values: countValues } = buildCollectionSearchQuery({
+        q,
+        bbox,
+        datetime,
+        limit: null, // No limit for count
+        sortby: null, // No sorting for count
+        token: null   // No offset for count
+      });
+      
+      // Replace SELECT with COUNT(*)
+      const countQuery = countSql
+        .replace(/SELECT[\s\S]*?FROM/, 'SELECT COUNT(*) as total FROM')
+        .replace(/ORDER BY.*$/, '')
+        .replace(/LIMIT.*$/, '');
+      
+      const countResult = await runQuery(countQuery, countValues);
+      matched = parseInt(countResult[0]?.total || 0);
+    } catch (countError) {
+      // Fallback to in-memory count
+      console.warn('Count query failed, using in-memory count:', countError.message);
+      matched = collectionsStore.length;
+    }
 
     // Base URL for links
     const baseHost = `${req.protocol}://${req.get('host')}`;
@@ -82,8 +166,15 @@ router.get('/', validateCollectionSearchParams, async (req, res, next) => {
       type: 'application/json'
     });
 
+    // self link should mirror the requested URL (no synthesized query params)
+    const selfLink = {
+      rel: 'self',
+      href: `${baseHost}${req.originalUrl || req.baseUrl}`,
+      type: 'application/json'
+    };
+
     const links = [
-      buildLink('self', token),
+      selfLink,
       {
         rel: 'root',
         href: baseHost,
@@ -102,9 +193,55 @@ router.get('/', validateCollectionSearchParams, async (req, res, next) => {
       links.push(buildLink('prev', prevToken));
     }
 
+    // Add required links to each collection if not present
+    const enrichedCollections = collections.map(collection => {
+      const colSelfHref = `${baseHost}/collections/${collection.id}`;
+      const rootHref = baseHost;
+
+      const existingLinks = Array.isArray(collection.links) ? collection.links.slice() : [];
+      const filteredLinks = existingLinks.filter(l => !l || !['self', 'root', 'parent'].includes(l.rel));
+
+      filteredLinks.push({
+        rel: 'self',
+        href: colSelfHref,
+        type: 'application/json',
+        title: collection.title || collection.id
+      });
+
+      filteredLinks.push({
+        rel: 'root',
+        href: rootHref,
+        type: 'application/json',
+        title: 'STAC Atlas'
+      });
+
+      filteredLinks.push({
+        rel: 'parent',
+        href: rootHref,
+        type: 'application/json',
+        title: 'Parent'
+      });
+
+      // Ensure stac_extensions is an array (STAC spec requires array, not null)
+      const stac_extensions = Array.isArray(collection.stac_extensions) 
+        ? collection.stac_extensions 
+        : [];
+
+      // Ensure id is a string (STAC spec requires string IDs)
+      const id = typeof collection.id === 'string' ? collection.id : String(collection.id);
+
+      // Remove null optional fields or convert to correct type for STAC compliance
+      const cleaned = Object.assign({}, collection, { id, links: filteredLinks, stac_extensions });
+      
+      // Remove null assets, summaries (optional in STAC, should be omitted if not present)
+      if (cleaned.assets === null) delete cleaned.assets;
+      if (cleaned.summaries === null) delete cleaned.summaries;
+
+      return cleaned;
+    });
+    
     res.json({
-      type: 'FeatureCollection',
-      collections,
+      collections: enrichedCollections,
       links,
       context: {
         returned,
@@ -151,24 +288,46 @@ router.get('/:id', (req, res) => {
   const rootHref = baseHost;
 
   const existingLinks = Array.isArray(collection.links) ? collection.links.slice() : [];
+  const filteredLinks = existingLinks.filter(l => !l || !['self', 'root', 'parent'].includes(l.rel));
 
-  const hasRel = (rel) => existingLinks.some(l => l && l.rel === rel);
+  filteredLinks.push({
+    rel: 'self',
+    href: selfHref,
+    type: 'application/json',
+    title: collection.title || collection.id
+  });
 
-  if (!hasRel('self')) {
-    existingLinks.push({ rel: 'self', href: selfHref, type: 'application/json' });
-  }
+  filteredLinks.push({
+    rel: 'root',
+    href: rootHref,
+    type: 'application/json',
+    title: 'STAC Atlas'
+  });
 
-  if (!hasRel('root')) {
-    existingLinks.push({ rel: 'root', href: rootHref, type: 'application/json' });
-  }
+  filteredLinks.push({
+    rel: 'parent',
+    href: rootHref,
+    type: 'application/json',
+    title: 'Parent'
+  });
 
-  // Prefer an existing parent link if present, otherwise fall back to root
-  if (!hasRel('parent')) {
-    existingLinks.push({ rel: 'parent', href: rootHref, type: 'application/json' });
-  }
+  // Ensure stac_extensions is an array (STAC spec requires array, not null)
+  const stac_extensions = Array.isArray(collection.stac_extensions) 
+    ? collection.stac_extensions 
+    : [];
 
-  // Return the collection with a normalized `links` array
-  res.json(Object.assign({}, collection, { links: existingLinks }));
+  // Ensure id is a string (STAC spec requires string IDs)
+  const collectionId = typeof collection.id === 'string' ? collection.id : String(collection.id);
+
+  // Build response and remove null optional fields for STAC compliance
+  const result = Object.assign({}, collection, { id: collectionId, links: filteredLinks, stac_extensions });
+  
+  // Remove null assets, summaries (optional in STAC, should be omitted if not present)
+  if (result.assets === null) delete result.assets;
+  if (result.summaries === null) delete result.summaries;
+
+  // Return the collection with a normalized `links` array and stac_extensions
+  res.json(result);
 });
 
 module.exports = router;

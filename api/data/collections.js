@@ -14,6 +14,8 @@ module.exports = [
     description: 'Sentinel-2 Level-2A processed imagery from Copernicus',
     keywords: ['sentinel-2', 'optical', 'multispectral'],
     license: 'CC-BY-4.0',
+    created: '2018-01-01T00:00:00Z',
+    updated: '2025-01-01T00:00:00Z',
     providers: [
       {
         name: 'ESA',
@@ -25,16 +27,26 @@ module.exports = [
       spatial: { bbox: [[-180, -90, 180, 90]] },
       temporal: { interval: [['2015-06-23T00:00:00Z', null]] }
     },
+    summaries: {
+      'eo:bands': [
+        { name: 'B2', common_name: 'blue' },
+        { name: 'B3', common_name: 'green' },
+        { name: 'B4', common_name: 'red' },
+        { name: 'B5', common_name: 'nir' }
+      ]
+    },
     links: [
       {
         rel: 'self',
         href: 'https://example.com/collections/sentinel-2-l2a',
-        type: 'application/json'
+        type: 'application/json',
+        title: 'Sentinel-2 L2A Collection'
       },
       {
         rel: 'parent',
         href: 'https://example.com/',
-        type: 'application/json'
+        type: 'application/json',
+        title: 'Parent'
       }
     ]
   },
@@ -46,6 +58,8 @@ module.exports = [
     description: 'Landsat 8 Collection 1 Level 1 data',
     keywords: ['landsat', 'optical', 'multispectral'],
     license: 'CC0-1.0',
+    created: '2013-02-11T00:00:00Z',
+    updated: '2024-06-01T00:00:00Z',
     providers: [
       {
         name: 'USGS',
@@ -57,16 +71,26 @@ module.exports = [
       spatial: { bbox: [[-180, -90, 180, 90]] },
       temporal: { interval: [['2013-02-11T00:00:00Z', null]] }
     },
+    summaries: {
+      'eo:bands': [
+        { name: 'B1', common_name: 'coastal' },
+        { name: 'B2', common_name: 'blue' },
+        { name: 'B3', common_name: 'green' },
+        { name: 'B4', common_name: 'red' }
+      ]
+    },
     links: [
       {
         rel: 'self',
         href: 'https://example.com/collections/landsat-8-l1',
-        type: 'application/json'
+        type: 'application/json',
+        title: 'Landsat 8 Level-1'
       },
       {
         rel: 'parent',
         href: 'https://example.com/',
-        type: 'application/json'
+        type: 'application/json',
+        title: 'Parent'
       }
     ]
   },
@@ -78,6 +102,8 @@ module.exports = [
     description: 'MODIS daily composites from NASA Earth Observatories',
     keywords: ['modis', 'daily', 'thermal', 'visible'],
     license: 'CC0-1.0',
+    created: '2000-02-24T00:00:00Z',
+    updated: '2023-12-31T00:00:00Z',
     providers: [
       {
         name: 'NASA',
@@ -89,16 +115,25 @@ module.exports = [
       spatial: { bbox: [[-180, -90, 180, 90]] },
       temporal: { interval: [['2000-02-24T00:00:00Z', null]] }
     },
+    summaries: {
+      'eo:bands': [
+        { name: '1', common_name: 'red' },
+        { name: '2', common_name: 'nir' },
+        { name: '31', common_name: 'thermal' }
+      ]
+    },
     links: [
       {
         rel: 'self',
         href: 'https://example.com/collections/modis',
-        type: 'application/json'
+        type: 'application/json',
+        title: 'MODIS Daily'
       },
       {
         rel: 'parent',
         href: 'https://example.com/',
-        type: 'application/json'
+        type: 'application/json',
+        title: 'Parent'
       }
     ]
   }

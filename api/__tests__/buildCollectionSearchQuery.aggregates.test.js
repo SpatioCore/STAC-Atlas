@@ -64,7 +64,7 @@ describe('buildCollectionSearchQuery - aggregated fields', () => {
 
       expect(sql).toMatch(/jsonb_agg\(jsonb_build_object\(/);
       expect(sql).toMatch(/'name', p\.provider/);
-      expect(sql).toMatch(/'roles', cpr\.collection_provider_roles/);
+      expect(sql).toMatch(/'roles', string_to_array\(cpr\.collection_provider_roles, ','\)/);
       expect(sql).toMatch(/FROM collection_providers cpr/);
       expect(sql).toMatch(/JOIN providers p ON p\.id = cpr\.provider_id/);
       expect(sql).toMatch(/WHERE cpr\.collection_id = c\.id/);

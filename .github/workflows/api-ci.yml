@@ -199,12 +199,114 @@ jobs:
           cd api
           npm audit --audit-level=moderate
         continue-on-error: true
+
+  # Job 4: STAC API Validator (Core + Collections)
+  stac-api-validator:
+    name: STAC API Validator
+    runs-on: ubuntu-latest
+    needs: [test, build]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          cache: 'npm'
+          cache-dependency-path: api/package-lock.json
+
+      - name: Create .env file
+        working-directory: api
+        run: |
+          cat > .env << EOF
+          # Server Configuration
+          PORT=3000
+          NODE_ENV=test
+          
+          # Database Configuration
+          DB_HOST=${{ secrets.DB_HOST }}
+          DB_PORT=${{ secrets.DB_PORT }}
+          DB_NAME=${{ secrets.DB_NAME }}
+          DB_USER=${{ secrets.DB_USER }}
+          DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+          DB_SSL=false
+          
+          # Connection Pool Configuration
+          DB_POOL_MAX=20
+          DB_POOL_MIN=2
+          DB_IDLE_TIMEOUT=30000
+          DB_CONNECTION_TIMEOUT=10000
+          
+          # CORS Configuration
+          CORS_ORIGIN=*
+          
+          # API Configuration
+          API_TITLE=STAC Atlas
+          API_DESCRIPTION=A centralized platform for managing, indexing, and providing STAC Collection metadata
+          API_VERSION=1.1.0
+          EOF
+
+      - name: Install dependencies
+        run: |
+          cd api
+          npm ci
+
+      - name: Start API server
+        working-directory: api
+        run: |
+          npm start > $GITHUB_WORKSPACE/api/api-server.log 2>&1 &
+          echo $! > $GITHUB_WORKSPACE/api/api-server.pid
+
+      - name: Wait for API to be ready
+        run: |
+          for i in {1..12}; do
+            if curl -fsS http://localhost:3000/collections > /dev/null; then
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "API did not become ready in time" >&2
+          exit 1
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install STAC API Validator
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install stac-api-validator
+
+      - name: Run STAC API Validator (core + collections)
+        run: |
+          python -m stac_api_validator \
+            --root-url http://localhost:3000 \
+            --conformance core \
+            --conformance collections \
+            --collection sentinel-2-l2a
+
+      - name: Kill API server
+        if: always()
+        run: |
+          if [ -f "$GITHUB_WORKSPACE/api/api-server.pid" ]; then
+            kill "$(cat $GITHUB_WORKSPACE/api/api-server.pid)" || true
+          fi
+
+      - name: Upload API server log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stac-api-server-log
+          path: api/api-server.log
+          retention-days: 7
   
-  # Job 4: Status-Check for Branch Protection
+  # Job 5: Status-Check for Branch Protection
   ci-success:
     name: CI Success
     runs-on: ubuntu-latest
-    needs: [test, build]
+    needs: [test, build, stac-api-validator]
     if: always()
     
     steps:

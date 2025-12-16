@@ -1,5 +1,7 @@
 const { Pool } = require('pg');
-require('dotenv').config();
+require('dotenv').config({ override: true });
+
+const IS_TEST = process.env.NODE_ENV === 'test' || process.env.JEST_WORKER_ID !== undefined;
 
 // PostgreSQL/PostGIS database connection
 // Support both DATABASE_URL and individual environment variables
@@ -46,7 +48,7 @@ pool.on('error', (err) => {
 });
 
 // Handle pool connection events for monitoring (only in non-test environments)
-if (process.env.NODE_ENV !== 'test') {
+if (!IS_TEST) {
   pool.on('connect', (client) => {
     console.log('New client connected to pool');
   });
@@ -107,16 +109,18 @@ async function testConnection(retries = 3, delay = 2000) {
         waitingCount: pool.waitingCount
       };
       
-      console.log('✓ Database connection successful');
-      console.log(`  Database: ${result.rows[0].database}`);
-      console.log(`  PostgreSQL version: ${result.rows[0].version.split(',')[0]}`);
-      console.log(`  Pool status: ${poolInfo.totalCount} total, ${poolInfo.idleCount} idle, ${poolInfo.waitingCount} waiting`);
+      if (!IS_TEST) {
+        console.log('✓ Database connection successful');
+        console.log(`  Database: ${result.rows[0].database}`);
+        console.log(`  PostgreSQL version: ${result.rows[0].version.split(',')[0]}`);
+        console.log(`  Pool status: ${poolInfo.totalCount} total, ${poolInfo.idleCount} idle, ${poolInfo.waitingCount} waiting`);
+      }
       return true;
     } catch (error) {
       console.error(`✗ Connection attempt ${i + 1}/${retries} failed:`, error.message);
       
       if (i < retries - 1) {
-        console.log(`  Retrying in ${delay / 1000} seconds...`);
+        if (!IS_TEST) console.log(`  Retrying in ${delay / 1000} seconds...`);
         await new Promise(resolve => setTimeout(resolve, delay));
       }
     }
@@ -247,7 +251,7 @@ async function queryByDistance(table, point, distance, geomColumn = 'spatial_ext
 async function closePool() {
   try {
     await pool.end();
-    console.log('✓ Database connection pool closed');
+    if (!IS_TEST) console.log('✓ Database connection pool closed');
   } catch (error) {
     console.error('Error closing database pool:', error.message);
     throw error;
