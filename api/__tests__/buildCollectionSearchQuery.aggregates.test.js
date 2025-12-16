@@ -124,9 +124,12 @@ describe('buildCollectionSearchQuery - aggregated fields', () => {
       const q = 'satellite';
       const { sql } = buildCollectionSearchQuery({ q, limit: 10, token: 0 });
 
-      expect(sql).toMatch(/coalesce\(c\.title,''\)/);
-      expect(sql).toMatch(/coalesce\(c\.description,''\)/);
-      expect(sql).toMatch(/to_tsvector\('simple', coalesce\(c\.title,''\) \|\| ' ' \|\| coalesce\(c\.description,''\)\)/);
+      expect(sql).toMatch(/coalesce\(c\.title,\s*''\)/);
+      expect(sql).toMatch(/coalesce\(c\.description,\s*''\)/);
+      // Accept any to_tsvector('simple', ...) expression that contains title and description
+      expect(sql).toMatch(/to_tsvector\('simple',[\s\S]*coalesce\(c\.title,\s*''\)[\s\S]*coalesce\(c\.description,\s*''\)/);
+      // Ensure keywords are included via the LATERAL kw.keywords JSONB aggregation
+      expect(sql).toMatch(/jsonb_array_elements_text\(kw\.keywords\)/);
     });
   });
 
