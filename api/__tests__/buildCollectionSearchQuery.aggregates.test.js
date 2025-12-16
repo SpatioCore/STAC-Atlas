@@ -59,6 +59,7 @@ describe('buildCollectionSearchQuery - aggregated fields', () => {
       expect(sql).toMatch(/WHERE cse\.collection_id = c\.id/);
     });
 
+    // Provider roles are converted to arrays in SQL via string_to_array
     test('includes LATERAL JOIN for providers with roles', () => {
       const { sql } = buildCollectionSearchQuery({ limit: 10, token: 0 });
 

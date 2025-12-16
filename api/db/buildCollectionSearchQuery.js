@@ -114,7 +114,7 @@ function buildCollectionSearchQuery(params) {
   const values = [];
   let i = 1;
 
-  // Full-text search using weighted tsvector across title (weight A) and description (weight B).
+  // Full-text search using tsvector across title and description.
   //
   // Notes:
   // - Currently only title and description are included in the weighted tsvector.
@@ -199,6 +199,8 @@ function buildCollectionSearchQuery(params) {
   //
   // LATERAL JOINs aggregate related data (keywords, extensions, providers, assets, summaries,
   // and crawl timestamps) from normalized tables without duplicating collection rows.
+  // NOTE: Provider roles are stored as a comma-separated string and converted to array
+  // via string_to_array for STAC compliance.
   // Each LEFT JOIN LATERAL subquery returns a single aggregated row per collection.
   let sql = selectPart + `
     FROM collection c
@@ -274,6 +276,7 @@ function buildCollectionSearchQuery(params) {
   if (sortby) {
     const sortField = sortby.field;
     const dir = sortby.direction;
+    // Apply ASCII collation only for license to match deterministic tests
     const collate = sortField === 'license' ? ' COLLATE "C"' : '';
     sql += ` ORDER BY c.${sortField}${collate} ${dir}, c.id ASC`;
   } else if (q) {

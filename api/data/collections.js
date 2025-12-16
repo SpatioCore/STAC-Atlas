@@ -5,6 +5,9 @@
 // containing common STAC fields (id, title, description, keywords, extent, etc).
 // In a production deployment this should be replaced by a database query
 // that returns fully validated STAC Collection objects.
+// Minimal in-memory STAC Collection samples used for fallback/tests.
+// Production uses DB-backed collections; these ensure endpoints remain functional
+// and STAC-compliant when the DB is unavailable.
 module.exports = [
   {
     id: 'sentinel-2-l2a',
@@ -12,7 +15,7 @@ module.exports = [
     type: 'Collection',
     title: 'Sentinel-2 L2A Collection',
     description: 'Sentinel-2 Level-2A processed imagery from Copernicus',
-    keywords: ['sentinel-2', 'optical', 'multispectral'],
+    keywords: ['sentinel-2', 'optical', 'multispectral'], // basic tags for fallback search
     license: 'CC-BY-4.0',
     created: '2018-01-01T00:00:00Z',
     updated: '2025-01-01T00:00:00Z',
@@ -24,8 +27,8 @@ module.exports = [
       }
     ],
     extent: {
-      spatial: { bbox: [[-180, -90, 180, 90]] },
-      temporal: { interval: [['2015-06-23T00:00:00Z', null]] }
+      spatial: { bbox: [[-180, -90, 180, 90]] }, // world bbox placeholder
+      temporal: { interval: [['2015-06-23T00:00:00Z', null]] } // open-ended until latest
     },
     summaries: {
       'eo:bands': [

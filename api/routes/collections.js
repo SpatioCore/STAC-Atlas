@@ -32,6 +32,9 @@ async function runQuery(sql, params = []) {
  * Validated/normalized values are available in req.validatedParams.
  */
 router.get('/', validateCollectionSearchParams, async (req, res, next) => {
+  // STAC Collections endpoint (DB-first with safe in-memory fallback).
+  // Normalizes STAC-required fields (extent, links), coerces IDs to strings,
+  // and removes null optional fields for spec compliance.
   // TODO: Think about the parameters `provider` and `license` - They are mentioned in the bid, but not in the STAC spec
   // TODO: Implement CQL2 filtering (GET endpoint) and add validator for `filter`, filter-lang` parameters
   try {
@@ -55,6 +58,7 @@ router.get('/', validateCollectionSearchParams, async (req, res, next) => {
       collections = await runQuery(sql, values);
 
       // Shape DB rows to STAC structure if needed (add extent)
+      // DB stores spatial/temporal separately; STAC expects `extent` combining them.
       collections = collections.map(row => {
         if (row && (row.extent || (!row.spatial_extend && !row.temporal_extend_start && !row.temporal_extend_end))) {
           return row;
@@ -74,6 +78,7 @@ router.get('/', validateCollectionSearchParams, async (req, res, next) => {
       });
     } catch (dbError) {
       // Fallback to in-memory data store if database is not available
+      // Keep behavior consistent: basic q filter, sort, and pagination.
       console.warn('Database query failed, using in-memory data store:', dbError.message);
       collections = collectionsStore;
       
@@ -264,6 +269,8 @@ router.get('/', validateCollectionSearchParams, async (req, res, next) => {
  * - 404 NotFound with proper error format if collection does not exist
  */
 router.get('/:id', (req, res) => {
+  // STAC single-collection endpoint backed by in-memory store.
+  // Normalizes links, ensures `stac_extensions`, and converts id to string.
   // TODO: Create a proper validator middleware for :id parameter to avoid SQL injection, etc.
   const { id } = req.params;
   

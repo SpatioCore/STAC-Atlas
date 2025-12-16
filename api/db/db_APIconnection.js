@@ -1,6 +1,7 @@
 const { Pool } = require('pg');
 require('dotenv').config({ override: true });
 
+// Detect Jest/test environment to suppress noisy pool logs during tests
 const IS_TEST = process.env.NODE_ENV === 'test' || process.env.JEST_WORKER_ID !== undefined;
 
 // PostgreSQL/PostGIS database connection
@@ -48,6 +49,7 @@ pool.on('error', (err) => {
 });
 
 // Handle pool connection events for monitoring (only in non-test environments)
+// These logs can cause Jest "Cannot log after tests" warnings, so we guard them.
 if (!IS_TEST) {
   pool.on('connect', (client) => {
     console.log('New client connected to pool');
