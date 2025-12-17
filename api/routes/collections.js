@@ -32,7 +32,6 @@ async function runQuery(sql, params = []) {
  * Validated/normalized values are available in req.validatedParams.
  */
 router.get('/', validateCollectionSearchParams, async (req, res, next) => {
-  // STAC Collections endpoint (DB-first with safe in-memory fallback).
   // Normalizes STAC-required fields (extent, links), coerces IDs to strings,
   // and removes null optional fields for spec compliance.
   // TODO: Think about the parameters `provider` and `license` - They are mentioned in the bid, but not in the STAC spec

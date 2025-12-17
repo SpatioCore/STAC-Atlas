@@ -14,7 +14,6 @@ describe('Collection Search API - Query Parameters', () => {
         .get('/collections')
         .expect(200);
 
-   // expect(response.body).toHaveProperty('type', 'FeatureCollection') (not sure if needed because some test fail)
       expect(response.body).toHaveProperty('collections');
       expect(response.body).toHaveProperty('context');
       expect(response.body.context.limit).toBe(10); // default limit
@@ -366,7 +365,6 @@ describe('Collection Search API - Query Parameters', () => {
         .expect(200);
       
       expect(response.body).toMatchObject({
-      //type: 'FeatureCollection', (not sure if needed because some test fail)
         collections: expect.any(Array),
         links: expect.any(Array),
         context: {

@@ -111,18 +111,16 @@ async function testConnection(retries = 3, delay = 2000) {
         waitingCount: pool.waitingCount
       };
       
-      if (!IS_TEST) {
-        console.log('✓ Database connection successful');
-        console.log(`  Database: ${result.rows[0].database}`);
-        console.log(`  PostgreSQL version: ${result.rows[0].version.split(',')[0]}`);
-        console.log(`  Pool status: ${poolInfo.totalCount} total, ${poolInfo.idleCount} idle, ${poolInfo.waitingCount} waiting`);
-      }
+      console.log('✓ Database connection successful');
+      console.log(`  Database: ${result.rows[0].database}`);
+      console.log(`  PostgreSQL version: ${result.rows[0].version.split(',')[0]}`);
+      console.log(`  Pool status: ${poolInfo.totalCount} total, ${poolInfo.idleCount} idle, ${poolInfo.waitingCount} waiting`);
       return true;
     } catch (error) {
       console.error(`✗ Connection attempt ${i + 1}/${retries} failed:`, error.message);
       
       if (i < retries - 1) {
-        if (!IS_TEST) console.log(`  Retrying in ${delay / 1000} seconds...`);
+        console.log(`  Retrying in ${delay / 1000} seconds...`);
         await new Promise(resolve => setTimeout(resolve, delay));
       }
     }
@@ -253,7 +251,7 @@ async function queryByDistance(table, point, distance, geomColumn = 'spatial_ext
 async function closePool() {
   try {
     await pool.end();
-    if (!IS_TEST) console.log('✓ Database connection pool closed');
+    console.log('✓ Database connection pool closed');
   } catch (error) {
     console.error('Error closing database pool:', error.message);
     throw error;

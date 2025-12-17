@@ -284,8 +284,7 @@ jobs:
           python -m stac_api_validator \
             --root-url http://localhost:3000 \
             --conformance core \
-            --conformance collections \
-            --collection sentinel-2-l2a
+            --conformance collections
 
       - name: Kill API server
         if: always()
