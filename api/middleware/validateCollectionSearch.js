@@ -37,7 +37,7 @@ function validateCollectionSearchParams(req, res, next) {
   const normalized = {};
   
   // Extract query parameters
-  const { q, bbox, datetime, limit, sortby, token } = req.query;
+  const { q, bbox, datetime, limit, sortby, token, provider, license } = req.query;
   
   // Validate q (free-text search)
   const qResult = validateQ(q);
@@ -88,7 +88,6 @@ function validateCollectionSearchParams(req, res, next) {
   }
 
   // Validate provider (filter by data provider)
-  const { provider, license } = req.query;
   const providerResult = validateProvider(provider);
   if (!providerResult.valid) {
     errors.push(providerResult.error);
