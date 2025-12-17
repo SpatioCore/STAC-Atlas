@@ -1,4 +1,4 @@
-import type { CollectionsResponse } from '@/types/collection'
+import type { CollectionsResponse, Collection } from '@/types/collection'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'
 
@@ -27,6 +27,18 @@ export const api = {
     
     if (!response.ok) {
       throw new Error(`Failed to fetch collections: ${response.statusText}`)
+    }
+    
+    return response.json()
+  },
+
+  async getCollection(id: string | number): Promise<Collection> {
+    const url = `${API_BASE_URL}/collections/${id}`
+    
+    const response = await fetch(url)
+    
+    if (!response.ok) {
+      throw new Error(`Failed to fetch collection: ${response.statusText}`)
     }
     
     return response.json()

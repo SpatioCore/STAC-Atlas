@@ -1,19 +1,13 @@
 const express = require('express');
 const router = express.Router();
-const collectionsStore = require('../data/collections'); // change with the real collections when we have them
 const { validateCollectionSearchParams } = require('../middleware/validateCollectionSearch');
 const { query } = require('../db/db_APIconnection');
 const { buildCollectionSearchQuery } = require('../db/buildCollectionSearchQuery');
 
 // helper to run the built query (from documentation)
 async function runQuery(sql, params = []) {
-  try {
-    const result = await query(sql, params);
-    return result.rows;
-  } catch (error) {
-    console.error('Query error in /collections:', error);
-    throw error;
-  }
+  const result = await query(sql, params);
+  return result.rows;
 }
 
 /**
@@ -126,49 +120,69 @@ router.get('/', validateCollectionSearchParams, async (req, res, next) => {
  * - 200 OK with full Collection object if found
  * - 404 NotFound with proper error format if collection does not exist
  */
-router.get('/:id', (req, res) => {
-  // TODO: Create a proper validator middleware for :id parameter to avoid SQL injection, etc.
-  const { id } = req.params;
-  
-  // Look up the collection in the data store by ID
-  // When connected to a DB, replace this with a SQL query (SELECT * FROM collections WHERE id = ?)
-  const collection = collectionsStore.find(c => c.id === id);
-  
-  if (!collection) {
-    // Return 404 with standardized error format
-    return res.status(404).json({
-      code: 'NotFound',
-      description: `Collection with id '${id}' not found`,
-      id: id
-    });
+router.get('/:id', async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    
+    // Use the same SQL structure as the list endpoint
+    const sql = `
+      SELECT 
+        id, 
+        stac_version, 
+        type, 
+        title, 
+        description, 
+        license,
+        spatial_extend,
+        temporal_extend_start,
+        temporal_extend_end,
+        created_at,
+        updated_at,
+        is_api,
+        is_active,
+        full_json
+      FROM collection
+      WHERE id = $1
+    `;
+    
+    const collections = await runQuery(sql, [id]);
+    
+    if (!collections || collections.length === 0) {
+      // Return 404 with standardized error format
+      return res.status(404).json({
+        code: 'NotFound',
+        description: `Collection with id '${id}' not found`,
+        id: id
+      });
+    }
+    
+    const collection = collections[0];
+    
+    // Build standardized links
+    const baseHost = `${req.protocol}://${req.get('host')}`;
+    const selfHref = `${baseHost}/collections/${id}`;
+    const rootHref = baseHost;
+
+    const existingLinks = Array.isArray(collection.links) ? collection.links.slice() : [];
+    const hasRel = (rel) => existingLinks.some(l => l && l.rel === rel);
+
+    if (!hasRel('self')) {
+      existingLinks.push({ rel: 'self', href: selfHref, type: 'application/json' });
+    }
+
+    if (!hasRel('root')) {
+      existingLinks.push({ rel: 'root', href: rootHref, type: 'application/json' });
+    }
+
+    if (!hasRel('parent')) {
+      existingLinks.push({ rel: 'parent', href: rootHref, type: 'application/json' });
+    }
+
+    // Return the collection with normalized links array
+    res.json(Object.assign({}, collection, { links: existingLinks }));
+  } catch (error) {
+    next(error);
   }
-  
-  // Return the full STAC Collection object
-  // Ensure the response includes at least self, root and parent links.
-  // Start from any links the collection already provides and add missing ones.
-  const baseHost = `${req.protocol}://${req.get('host')}`;
-  const selfHref = `${baseHost}/collections/${id}`;
-  const rootHref = baseHost;
-
-  const existingLinks = Array.isArray(collection.links) ? collection.links.slice() : [];
-
-  const hasRel = (rel) => existingLinks.some(l => l && l.rel === rel);
-
-  if (!hasRel('self')) {
-    existingLinks.push({ rel: 'self', href: selfHref, type: 'application/json' });
-  }
-
-  if (!hasRel('root')) {
-    existingLinks.push({ rel: 'root', href: rootHref, type: 'application/json' });
-  }
-
-  // Prefer an existing parent link if present, otherwise fall back to root
-  if (!hasRel('parent')) {
-    existingLinks.push({ rel: 'parent', href: rootHref, type: 'application/json' });
-  }
-
-  // Return the collection with a normalized `links` array
-  res.json(Object.assign({}, collection, { links: existingLinks }));
 });
 
 module.exports = router;
