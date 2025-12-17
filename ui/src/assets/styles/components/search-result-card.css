@@ -23,7 +23,6 @@
   display: flex;
   justify-content: space-between; 
   align-items: flex-start;
-  height: 24px; /* Fixed height for one line */
 }
 
 .card-title {
@@ -105,4 +104,10 @@
 .card-footer {
   display: flex;
   gap: var(--spacing-sm);
+}
+
+.card-footer button:first-child {
+  background-color: var(--primary);
+  border: none;
+  color: var(--text-white);
 }
