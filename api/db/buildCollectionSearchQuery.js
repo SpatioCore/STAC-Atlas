@@ -138,10 +138,9 @@ function buildCollectionSearchQuery(params) {
   // Full-text search using weighted tsvector across title (weight A) and description (weight B).
   //
   // Notes:
-  // - Title, description and keywords are included in the weighted tsvector.
-  //   Keywords are taken from the LATERAL `kw.keywords` JSONB aggregation.
-  //   We extract text with `jsonb_array_elements_text(...)` and `string_agg`
-  //   so keywords participate in full-text search and ranking without an extra join.
+  // - Currently only title and description are included in the weighted tsvector.
+  //   Collection keywords must also participate in full-text search.
+  //   This will be added once the database team finalizes how keywords should be aggregated (JOIN + string_agg or dedicated tsvector).
   // - We use `plainto_tsquery` to convert user-entered text into a tsquery. This keeps
   //   behaviour simple and predictable for short queries entered by users.
   // - `ts_rank_cd` computes a relevance score; we add it to the SELECT list as `rank`
@@ -154,21 +153,8 @@ function buildCollectionSearchQuery(params) {
   if (q) {
     const queryIndex = i; // remember index to reuse for rank and condition
 
-    // Weighted combined tsvector expression (using alias 'c' for collection table).
-    // Use the LATERAL `kw.keywords` aggregation (jsonb array) in the tsvector.
-    // We extract text from the jsonb array via `jsonb_array_elements_text` and
-    // `string_agg` so keywords participate in full-text search without running
-    // a separate per-row join here.
-    const vectorExpr = `to_tsvector('simple', (
-      coalesce(c.title, '') || ' ' ||
-      coalesce(c.description, '') || ' ' ||
-      coalesce(
-        (
-          SELECT string_agg(value, ' ') FROM jsonb_array_elements_text(kw.keywords) AS t(value)
-        ),
-        ''
-      )
-    ))`;
+    // Weighted combined tsvector expression (using alias 'c' for collection table)
+    const vectorExpr = `to_tsvector('simple', coalesce(c.title,'') || ' ' || coalesce(c.description,''))`;
 
     // Add rank to selected columns (ts_rank_cd => constant-duration ranking function)
     // The computed `rank` is available in the result rows and used for ordering
