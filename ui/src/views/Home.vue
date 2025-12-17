@@ -212,6 +212,12 @@ onMounted(() => {
 .pagination-btn.active {
   background-color: var(--primary);
   border-color: var(--primary);
+  color: var(--text-white);
+}
+
+.pagination-btn.active:hover {
+  background-color: var(--primary);
+  border-color: var(--primary);
 }
 
 .pagination-btn:disabled {
