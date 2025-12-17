@@ -3,11 +3,11 @@
     <div class="card-header">
       <div class="card-header__top">
         <h3 class="card-title">{{ title }}</h3>
-        <span class="license-badge">{{ license }}</span>
       </div>
       
       <div class="provider-info">
-        {{ provider }} • {{ platform }}
+        <!-- <span class="license-badge">{{ license }}</span> -->
+        {{ provider }} • {{ platform }}  
       </div>
     </div>
 
@@ -52,7 +52,7 @@ const props = defineProps<{
 // Extract data from full_json (STAC Collection) or fallback to top-level fields
 const title = computed(() => props.collection.title || props.collection.full_json?.title || 'Untitled Collection');
 const description = computed(() => props.collection.description || props.collection.full_json?.description || 'No description available');
-const license = computed(() => props.collection.license || props.collection.full_json?.license || 'Unknown');
+// const license = computed(() => props.collection.license || props.collection.full_json?.license || 'Unknown');
 
 // Get provider from full_json.providers array
 const provider = computed(() => {
