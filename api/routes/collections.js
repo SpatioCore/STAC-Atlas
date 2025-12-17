@@ -1,6 +1,5 @@
 const express = require('express');
 const router = express.Router();
-const collectionsStore = require('../data/collections'); // change with the real collections when we have them
 const { validateCollectionSearchParams } = require('../middleware/validateCollectionSearch');
 const { query } = require('../db/db_APIconnection');
 const { buildCollectionSearchQuery } = require('../db/buildCollectionSearchQuery');
@@ -76,59 +75,14 @@ router.get('/', validateCollectionSearchParams, async (req, res, next) => {
         return Object.assign({}, row, { extent });
       });
     } catch (dbError) {
-      // Fallback to in-memory data store if database is not available
-      // Keep behavior consistent: basic q filter, sort, and pagination.
-      console.warn('Database query failed, using in-memory data store:', dbError.message);
-      collections = collectionsStore;
-      
-      // Apply basic filtering to in-memory data
-      if (q) {
-        const qLower = q.toLowerCase();
-        collections = collections.filter(c => 
-          (c.title && c.title.toLowerCase().includes(qLower)) ||
-          (c.description && c.description.toLowerCase().includes(qLower)) ||
-          (c.keywords && c.keywords.some(k => k.toLowerCase().includes(qLower)))
-        );
-      }
-      
-      if (sortby) {
-        // sortby is normalized by validator to { field: <db_field>, direction: 'ASC'|'DESC' }
-        const dbField = sortby.field;
-        const direction = sortby.direction;
-
-        // Map DB field names to in-memory keys
-        const inMemoryFieldMap = {
-          id: 'id',
-          title: 'title',
-          license: 'license',
-          created_at: 'created',
-          updated_at: 'updated'
-        };
-
-        const fieldKey = inMemoryFieldMap[dbField] || dbField;
-
-        collections = [...collections].sort((a, b) => {
-          const aVal = a[fieldKey] ?? '';
-          const bVal = b[fieldKey] ?? '';
-
-          // Date-aware compare for created/updated
-          const isDateField = fieldKey === 'created' || fieldKey === 'updated';
-          let comparison;
-          if (isDateField) {
-            const aTime = aVal ? new Date(aVal).getTime() : 0;
-            const bTime = bVal ? new Date(bVal).getTime() : 0;
-            comparison = aTime === bTime ? 0 : (aTime < bTime ? -1 : 1);
-          } else {
-            comparison = String(aVal).localeCompare(String(bVal));
-          }
-
-          return direction === 'DESC' ? -comparison : comparison;
-        });
-      }
-      
-      // Apply pagination
-      const start = token || 0;
-      collections = collections.slice(start, start + limit);
+      // Database connection failed
+      console.error('Database query failed:', dbError.message);
+      res.status(503).json({
+        code: 'ServiceUnavailable',
+        description: 'Database service is not available',
+        error: dbError.message
+      });
+      return;
     }
     
     const returned = collections.length;
@@ -155,9 +109,14 @@ router.get('/', validateCollectionSearchParams, async (req, res, next) => {
       const countResult = await runQuery(countQuery, countValues);
       matched = parseInt(countResult[0]?.total || 0);
     } catch (countError) {
-      // Fallback to in-memory count
-      console.warn('Count query failed, using in-memory count:', countError.message);
-      matched = collectionsStore.length;
+      // Count query failed - database error
+      console.error('Count query failed:', countError.message);
+      res.status(503).json({
+        code: 'ServiceUnavailable',
+        description: 'Database service is not available',
+        error: countError.message
+      });
+      return;
     }
 
     // Base URL for links
@@ -267,24 +226,24 @@ router.get('/', validateCollectionSearchParams, async (req, res, next) => {
  * - 200 OK with full Collection object if found
  * - 404 NotFound with proper error format if collection does not exist
  */
-router.get('/:id', (req, res) => {
-  // STAC single-collection endpoint backed by in-memory store.
-  // Normalizes links, ensures `stac_extensions`, and converts id to string.
-  // TODO: Create a proper validator middleware for :id parameter to avoid SQL injection, etc.
-  const { id } = req.params;
-  
-  // Look up the collection in the data store by ID
-  // When connected to a DB, replace this with a SQL query (SELECT * FROM collections WHERE id = ?)
-  const collection = collectionsStore.find(c => c.id === id);
-  
-  if (!collection) {
-    // Return 404 with standardized error format
-    return res.status(404).json({
-      code: 'NotFound',
-      description: `Collection with id '${id}' not found`,
-      id: id
-    });
-  }
+router.get('/:id', async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    
+    // Query the database for the collection by ID
+    const sql = 'SELECT * FROM collections WHERE id = $1';
+    const result = await query(sql, [id]);
+    
+    if (result.rows.length === 0) {
+      // Return 404 with standardized error format
+      return res.status(404).json({
+        code: 'NotFound',
+        description: `Collection with id '${id}' not found`,
+        id: id
+      });
+    }
+    
+    const collection = result.rows[0];
   
   // Return the full STAC Collection object
   // Ensure the response includes at least self, root and parent links.
@@ -326,14 +285,17 @@ router.get('/:id', (req, res) => {
   const collectionId = typeof collection.id === 'string' ? collection.id : String(collection.id);
 
   // Build response and remove null optional fields for STAC compliance
-  const result = Object.assign({}, collection, { id: collectionId, links: filteredLinks, stac_extensions });
+  const collectionResponse = Object.assign({}, collection, { id: collectionId, links: filteredLinks, stac_extensions });
   
   // Remove null assets, summaries (optional in STAC, should be omitted if not present)
-  if (result.assets === null) delete result.assets;
-  if (result.summaries === null) delete result.summaries;
+  if (collectionResponse.assets === null) delete collectionResponse.assets;
+  if (collectionResponse.summaries === null) delete collectionResponse.summaries;
 
   // Return the collection with a normalized `links` array and stac_extensions
-  res.json(result);
+  res.json(collectionResponse);
+  } catch (error) {
+    next(error);
+  }
 });
 
 module.exports = router;
