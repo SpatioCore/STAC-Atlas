@@ -71,10 +71,9 @@ describe('STAC API Core Endpoints', () => {
   });
 
   describe('GET /collections', () => {
-    it('should return a FeatureCollection structure', async () => {
+    it('should return a Collections structure', async () => {
       const response = await request(app).get('/collections').expect(200);
-
-      expect(response.body).toHaveProperty('type', 'FeatureCollection');
+      
       expect(response.body).toHaveProperty('collections');
       expect(response.body).toHaveProperty('links');
       expect(response.body).toHaveProperty('context');
@@ -87,6 +86,22 @@ describe('STAC API Core Endpoints', () => {
       expect(response.body.context).toHaveProperty('returned');
       expect(response.body.context).toHaveProperty('limit');
       expect(response.body.context).toHaveProperty('matched');
+    });
+
+    it('should return STAC Collection objects with required fields', async () => {
+      const response = await request(app).get('/collections').expect(200);
+
+      if (response.body.collections.length > 0) {
+        const collection = response.body.collections[0];
+        expect(collection).toHaveProperty('id');
+        expect(collection).toHaveProperty('stac_version');
+        expect(collection).toHaveProperty('title');
+        expect(collection).toHaveProperty('description');
+        expect(collection).toHaveProperty('license');
+        expect(collection).toHaveProperty('extent');
+        expect(collection).toHaveProperty('links');
+        expect(Array.isArray(collection.links)).toBe(true);
+      }
     });
   });
 
@@ -127,6 +142,47 @@ describe('STAC API Core Endpoints', () => {
       expect(response.body).toHaveProperty('code', 'NotFound');
       expect(response.body).toHaveProperty('description');
       expect(response.body).toHaveProperty('id', 'non-existent-id');
+    });
+
+    it('should return STAC Collection object with required fields', async () => {
+      // Dynamically get first available collection from DB
+      const collectionsResponse = await request(app).get('/collections').expect(200);
+      
+      if (collectionsResponse.body.collections.length === 0) {
+        console.warn('No collections available in DB, skipping test');
+        return;
+      }
+
+      const firstCollectionId = collectionsResponse.body.collections[0].id;
+      const response = await request(app).get(`/collections/${firstCollectionId}`).expect(200);
+
+      expect(response.body).toHaveProperty('id', firstCollectionId);
+      expect(response.body).toHaveProperty('stac_version');
+      expect(response.body).toHaveProperty('title');
+      expect(response.body).toHaveProperty('description');
+      expect(response.body).toHaveProperty('license');
+      expect(response.body).toHaveProperty('extent');
+      expect(response.body).toHaveProperty('links');
+      expect(Array.isArray(response.body.links)).toBe(true);
+    });
+
+    it('should include self and root links', async () => {
+      // Dynamically get first available collection from DB
+      const collectionsResponse = await request(app).get('/collections').expect(200);
+      
+      if (collectionsResponse.body.collections.length === 0) {
+        console.warn('No collections available in DB, skipping test');
+        return;
+      }
+
+      const firstCollectionId = collectionsResponse.body.collections[0].id;
+      const response = await request(app).get(`/collections/${firstCollectionId}`).expect(200);
+
+      const links = response.body.links;
+      const linkRels = links.map(link => link.rel);
+
+      expect(linkRels).toContain('self');
+      expect(linkRels).toContain('root');
     });
   });
 });

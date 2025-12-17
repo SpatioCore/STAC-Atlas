@@ -1,6 +1,5 @@
 const express = require('express');
 const router = express.Router();
-const collectionsStore = require('../data/collections'); // change with the real collections when we have them
 const { validateCollectionSearchParams } = require('../middleware/validateCollectionSearch');
 const { query } = require('../db/db_APIconnection');
 const { buildCollectionSearchQuery } = require('../db/buildCollectionSearchQuery');
@@ -32,45 +31,93 @@ async function runQuery(sql, params = []) {
  * Validated/normalized values are available in req.validatedParams.
  */
 router.get('/', validateCollectionSearchParams, async (req, res, next) => {
+  // Normalizes STAC-required fields (extent, links), coerces IDs to strings,
+  // and removes null optional fields for spec compliance.
   // TODO: Think about the parameters `provider` and `license` - They are mentioned in the bid, but not in the STAC spec
   // TODO: Implement CQL2 filtering (GET endpoint) and add validator for `filter`, filter-lang` parameters
   try {
     // validated parameters from middleware
     const { q, bbox, datetime, limit, sortby, token } = req.validatedParams;
 
-    // build SQL querry and parameters
-    const { sql, values } = buildCollectionSearchQuery({
-      q,
-      bbox,
-      datetime,
-      limit,
-      sortby,
-      token
-    });
+    // try to use database
+    let collections;
+    try {
+      // build SQL querry and parameters
+      const { sql, values } = buildCollectionSearchQuery({
+        q,
+        bbox,
+        datetime,
+        limit,
+        sortby,
+        token
+      });
 
-    // execute Query against database
-    const collections = await runQuery(sql, values);
+      // execute Query against database
+      collections = await runQuery(sql, values);
+
+      // Shape DB rows to STAC structure if needed (add extent)
+      // DB stores spatial/temporal separately; STAC expects `extent` combining them.
+      collections = collections.map(row => {
+        if (row && (row.extent || (!row.spatial_extend && !row.temporal_extend_start && !row.temporal_extend_end))) {
+          return row;
+        }
+
+        const extent = {};
+        if (row.spatial_extend) {
+          // We set a world bbox here; adjust if precise bbox is required later
+          extent.spatial = { bbox: [[-180, -90, 180, 90]] };
+        }
+        if (row.temporal_extend_start || row.temporal_extend_end) {
+          const start = row.temporal_extend_start ? new Date(row.temporal_extend_start).toISOString() : null;
+          const end = row.temporal_extend_end ? new Date(row.temporal_extend_end).toISOString() : null;
+          extent.temporal = { interval: [[start, end]] };
+        }
+        return Object.assign({}, row, { extent });
+      });
+    } catch (dbError) {
+      // Database connection failed
+      console.error('Database query failed:', dbError.message);
+      res.status(503).json({
+        code: 'ServiceUnavailable',
+        description: 'Database service is not available',
+        error: dbError.message
+      });
+      return;
+    }
+    
     const returned = collections.length;
 
     // Get total count for matched field
-    // Build count query using same WHERE conditions
-    const { sql: countSql, values: countValues } = buildCollectionSearchQuery({
-      q,
-      bbox,
-      datetime,
-      limit: null, // No limit for count
-      sortby: null, // No sorting for count
-      token: null   // No offset for count
-    });
-    
-    // Replace SELECT with COUNT(*)
-    const countQuery = countSql
-      .replace(/SELECT[\s\S]*?FROM/, 'SELECT COUNT(*) as total FROM')
-      .replace(/ORDER BY.*$/, '')
-      .replace(/LIMIT.*$/, '');
-    
-    const countResult = await runQuery(countQuery, countValues);
-    const matched = parseInt(countResult[0]?.total || 0);
+    let matched;
+    try {
+      // Build count query using same WHERE conditions
+      const { sql: countSql, values: countValues } = buildCollectionSearchQuery({
+        q,
+        bbox,
+        datetime,
+        limit: null, // No limit for count
+        sortby: null, // No sorting for count
+        token: null   // No offset for count
+      });
+      
+      // Replace SELECT with COUNT(*)
+      const countQuery = countSql
+        .replace(/SELECT[\s\S]*?FROM/, 'SELECT COUNT(*) as total FROM')
+        .replace(/ORDER BY.*$/, '')
+        .replace(/LIMIT.*$/, '');
+      
+      const countResult = await runQuery(countQuery, countValues);
+      matched = parseInt(countResult[0]?.total || 0);
+    } catch (countError) {
+      // Count query failed - database error
+      console.error('Count query failed:', countError.message);
+      res.status(503).json({
+        code: 'ServiceUnavailable',
+        description: 'Database service is not available',
+        error: countError.message
+      });
+      return;
+    }
 
     // Base URL for links
     const baseHost = `${req.protocol}://${req.get('host')}`;
@@ -82,8 +129,15 @@ router.get('/', validateCollectionSearchParams, async (req, res, next) => {
       type: 'application/json'
     });
 
+    // self link should mirror the requested URL (no synthesized query params)
+    const selfLink = {
+      rel: 'self',
+      href: `${baseHost}${req.originalUrl || req.baseUrl}`,
+      type: 'application/json'
+    };
+
     const links = [
-      buildLink('self', token),
+      selfLink,
       {
         rel: 'root',
         href: baseHost,
@@ -102,9 +156,55 @@ router.get('/', validateCollectionSearchParams, async (req, res, next) => {
       links.push(buildLink('prev', prevToken));
     }
 
+    // Add required links to each collection if not present
+    const enrichedCollections = collections.map(collection => {
+      const colSelfHref = `${baseHost}/collections/${collection.id}`;
+      const rootHref = baseHost;
+
+      const existingLinks = Array.isArray(collection.links) ? collection.links.slice() : [];
+      const filteredLinks = existingLinks.filter(l => !l || !['self', 'root', 'parent'].includes(l.rel));
+
+      filteredLinks.push({
+        rel: 'self',
+        href: colSelfHref,
+        type: 'application/json',
+        title: collection.title || collection.id
+      });
+
+      filteredLinks.push({
+        rel: 'root',
+        href: rootHref,
+        type: 'application/json',
+        title: 'STAC Atlas'
+      });
+
+      filteredLinks.push({
+        rel: 'parent',
+        href: rootHref,
+        type: 'application/json',
+        title: 'Parent'
+      });
+
+      // Ensure stac_extensions is an array (STAC spec requires array, not null)
+      const stac_extensions = Array.isArray(collection.stac_extensions) 
+        ? collection.stac_extensions 
+        : [];
+
+      // Ensure id is a string (STAC spec requires string IDs)
+      const id = typeof collection.id === 'string' ? collection.id : String(collection.id);
+
+      // Remove null optional fields or convert to correct type for STAC compliance
+      const cleaned = Object.assign({}, collection, { id, links: filteredLinks, stac_extensions });
+      
+      // Remove null assets, summaries (optional in STAC, should be omitted if not present)
+      if (cleaned.assets === null) delete cleaned.assets;
+      if (cleaned.summaries === null) delete cleaned.summaries;
+
+      return cleaned;
+    });
+    
     res.json({
-      type: 'FeatureCollection',
-      collections,
+      collections: enrichedCollections,
       links,
       context: {
         returned,
@@ -126,22 +226,24 @@ router.get('/', validateCollectionSearchParams, async (req, res, next) => {
  * - 200 OK with full Collection object if found
  * - 404 NotFound with proper error format if collection does not exist
  */
-router.get('/:id', (req, res) => {
-  // TODO: Create a proper validator middleware for :id parameter to avoid SQL injection, etc.
-  const { id } = req.params;
-  
-  // Look up the collection in the data store by ID
-  // When connected to a DB, replace this with a SQL query (SELECT * FROM collections WHERE id = ?)
-  const collection = collectionsStore.find(c => c.id === id);
-  
-  if (!collection) {
-    // Return 404 with standardized error format
-    return res.status(404).json({
-      code: 'NotFound',
-      description: `Collection with id '${id}' not found`,
-      id: id
-    });
-  }
+router.get('/:id', async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    
+    // Query the database for the collection by ID
+    const sql = 'SELECT * FROM collections WHERE id = $1';
+    const result = await query(sql, [id]);
+    
+    if (result.rows.length === 0) {
+      // Return 404 with standardized error format
+      return res.status(404).json({
+        code: 'NotFound',
+        description: `Collection with id '${id}' not found`,
+        id: id
+      });
+    }
+    
+    const collection = result.rows[0];
   
   // Return the full STAC Collection object
   // Ensure the response includes at least self, root and parent links.
@@ -151,24 +253,49 @@ router.get('/:id', (req, res) => {
   const rootHref = baseHost;
 
   const existingLinks = Array.isArray(collection.links) ? collection.links.slice() : [];
+  const filteredLinks = existingLinks.filter(l => !l || !['self', 'root', 'parent'].includes(l.rel));
 
-  const hasRel = (rel) => existingLinks.some(l => l && l.rel === rel);
+  filteredLinks.push({
+    rel: 'self',
+    href: selfHref,
+    type: 'application/json',
+    title: collection.title || collection.id
+  });
 
-  if (!hasRel('self')) {
-    existingLinks.push({ rel: 'self', href: selfHref, type: 'application/json' });
+  filteredLinks.push({
+    rel: 'root',
+    href: rootHref,
+    type: 'application/json',
+    title: 'STAC Atlas'
+  });
+
+  filteredLinks.push({
+    rel: 'parent',
+    href: rootHref,
+    type: 'application/json',
+    title: 'Parent'
+  });
+
+  // Ensure stac_extensions is an array (STAC spec requires array, not null)
+  const stac_extensions = Array.isArray(collection.stac_extensions) 
+    ? collection.stac_extensions 
+    : [];
+
+  // Ensure id is a string (STAC spec requires string IDs)
+  const collectionId = typeof collection.id === 'string' ? collection.id : String(collection.id);
+
+  // Build response and remove null optional fields for STAC compliance
+  const collectionResponse = Object.assign({}, collection, { id: collectionId, links: filteredLinks, stac_extensions });
+  
+  // Remove null assets, summaries (optional in STAC, should be omitted if not present)
+  if (collectionResponse.assets === null) delete collectionResponse.assets;
+  if (collectionResponse.summaries === null) delete collectionResponse.summaries;
+
+  // Return the collection with a normalized `links` array and stac_extensions
+  res.json(collectionResponse);
+  } catch (error) {
+    next(error);
   }
-
-  if (!hasRel('root')) {
-    existingLinks.push({ rel: 'root', href: rootHref, type: 'application/json' });
-  }
-
-  // Prefer an existing parent link if present, otherwise fall back to root
-  if (!hasRel('parent')) {
-    existingLinks.push({ rel: 'parent', href: rootHref, type: 'application/json' });
-  }
-
-  // Return the collection with a normalized `links` array
-  res.json(Object.assign({}, collection, { links: existingLinks }));
 });
 
 module.exports = router;
