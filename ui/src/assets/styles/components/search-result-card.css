@@ -9,7 +9,8 @@
   border-radius: var(--radius);
   padding: var(--spacing-md);
   transition: box-shadow var(--transition-fast);
-  max-width: 400px;
+  max-width: 500px;
+  min-height: 235px;
   gap: var(--spacing-xs);
 }
 
@@ -65,7 +66,8 @@
   display: flex;
   flex-wrap: wrap;
   gap: var(--spacing-xs);
-  /* margin-bottom: var(--spacing-lg); */
+  max-height: 44px; /* Limit to 2 rows */
+  overflow: hidden;
 }
 
 .tag {
@@ -75,7 +77,13 @@
   padding: 0 var(--spacing-sm);
   border-radius: var(--radius-sm);
   font-weight: var(--font-weight-medium);
-  border : 1px solid var(--border);
+  border: 1px solid var(--border);
+}
+
+.tag-more {
+  background-color: var(--muted-bg);
+  color: var(--muted-fg);
+  font-style: italic;
 }
 
 /* Footer & Buttons */

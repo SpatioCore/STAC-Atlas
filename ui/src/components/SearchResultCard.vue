@@ -15,8 +15,11 @@
       <p class="description">{{ description }}</p>
       
       <div class="tags-list">
-        <span v-for="tag in tagList" :key="tag" class="tag">
+        <span v-for="tag in displayedTags" :key="tag" class="tag">
           {{ tag }}
+        </span>
+        <span v-if="remainingTagsCount > 0" class="tag tag-more">
+          +{{ remainingTagsCount }} more
         </span>
       </div>
     </div>
@@ -69,10 +72,47 @@ const platform = computed(() => {
   return 'N/A';
 });
 
-// Convert keywords array to comma-separated string for tags
+// Convert keywords array for tags
 const tagList = computed(() => {
   const keywords = props.collection.full_json?.keywords;
   return keywords || [];
+});
+
+// Smart tag limiting based on character count to fit in 2 rows
+// Approximate: 500px card width, ~8-12 chars per tag average, 2 rows ~= 100-120 chars
+const MAX_CHAR_LENGTH = 100; // Total character budget for 2 rows
+const MORE_TAG_LENGTH = 10; // Reserve space for "+X more" tag
+
+const displayedTags = computed(() => {
+  if (tagList.value.length === 0) return [];
+  
+  let totalLength = 0;
+  let visibleTags: string[] = [];
+  
+  for (let i = 0; i < tagList.value.length; i++) {
+    const tag = tagList.value[i];
+    const tagLength = tag.length;
+    
+    // Check if adding this tag would exceed the limit
+    // If there are more tags after this, reserve space for "+X more"
+    const hasMoreTags = i < tagList.value.length - 1;
+    const maxAllowed = hasMoreTags ? MAX_CHAR_LENGTH - MORE_TAG_LENGTH : MAX_CHAR_LENGTH;
+    
+    if (totalLength + tagLength <= maxAllowed) {
+      visibleTags.push(tag);
+      totalLength += tagLength;
+    } else {
+      // This tag would overflow, stop here
+      break;
+    }
+  }
+  
+  return visibleTags;
+});
+
+const remainingTagsCount = computed(() => {
+  const remaining = tagList.value.length - displayedTags.value.length;
+  return remaining > 0 ? remaining : 0;
 });
 
 // Get source link from full_json.links
