@@ -1,5 +1,5 @@
 .collection-detail {
-  max-width: 100%;
+  width: 100%;
   margin: 0;
   background-color: var(--bg);
 }
@@ -252,6 +252,10 @@
 /* Items Section */
 .items-section {
   background-color: transparent;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
 }
 
 .items-section__list {
@@ -259,6 +263,8 @@
   flex-direction: column;
   padding: var(--spacing-md);
   gap: var(--spacing-md);
+  overflow-y: auto;
+  flex: 1;
 }
 
 /* Contact Popover Styles */
