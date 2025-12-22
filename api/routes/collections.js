@@ -27,6 +27,8 @@ async function runQuery(sql, params = []) {
  *   - limit: Number of results (default 10, max 10000)
  *   - sortby: Sort by field (+field for ASC, -field for DESC)
  *   - token: Pagination continuation token (offset)
+ *   - provider: Provider name — filter by data provider
+ *   - license: License identifier — filter by collection license
  * 
  * All parameters are validated by validateCollectionSearchParams middleware.
  * Validated/normalized values are available in req.validatedParams.
@@ -36,13 +38,15 @@ router.get('/', validateCollectionSearchParams, async (req, res, next) => {
   // TODO: Implement CQL2 filtering (GET endpoint) and add validator for `filter`, filter-lang` parameters
   try {
     // validated parameters from middleware
-    const { q, bbox, datetime, limit, sortby, token } = req.validatedParams;
+    const { q, bbox, datetime, limit, sortby, token, provider, license } = req.validatedParams;
 
     // build SQL querry and parameters
     const { sql, values } = buildCollectionSearchQuery({
       q,
       bbox,
       datetime,
+      provider,
+      license,
       limit,
       sortby,
       token
@@ -58,6 +62,8 @@ router.get('/', validateCollectionSearchParams, async (req, res, next) => {
       q,
       bbox,
       datetime,
+      provider,
+      license,
       limit: null, // No limit for count
       sortby: null, // No sorting for count
       token: null   // No offset for count
