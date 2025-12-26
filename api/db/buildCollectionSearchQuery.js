@@ -74,6 +74,7 @@
 
 function buildCollectionSearchQuery(params) {
   const {
+    id,
     q,
     bbox,
     datetime,
@@ -121,6 +122,12 @@ function buildCollectionSearchQuery(params) {
   const where = [];
   const values = [];
   let i = 1;
+
+  if (id !== undefined && id !== null) {
+    where.push(`id = $${i}`);
+    values.push(id);
+    i++;
+  }
 
   // Full-text search using weighted tsvector across title (weight A) and description (weight B).
   //
