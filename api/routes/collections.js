@@ -163,7 +163,6 @@ router.get('/:id', validateCollectionId, async (req, res, next) => {
         const collection = rows[0];
 
     const baseHost = `${req.protocol}://${req.get('host')}`;
-    // originalUrl enthält /collections/:id (inkl. evtl. Query-Params, die du hier aber nicht hast)
     const selfHref = `${baseHost}${req.originalUrl}`;
     const rootHref = baseHost;
 
