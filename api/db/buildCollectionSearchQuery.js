@@ -61,6 +61,12 @@
  * @param {number} params.token
  *        Offset for pagination (0-based). Translated to OFFSET $n.
  *
+ * @param {string|undefined} params.provider
+ *        Provider name to filter collections by their provider (case-insensitive match).
+ *
+ * @param {string|undefined} params.license
+ *        License identifier to filter collections by `collection.license`.
+ *
  * @returns {{ sql: string, values: any[] }}
  *          sql    – complete parameterized SQL string
  *          values – array of bind parameters in the correct order
@@ -72,6 +78,8 @@ function buildCollectionSearchQuery(params) {
     q,
     bbox,
     datetime,
+    provider,
+    license,
     sortby,
     limit,
     token
@@ -197,6 +205,25 @@ function buildCollectionSearchQuery(params) {
       values.push(datetime);
       i++;
     }
+  }
+
+  // Provider filter: match collections that have a provider with the given name (case-insensitive)
+  if (provider) {
+    where.push(`EXISTS (
+      SELECT 1 FROM collection_providers cp
+      JOIN providers p ON cp.provider_id = p.id
+      WHERE cp.collection_id = c.id
+        AND lower(p.provider) = lower($${i})
+    )`);
+    values.push(provider);
+    i++;
+  }
+
+  // License filter: direct match on collection.license
+  if (license) {
+    where.push(`c.license = $${i}`);
+    values.push(license);
+    i++;
   }
 
   // Build final SQL from selectPart and add FROM clause with LATERAL JOINs.
