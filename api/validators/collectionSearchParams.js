@@ -264,11 +264,62 @@ function validateToken(token) {
   return { valid: true, normalized: num };
 }
 
+/**
+ * Validates provider parameter
+ * @param {string} provider - Provider name
+ * @returns {Object} { valid: boolean, error?: string, normalized?: string }
+ */
+function validateProvider(provider) {
+  if (!provider) return { valid: true };
+
+  if (typeof provider !== 'string') {
+    return { valid: false, error: 'Parameter "provider" must be a string' };
+  }
+
+  const trimmed = provider.trim();
+  if (trimmed.length === 0) {
+    return { valid: false, error: 'Parameter "provider" must not be empty' };
+  }
+
+  if (trimmed.length > 255) {
+    return { valid: false, error: 'Parameter "provider" exceeds maximum length of 255 characters' };
+  }
+
+  return { valid: true, normalized: trimmed };
+}
+
+/**
+ * Validates license parameter
+ * @param {string} license - License identifier or name
+ * @returns {Object} { valid: boolean, error?: string, normalized?: string }
+ */
+function validateLicense(license) {
+  if (!license) return { valid: true };
+
+  if (typeof license !== 'string') {
+    return { valid: false, error: 'Parameter "license" must be a string' };
+  }
+
+  const trimmed = license.trim();
+  if (trimmed.length === 0) {
+    return { valid: false, error: 'Parameter "license" must not be empty' };
+  }
+
+  if (trimmed.length > 255) {
+    return { valid: false, error: 'Parameter "license" exceeds maximum length of 255 characters' };
+  }
+
+  return { valid: true, normalized: trimmed };
+}
+
 module.exports = {
   validateQ,
   validateBbox,
   validateDatetime,
   validateLimit,
   validateSortby,
-  validateToken
+  validateToken,
+  validateProvider,
+  validateLicense
 };
+

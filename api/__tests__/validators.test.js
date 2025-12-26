@@ -6,7 +6,9 @@ const {
   validateDatetime,
   validateLimit,
   validateSortby,
-  validateToken
+  validateToken,
+  validateProvider,
+  validateLicense
 } = require('../validators/collectionSearchParams');
 
 describe('Collection Search Parameter Validators', () => {
@@ -402,6 +404,82 @@ describe('Collection Search Parameter Validators', () => {
       const result = validateToken('0');
       expect(result.valid).toBe(true);
       expect(result.normalized).toBe(0);
+    });
+  });
+
+  describe('validateProvider - Provider name', () => {
+    it('should accept valid provider string', () => {
+      const result = validateProvider('Copernicus');
+      expect(result.valid).toBe(true);
+      expect(result.normalized).toBe('Copernicus');
+    });
+
+    it('should trim whitespace from provider', () => {
+      const result = validateProvider('  Test Provider  ');
+      expect(result.valid).toBe(true);
+      expect(result.normalized).toBe('Test Provider');
+    });
+
+    it('should accept undefined provider', () => {
+      const result = validateProvider(undefined);
+      expect(result.valid).toBe(true);
+    });
+
+    it('should reject non-string provider', () => {
+      const result = validateProvider(123);
+      expect(result.valid).toBe(false);
+      expect(result.error).toContain('must be a string');
+    });
+
+    it('should reject empty provider', () => {
+      const result = validateProvider('   ');
+      expect(result.valid).toBe(false);
+      expect(result.error).toContain('must not be empty');
+    });
+
+    it('should reject provider exceeding max length', () => {
+      const long = 'a'.repeat(256);
+      const result = validateProvider(long);
+      expect(result.valid).toBe(false);
+      expect(result.error).toContain('exceeds maximum length');
+    });
+  });
+
+  describe('validateLicense - License identifier', () => {
+    it('should accept valid license', () => {
+      const result = validateLicense('CC-BY-4.0');
+      expect(result.valid).toBe(true);
+      expect(result.normalized).toBe('CC-BY-4.0');
+    });
+
+    it('should trim whitespace from license', () => {
+      const result = validateLicense('  CC0  ');
+      expect(result.valid).toBe(true);
+      expect(result.normalized).toBe('CC0');
+    });
+
+    it('should accept undefined license', () => {
+      const result = validateLicense(undefined);
+      expect(result.valid).toBe(true);
+    });
+
+    it('should reject non-string license', () => {
+      const result = validateLicense(123);
+      expect(result.valid).toBe(false);
+      expect(result.error).toContain('must be a string');
+    });
+
+    it('should reject empty license', () => {
+      const result = validateLicense('   ');
+      expect(result.valid).toBe(false);
+      expect(result.error).toContain('must not be empty');
+    });
+
+    it('should reject license exceeding max length', () => {
+      const long = 'a'.repeat(256);
+      const result = validateLicense(long);
+      expect(result.valid).toBe(false);
+      expect(result.error).toContain('exceeds maximum length');
     });
   });
 });
