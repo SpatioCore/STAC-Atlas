@@ -93,6 +93,16 @@
   color: var(--muted-fg);
 }
 
+/* Style the calendar picker icon for date inputs */
+.filter-input::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+}
+
+/* Invert calendar icon to white only in dark mode */
+.dark .filter-input::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+}
+
 .filter-actions {
   display: flex;
   gap: var(--spacing-sm);
