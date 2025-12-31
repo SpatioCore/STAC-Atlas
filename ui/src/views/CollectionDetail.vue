@@ -32,16 +32,6 @@
               <!-- <h3>Description</h3> -->
               <p>{{ description }}</p>
             </div>
-
-            <div class="overview-section__info-cards">
-              <InfoCard
-                v-for="card in infoCards"
-                :key="card.label"
-                :icon="card.icon"
-                :label="card.label"
-                :value="card.value"
-              />
-            </div>
           </section>
 
           <!-- Bounding Box Preview -->
@@ -159,16 +149,32 @@
           </section>
         </div>
 
-        <!-- Metadata -->
-        <section class="metadata-section">
-          <h2 class="section-title">Metadata</h2>
-          <div class="metadata-section__grid">
-            <div class="metadata-item" v-for="meta in metadata" :key="meta.label">
-              <span class="metadata-item__label">{{ meta.label }}</span>
-              <span class="metadata-item__value">{{ meta.value }}</span>
+        <!-- Metadata and Info Cards Row -->
+        <div class="collection-detail__bottom-row">
+          <!-- Info Cards -->
+          <section class="info-cards-section">
+            <div class="info-cards-section__grid">
+              <InfoCard
+                v-for="card in infoCards"
+                :key="card.label"
+                :icon="card.icon"
+                :label="card.label"
+                :value="card.value"
+              />
             </div>
-          </div>
-        </section>
+          </section>
+
+          <!-- Metadata -->
+          <section class="metadata-section">
+            <h2 class="section-title">Metadata</h2>
+            <div class="metadata-section__grid">
+              <div class="metadata-item" v-for="meta in metadata" :key="meta.label">
+                <span class="metadata-item__label">{{ meta.label }}</span>
+                <span class="metadata-item__value">{{ meta.value }}</span>
+              </div>
+            </div>
+          </section>
+        </div>
       </div>
 
       <!-- Right Section: Items -->

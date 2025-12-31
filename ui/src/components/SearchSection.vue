@@ -2,7 +2,7 @@
   <div class="search-section">
     <div class="search-header">
       <h2 class="search-title">Search Results</h2>
-      <p class="search-count">{{ resultCount }} collections found</p>
+      <p class="search-count">{{ resultCount }} of {{ totalCount }} collections</p>
     </div>
     
     <div class="search-bar">
@@ -12,7 +12,7 @@
         class="search-input"
         :value="modelValue"
         @input="$emit('update:modelValue', ($event.target as HTMLInputElement).value)"
-        placeholder="Filter results..."
+        placeholder="Search collections by title, description, keywords..."
       />
     </div>
   </div>
@@ -24,6 +24,7 @@ import { Search } from 'lucide-vue-next'
 defineProps<{
   modelValue: string
   resultCount: number
+  totalCount: number
 }>()
 
 defineEmits<{

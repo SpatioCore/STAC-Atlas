@@ -91,6 +91,20 @@
   }
 }
 
+/* Bottom Row - Metadata and Info Cards side by side */
+.collection-detail__bottom-row {
+  display: grid;
+  grid-template-columns: 1fr 450px;
+  gap: var(--spacing-md);
+  align-items: start;
+}
+
+@media (max-width: 1200px) {
+  .collection-detail__bottom-row {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* Right Section - Items */
 .collection-detail__right-section {
   display: flex;
@@ -134,18 +148,21 @@
   color: var(--muted-fg);
   line-height: var(--line-height-relaxed);
   font-size: var(--font-size-sm);
+  max-height: 263px;
+  overflow: auto;
+  margin: 0;
 }
 
-.overview-section__info-cards {
+/* Info Cards Section */
+.info-cards-section {
+  background-color: transparent;
+
+}
+
+.info-cards-section__grid {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-md);
-}
-
-@media (max-width: 768px) {
-  .overview-section__info-cards {
-    grid-template-columns: 1fr;
-  }
+  gap: var(--spacing-sm);
 }
 
 /* Metadata Section */
@@ -377,7 +394,7 @@
 .source-links-list::-webkit-scrollbar {
   color: var(--primary);
   width: 8px;
-  
+
 }
 
 .source-link-item {

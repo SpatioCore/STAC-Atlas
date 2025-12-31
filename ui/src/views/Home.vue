@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import FilterSection from '@/components/FilterSection.vue'
 import SearchSection from '@/components/SearchSection.vue'
 import SearchResults from '@/components/SearchResults.vue'
@@ -15,6 +15,9 @@ const error = ref<string | null>(null)
 const currentPage = ref(1)
 const itemsPerPage = 25
 const totalCollections = ref(0)
+
+// Debounce timer for search
+let searchDebounceTimer: ReturnType<typeof setTimeout> | null = null
 
 // Calculate total pages
 const totalPages = computed(() => Math.ceil(totalCollections.value / itemsPerPage))
@@ -38,7 +41,7 @@ const visiblePages = computed(() => {
   return pages
 })
 
-// Fetch collections with pagination
+// Fetch collections with pagination and search
 const fetchCollections = async (page: number = 1) => {
   loading.value = true
   error.value = null
@@ -47,7 +50,8 @@ const fetchCollections = async (page: number = 1) => {
     const token = (page - 1) * itemsPerPage
     const response = await api.getCollections({ 
       limit: itemsPerPage,
-      token: token
+      token: token,
+      q: searchQuery.value.trim() || undefined
     })
     Collections.value = response.collections
     totalCollections.value = response.context?.matched || 0
@@ -59,6 +63,18 @@ const fetchCollections = async (page: number = 1) => {
     loading.value = false
   }
 }
+
+// Watch for search query changes with debounce
+watch(searchQuery, () => {
+  if (searchDebounceTimer) {
+    clearTimeout(searchDebounceTimer)
+  }
+  
+  searchDebounceTimer = setTimeout(() => {
+    // Reset to page 1 when searching
+    fetchCollections(1)
+  }, 300) // 300ms debounce
+})
 
 // Page navigation handlers
 const goToPage = (page: number) => {
@@ -86,6 +102,7 @@ onMounted(() => {
       <SearchSection 
         v-model="searchQuery"
         :result-count="Collections.length"
+        :total-count="totalCollections"
       />
       
       <div v-if="loading" class="loading-message">
@@ -193,7 +210,7 @@ onMounted(() => {
 .pagination-btn {
   min-width: 20px;
   height: 25px;
-  padding: var(--spacing-sm) var(--spacing-md);
+  padding: 0 var(--spacing-md);
   border: 1px solid var(--border);
   background-color: var(--bg);
   color: var(--text);
