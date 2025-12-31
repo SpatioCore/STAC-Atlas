@@ -84,7 +84,7 @@
 }
 
 .tag {
-  background-color: var(--muted-bg);
+  background-color: var(--bg);
   color: var(--text);
   font-size: var(--font-size-xs);
   padding: 0 var(--spacing-sm);
