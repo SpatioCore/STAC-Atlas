@@ -49,33 +49,33 @@ const props = defineProps<{
   collection: Collection;
 }>();
 
-// Extract data from full_json (STAC Collection) or fallback to top-level fields
+// Extract data from collection (prefer top-level fields, fallback to full_json)
 const title = computed(() => props.collection.title || props.collection.full_json?.title || 'Untitled Collection');
 const description = computed(() => props.collection.description || props.collection.full_json?.description || 'No description available');
 // const license = computed(() => props.collection.license || props.collection.full_json?.license || 'Unknown');
 
-// Get provider from full_json.providers array
+// Get provider from aggregated providers array (from relation tables) or fallback to full_json
 const provider = computed(() => {
-  const providers = props.collection.full_json?.providers;
+  // First try top-level providers (aggregated from DB)
+  const providers = props.collection.providers || props.collection.full_json?.providers;
   if (providers && providers.length > 0) {
     return providers[0].name;
   }
   return 'Unknown Provider';
 });
 
-// Get platform from keywords or just use first keyword
+// Get platform from keywords (first keyword) - prefer aggregated keywords
 const platform = computed(() => {
-  const keywords = props.collection.full_json?.keywords;
+  const keywords = props.collection.keywords || props.collection.full_json?.keywords;
   if (keywords && keywords.length > 0) {
     return keywords[0];
   }
   return 'N/A';
 });
 
-// Convert keywords array for tags
+// Convert keywords array for tags - prefer aggregated keywords from DB
 const tagList = computed(() => {
-  const keywords = props.collection.full_json?.keywords;
-  return keywords || [];
+  return props.collection.keywords || props.collection.full_json?.keywords || [];
 });
 
 // Smart tag limiting based on character count to fit in 2 rows
