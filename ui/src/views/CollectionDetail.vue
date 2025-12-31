@@ -64,10 +64,49 @@
             </div>
 
             <div class="bbox-section__actions">
-              <button>
-                <ExternalLink :size="16" />
-                View Source
-              </button>
+              <div class="source-wrapper">
+                <button @click="toggleSourceModal">
+                  <ExternalLink :size="16" />
+                  View Source
+                </button>
+                
+                <!-- Source Popover -->
+                <div v-if="showSourceModal" class="source-popover">
+                  <h3 class="popover-title">Source Links</h3>
+                  
+                  <div v-if="sourceLinks.length > 0" class="source-links-list">
+                    <div v-for="(link, index) in sourceLinks" :key="index" class="source-link-item">
+                      <div class="source-link-header">
+                        <span class="source-link-rel">{{ link.rel }}</span>
+                        <span v-if="link.type" class="source-link-type">{{ link.type }}</span>
+                      </div>
+                      <div class="source-link-actions">
+                        <a 
+                          :href="link.href" 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          class="source-link-url"
+                          @click="showCopiedFeedback($event, 'Opening link...')"
+                        >
+                          {{ truncateUrl(link.href) }}
+                        </a>
+                        <button 
+                          class="copy-btn" 
+                          @click="copyToClipboardWithFeedback(link.href, $event)"
+                          title="Copy to clipboard"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  <p v-else class="no-data-message">No source links available</p>
+                </div>
+              </div>
+              
               <div class="contact-wrapper">
                 <button @click="toggleContactModal">
                   <User :size="16" />
@@ -76,43 +115,46 @@
                 
                 <!-- Contact Popover -->
                 <div v-if="showContactModal" class="contact-popover">
-                  <h3 class="popover-title">Contact Information</h3>
+                  <h3 class="popover-title">Provider Information</h3>
                   
-                  <div class="contact-field">
-                    <label class="contact-label">Name</label>
-                    <div class="contact-value-wrapper">
-                      <span class="contact-value">{{ collectionData.contact?.name || 'N/A' }}</span>
-                      <button 
-                        class="copy-btn" 
-                        @click="copyToClipboard(collectionData.contact?.name || '')"
-                        title="Copy to clipboard"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                        </svg>
-                      </button>
+                  <div v-if="providerInfo.length > 0" class="providers-list">
+                    <div v-for="(provider, index) in providerInfo" :key="index" class="provider-item">
+                      <div class="provider-header">
+                        <span class="provider-name">{{ provider.name }}</span>
+                        <span class="provider-roles">{{ provider.roles }}</span>
+                      </div>
+                      <p v-if="provider.description" class="provider-description">{{ provider.description }}</p>
+                      <div v-if="provider.url" class="provider-url-wrapper">
+                        <a 
+                          :href="provider.url" 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          class="provider-url"
+                          @click="showCopiedFeedback($event, 'Opening website...')"
+                        >
+                          {{ provider.url }}
+                        </a>
+                        <button 
+                          class="copy-btn" 
+                          @click="copyToClipboardWithFeedback(provider.url, $event)"
+                          title="Copy to clipboard"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                          </svg>
+                        </button>
+                      </div>
                     </div>
                   </div>
-
-                  <div class="contact-field">
-                    <label class="contact-label">Email</label>
-                    <div class="contact-value-wrapper">
-                      <span class="contact-value">{{ collectionData.contact?.email || 'N/A' }}</span>
-                      <button 
-                        class="copy-btn" 
-                        @click="copyToClipboard(collectionData.contact?.email || '')"
-                        title="Copy to clipboard"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                        </svg>
-                      </button>
-                    </div>
-                  </div>
+                  <p v-else class="no-data-message">No provider information available</p>
                 </div>
               </div>
+            </div>
+            
+            <!-- Copy Feedback Toast -->
+            <div v-if="showCopyToast" class="copy-toast">
+              {{ copyToastMessage }}
             </div>
           </section>
         </div>
@@ -165,6 +207,9 @@ const collectionId = computed(() => route.params.id as string)
 const mapContainer = ref<HTMLElement | null>(null)
 const map = ref<maplibregl.Map | null>(null)
 const showContactModal = ref(false)
+const showSourceModal = ref(false)
+const showCopyToast = ref(false)
+const copyToastMessage = ref('')
 const loading = ref(false)
 const error = ref<string | null>(null)
 const collection = ref<Collection | null>(null)
@@ -172,13 +217,48 @@ const collection = ref<Collection | null>(null)
 const copyToClipboard = async (text: string) => {
   try {
     await navigator.clipboard.writeText(text)
+    return true
   } catch (err) {
     console.error('Failed to copy:', err)
+    return false
   }
+}
+
+const copyToClipboardWithFeedback = async (text: string, event: Event) => {
+  event.stopPropagation()
+  const success = await copyToClipboard(text)
+  showToast(success ? 'Copied to clipboard!' : 'Failed to copy')
+}
+
+const showToast = (message: string) => {
+  copyToastMessage.value = message
+  showCopyToast.value = true
+  setTimeout(() => {
+    showCopyToast.value = false
+  }, 2000)
+}
+
+const showCopiedFeedback = (_event: Event, message: string) => {
+  showToast(message)
 }
 
 const toggleContactModal = () => {
   showContactModal.value = !showContactModal.value
+  if (showContactModal.value) {
+    showSourceModal.value = false
+  }
+}
+
+const toggleSourceModal = () => {
+  showSourceModal.value = !showSourceModal.value
+  if (showSourceModal.value) {
+    showContactModal.value = false
+  }
+}
+
+const truncateUrl = (url: string, maxLength: number = 40) => {
+  if (url.length <= maxLength) return url
+  return url.substring(0, maxLength - 3) + '...'
 }
 
 // Computed properties from collection data
@@ -329,7 +409,24 @@ const fetchItems = async () => {
   items.value = fetchedItems
 }
 
-const collectionData = ref<{ contact?: { name: string; email: string } }>({})
+// Provider information computed from full_json
+const providerInfo = computed(() => {
+  const providers = collection.value?.full_json?.providers || []
+  return providers.map(p => ({
+    name: p.name || 'Unknown',
+    roles: Array.isArray(p.roles) ? p.roles.join(', ') : (p.roles || ''),
+    url: p.url || '',
+    description: p.description || ''
+  }))
+})
+
+// Source links computed from full_json
+const sourceLinks = computed(() => {
+  const links = collection.value?.full_json?.links || []
+  // Filter to show only relevant links (self, root, parent, license)
+  const relevantRels = new Set(['self', 'root', 'parent', 'license'])
+  return links.filter(link => relevantRels.has(link.rel))
+})
 
 const initializeMap = () => {
   if (!mapContainer.value || map.value) return
