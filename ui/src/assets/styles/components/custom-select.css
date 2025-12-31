@@ -80,7 +80,7 @@
 }
 
 .select-option {
-  padding: var(--spacing-sm) var(--spacing-md);
+  padding: var(--spacing-xs) var(--spacing-md);
   cursor: pointer;
   color: var(--text);
   font-size: var(--font-size-sm);
