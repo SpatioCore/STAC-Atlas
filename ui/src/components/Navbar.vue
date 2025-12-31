@@ -16,7 +16,7 @@
         :title="`Switch to ${currentLanguage === 'EN' ? 'German' : 'English'}`"
         @click="toggleLanguage"
       >
-        <Globe :size="18" />
+        <!-- <Globe :size="18" /> -->
         {{ currentLanguage }}
       </button>
       
