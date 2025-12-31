@@ -31,6 +31,10 @@
   box-shadow: var(--shadow);
 }
 
+.dark .search-bar {
+  background: var(--card);
+}
+
 .search-bar:hover,
 .search-bar:focus-within {
   border-color: var(--primary);

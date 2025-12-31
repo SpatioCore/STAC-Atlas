@@ -55,6 +55,10 @@
   transition: background-color var(--transition-fast);
 }
 
+.dark .filter-action-btn {
+  background: var(--card);
+}
+
 .filter-action-btn .icon {
   color: var(--fg);
 }
@@ -77,6 +81,10 @@
   font-size: var(--font-size-sm);
   transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
   box-shadow: var(--shadow);
+}
+
+.dark .filter-input {
+  background: var(--card);
 }
 
 .filter-input:hover {
