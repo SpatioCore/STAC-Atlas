@@ -15,6 +15,12 @@ services:
     volumes:
       - stac_data:/var/lib/postgresql/data
       - ./init:/docker-entrypoint-initdb.d
+    networks:
+      - stac-network
 
 volumes:
   stac_data:
+
+networks:
+  stac-network:
+    name: stac-network
