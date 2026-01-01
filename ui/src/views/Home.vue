@@ -1,26 +1,25 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, watch } from 'vue'
+import { storeToRefs } from 'pinia'
 import FilterSection from '@/components/FilterSection.vue'
 import SearchSection from '@/components/SearchSection.vue'
 import SearchResults from '@/components/SearchResults.vue'
 import { api } from '@/services/api'
 import type { Collection } from '@/types/collection'
+import { useFilterStore } from '@/stores/filterStore'
 
-const searchQuery = ref('')
+// Use Pinia store
+const filterStore = useFilterStore()
+const { searchQuery, currentPage, totalCollections, totalPages, activeFilters } = storeToRefs(filterStore)
+
 const Collections = ref<Collection[]>([])
 const loading = ref(false)
 const error = ref<string | null>(null)
 
-// Pagination state
-const currentPage = ref(1)
-const itemsPerPage = 25
-const totalCollections = ref(0)
+const itemsPerPage = 27
 
 // Debounce timer for search
 let searchDebounceTimer: ReturnType<typeof setTimeout> | null = null
-
-// Calculate total pages
-const totalPages = computed(() => Math.ceil(totalCollections.value / itemsPerPage))
 
 // Calculate visible page numbers (show 5 pages at a time)
 const visiblePages = computed(() => {
@@ -51,17 +50,29 @@ const fetchCollections = async (page: number = 1) => {
     const response = await api.getCollections({ 
       limit: itemsPerPage,
       token: token,
-      q: searchQuery.value.trim() || undefined
+      q: searchQuery.value.trim() || undefined,
+      ...activeFilters.value
     })
     Collections.value = response.collections
-    totalCollections.value = response.context?.matched || 0
-    currentPage.value = page
+    filterStore.totalCollections = response.context?.matched || 0
+    filterStore.currentPage = page
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Failed to fetch collections'
     console.error('Error fetching collections:', err)
   } finally {
     loading.value = false
   }
+}
+
+// Handle filter apply - uses store's activeFilters computed property
+const handleFilterApply = () => {
+  fetchCollections(1) // Reset to page 1 when filters change
+}
+
+// Handle filter reset
+const handleFilterReset = () => {
+  filterStore.resetFilters()
+  fetchCollections(1)
 }
 
 // Watch for search query changes with debounce
@@ -96,7 +107,10 @@ onMounted(() => {
 
 <template>
   <div class="home">
-    <FilterSection />
+    <FilterSection 
+      @apply="handleFilterApply"
+      @reset="handleFilterReset"
+    />
     
     <div class="content-area">
       <SearchSection 

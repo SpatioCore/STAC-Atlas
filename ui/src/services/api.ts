@@ -25,6 +25,16 @@ export interface CollectionSearchParams {
   license?: string
 }
 
+export interface ProvidersResponse {
+  providers: string[]
+  total: number
+}
+
+export interface LicensesResponse {
+  licenses: string[]
+  total: number
+}
+
 export const api = {
   /**
    * Fetch collections with optional filtering and pagination
@@ -64,6 +74,38 @@ export const api = {
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}))
       throw new Error(errorData.description || `Failed to fetch collection: ${response.statusText}`)
+    }
+    
+    return response.json()
+  },
+
+  /**
+   * Fetch all distinct providers from the database
+   */
+  async getProviders(): Promise<ProvidersResponse> {
+    const url = `${API_BASE_URL}/queryables/providers`
+    
+    const response = await fetch(url)
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}))
+      throw new Error(errorData.description || `Failed to fetch providers: ${response.statusText}`)
+    }
+    
+    return response.json()
+  },
+
+  /**
+   * Fetch all distinct licenses from the database
+   */
+  async getLicenses(): Promise<LicensesResponse> {
+    const url = `${API_BASE_URL}/queryables/licenses`
+    
+    const response = await fetch(url)
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}))
+      throw new Error(errorData.description || `Failed to fetch licenses: ${response.statusText}`)
     }
     
     return response.json()

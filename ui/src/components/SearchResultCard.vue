@@ -70,7 +70,7 @@ const platform = computed(() => {
   if (keywords && keywords.length > 0) {
     return keywords[0];
   }
-  return 'N/A';
+  return 'No temporal data';
 });
 
 // Convert keywords array for tags - prefer aggregated keywords from DB

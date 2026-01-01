@@ -19,11 +19,16 @@
   box-shadow: var(--shadow);
 }
 
+.filter-top {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
 .filter-group {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-sm);
-  padding: var(--spacing-sm) 0;
 }
 
 .filter-title {
@@ -109,6 +114,79 @@
 /* Invert calendar icon to white only in dark mode */
 .dark .filter-input::-webkit-calendar-picker-indicator {
   filter: invert(1);
+}
+
+/* Drawn bounding box display */
+.drawn-bbox-display {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background: var(--muted-bg);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  font-size: var(--font-size-xs);
+}
+
+.bbox-coords {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.bbox-coord-row {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.bbox-coord-content {
+  display: flex;
+  gap: var(--spacing-xs);
+}
+
+.bbox-coord-label {
+  font-weight: var(--font-weight-medium);
+  color: var(--muted-fg);
+  font-size: 0.7rem;
+  min-width: 32px;
+}
+
+.bbox-coord-value {
+  color: var(--fg);
+  text-align: end;
+  font-family: monospace;
+  font-size: 0.75rem;
+  min-width: 55px;
+}
+
+.bbox-clear {
+  background: none;
+  width: 25px;
+  height: 35px;
+  padding: 2px;
+  cursor: pointer;
+  color: var(--muted-fg);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color var(--transition-fast), background-color var(--transition-fast);
+}
+
+.bbox-clear:hover {
+  color: var(--destructive);
+  border-color: var(--border);
+}
+
+.modal-close {
+  width: 24px;
+  height: 24px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm)
 }
 
 .filter-actions {
