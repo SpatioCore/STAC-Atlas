@@ -59,8 +59,8 @@ export async function handleCatalog({ request, json, crawler, log, indent, resul
         log.info(`${indent}Extracted collection: ${collection.id} - ${collection.title}`);
     }
     
-    // Try to get collections from this catalog
-    await tryCollectionEndpoints(request.url, catalogId, depth, crawler, log, indent);
+    // Try to get collections from this catalog (using STAC link discovery)
+    await tryCollectionEndpoints(stacCatalog, request.url, catalogId, depth, crawler, log, indent);
     
     // Extract and enqueue child catalog links using stac-js
     if (stacCatalog && typeof stacCatalog.getChildLinks === 'function') {

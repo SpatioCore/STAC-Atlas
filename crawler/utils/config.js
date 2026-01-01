@@ -22,7 +22,12 @@ function getConfig() {
         mode: 'both',           // 'catalogs', 'apis', or 'both'
         maxCatalogs: 10,        // Maximum number of catalogs to crawl
         maxApis: 5,             // Maximum number of APIs to crawl
-        timeout: 30000          // Timeout in milliseconds (30 seconds)
+        timeout: 30000,         // Timeout in milliseconds (30 seconds)
+        // Rate limiting options (Crawlee)
+        maxConcurrency: 5,      // Maximum number of concurrent requests
+        maxRequestsPerMinute: 60, // Maximum requests per minute
+        sameDomainDelaySecs: 1, // Delay between requests to the same domain
+        maxRequestRetries: 3    // Maximum number of retries for failed requests
     };
     
     // Build configuration with precedence: CLI > ENV > Defaults
@@ -33,7 +38,16 @@ function getConfig() {
         maxApis: cliArgs.maxApis !== undefined ? cliArgs.maxApis : 
                  (process.env.MAX_APIS ? parseInt(process.env.MAX_APIS, 10) : defaults.maxApis),
         timeout: cliArgs.timeout !== undefined ? cliArgs.timeout : 
-                 (process.env.TIMEOUT_MS ? parseInt(process.env.TIMEOUT_MS, 10) : defaults.timeout)
+                 (process.env.TIMEOUT_MS ? parseInt(process.env.TIMEOUT_MS, 10) : defaults.timeout),
+        // Rate limiting options
+        maxConcurrency: cliArgs.maxConcurrency !== undefined ? cliArgs.maxConcurrency :
+                        (process.env.MAX_CONCURRENCY ? parseInt(process.env.MAX_CONCURRENCY, 10) : defaults.maxConcurrency),
+        maxRequestsPerMinute: cliArgs.maxRequestsPerMinute !== undefined ? cliArgs.maxRequestsPerMinute :
+                              (process.env.MAX_REQUESTS_PER_MINUTE ? parseInt(process.env.MAX_REQUESTS_PER_MINUTE, 10) : defaults.maxRequestsPerMinute),
+        sameDomainDelaySecs: cliArgs.sameDomainDelaySecs !== undefined ? cliArgs.sameDomainDelaySecs :
+                             (process.env.SAME_DOMAIN_DELAY_SECS ? parseFloat(process.env.SAME_DOMAIN_DELAY_SECS) : defaults.sameDomainDelaySecs),
+        maxRequestRetries: cliArgs.maxRequestRetries !== undefined ? cliArgs.maxRequestRetries :
+                           (process.env.MAX_REQUEST_RETRIES ? parseInt(process.env.MAX_REQUEST_RETRIES, 10) : defaults.maxRequestRetries)
     };
     
     // Validate mode

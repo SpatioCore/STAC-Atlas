@@ -36,6 +36,15 @@ async function crawlCatalogs(initialCatalogs, config = {}) {
     const crawler = new HttpCrawler({
         requestHandlerTimeoutSecs: timeoutSecs,
         
+        // Rate limiting options
+        maxConcurrency: config.maxConcurrency || 5,
+        maxRequestsPerMinute: config.maxRequestsPerMinute || 60,
+        sameDomainDelaySecs: config.sameDomainDelaySecs || 1,
+        maxRequestRetries: config.maxRequestRetries || 3,
+        
+        // Accept additional MIME types (some STAC endpoints return JSON with incorrect Content-Type)
+        additionalMimeTypes: ['application/geo+json', 'text/plain', 'binary/octet-stream', 'application/octet-stream'],
+        
         async requestHandler({ request, json, crawler, log }) {
             results.stats.totalRequests++;
             const depth = request.userData?.depth || 0;
@@ -71,6 +80,9 @@ async function crawlCatalogs(initialCatalogs, config = {}) {
                 log.warning(`${indent}[TIMEOUT] ${catalogId} at ${request.url}`);
             } else if (error.message.includes('ENOTFOUND') || error.message.includes('ECONNREFUSED')) {
                 log.warning(`${indent}[CONNECTION FAILED] ${catalogId} at ${request.url}`);
+            } else if (error.statusCode === 429) {
+                const retryAfter = error.response?.headers?.['retry-after'] || 'unknown';
+                log.warning(`${indent}[RATE LIMITED] ${catalogId} at ${request.url} - Retry-After: ${retryAfter}s`);
             } else if (error.code === 'ERR_NON_2XX_3XX_RESPONSE') {
                 log.warning(`${indent}[HTTP ERROR] ${catalogId} at ${request.url} - Status: ${error.statusCode}`);
             } else {

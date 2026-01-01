@@ -8,6 +8,7 @@ import { processCatalogs } from './utils/normalization.js';
 import { crawlCatalogs } from './catalogs/catalog.js';
 import { crawlApis } from './apis/api.js';
 import { getConfig } from './utils/config.js';
+import { formatDuration } from './utils/time.js';
 import db from './utils/db.js';
 
 /**
