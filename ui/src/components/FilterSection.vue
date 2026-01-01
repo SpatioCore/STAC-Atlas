@@ -1,7 +1,6 @@
 <template>
   <aside class="filter-section">
     <div class="filter-top">
-      <h2 class="filter-title">Filters</h2>
       <div class="filter-group">
         <h3 class="filter-title">
           <MapPin class="filter-icon" :size="20" />

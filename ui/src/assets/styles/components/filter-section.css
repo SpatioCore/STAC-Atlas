@@ -27,7 +27,7 @@
 }
 
 .filter-title {
-  font-size: var(--font-size-base);
+  font-size: var(--font-size-lg);
   font-weight: var(--font-weight-semibold);
   color: var(--fg);
   display: flex;
