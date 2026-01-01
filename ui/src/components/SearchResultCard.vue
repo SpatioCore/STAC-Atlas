@@ -3,11 +3,11 @@
     <div class="card-header">
       <div class="card-header__top">
         <h3 class="card-title">{{ title }}</h3>
-        <span class="license-badge">{{ license }}</span>
       </div>
       
       <div class="provider-info">
-        {{ provider }} • {{ platform }}
+        <!-- <span class="license-badge">{{ license }}</span> -->
+        {{ provider }} • {{ platform }}  
       </div>
     </div>
 
@@ -15,8 +15,11 @@
       <p class="description">{{ description }}</p>
       
       <div class="tags-list">
-        <span v-for="tag in tagList" :key="tag" class="tag">
+        <span v-for="tag in displayedTags" :key="tag" class="tag">
           {{ tag }}
+        </span>
+        <span v-if="remainingTagsCount > 0" class="tag tag-more">
+          +{{ remainingTagsCount }} more
         </span>
       </div>
     </div>
@@ -26,7 +29,7 @@
         View Details
       </button>
       
-      <button>
+      <button @click="openSource" :disabled="!sourceLink">
         Source
         <ExternalLink :size="16" />
       </button>
@@ -38,27 +41,99 @@
 import { computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { ExternalLink } from 'lucide-vue-next';
+import type { Collection } from '@/types/collection';
 
 const router = useRouter();
 
 const props = defineProps<{
-  id: string;
-  title: string;
-  tags: string; // Kommt als String rein, z.B. "Optical, Sentinel, ESA"
-  provider: string;
-  platform: string;
-  description: string;
-  license: string;
+  collection: Collection;
 }>();
 
-// Hilfsfunktion: Macht aus "Tag1, Tag2" ein Array ["Tag1", "Tag2"]
+// Extract data from collection (prefer top-level fields, fallback to full_json)
+const title = computed(() => props.collection.title || props.collection.full_json?.title || 'Untitled Collection');
+const description = computed(() => props.collection.description || props.collection.full_json?.description || 'No description available');
+// const license = computed(() => props.collection.license || props.collection.full_json?.license || 'Unknown');
+
+// Get provider from aggregated providers array (from relation tables) or fallback to full_json
+const provider = computed(() => {
+  // First try top-level providers (aggregated from DB)
+  const providers = props.collection.providers || props.collection.full_json?.providers;
+  if (providers && providers.length > 0) {
+    return providers[0].name;
+  }
+  return 'Unknown Provider';
+});
+
+// Get platform from keywords (first keyword) - prefer aggregated keywords
+const platform = computed(() => {
+  const keywords = props.collection.keywords || props.collection.full_json?.keywords;
+  if (keywords && keywords.length > 0) {
+    return keywords[0];
+  }
+  return 'No temporal data';
+});
+
+// Convert keywords array for tags - prefer aggregated keywords from DB
 const tagList = computed(() => {
-  if (!props.tags) return [];
-  return props.tags.split(',').map(tag => tag.trim());
+  return props.collection.keywords || props.collection.full_json?.keywords || [];
+});
+
+// Smart tag limiting based on character count to fit in 2 rows
+// Approximate: 500px card width, ~8-12 chars per tag average, 2 rows ~= 100-120 chars
+const MAX_CHAR_LENGTH = 100; // Total character budget for 2 rows
+const MORE_TAG_LENGTH = 10; // Reserve space for "+X more" tag
+
+const displayedTags = computed(() => {
+  if (tagList.value.length === 0) return [];
+  
+  let totalLength = 0;
+  let visibleTags: string[] = [];
+  
+  for (let i = 0; i < tagList.value.length; i++) {
+    const tag = tagList.value[i];
+    const tagLength = tag.length;
+    
+    // Check if adding this tag would exceed the limit
+    // If there are more tags after this, reserve space for "+X more"
+    const hasMoreTags = i < tagList.value.length - 1;
+    const maxAllowed = hasMoreTags ? MAX_CHAR_LENGTH - MORE_TAG_LENGTH : MAX_CHAR_LENGTH;
+    
+    if (totalLength + tagLength <= maxAllowed) {
+      visibleTags.push(tag);
+      totalLength += tagLength;
+    } else {
+      // This tag would overflow, stop here
+      break;
+    }
+  }
+  
+  return visibleTags;
+});
+
+const remainingTagsCount = computed(() => {
+  const remaining = tagList.value.length - displayedTags.value.length;
+  return remaining > 0 ? remaining : 0;
+});
+
+// Get source link from full_json.links
+const sourceLink = computed(() => {
+  const links = props.collection.full_json?.links;
+  if (links) {
+    const selfLink = links.find(link => link.rel === 'self');
+    const rootLink = links.find(link => link.rel === 'root');
+    return selfLink?.href || rootLink?.href;
+  }
+  return null;
 });
 
 const viewDetails = () => {
-  router.push(`/collections/${props.id}`);
+  router.push(`/collections/${props.collection.id}`);
+};
+
+const openSource = () => {
+  if (sourceLink.value) {
+    window.open(sourceLink.value, '_blank');
+  }
 };
 </script>
 

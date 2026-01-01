@@ -1,7 +1,9 @@
 .search-results {
   padding: var(--spacing-md);
   background: var(--bg);
-  min-height: calc(100vh - var(--search-section-height) - var(--navbar-height));
+  max-height: calc(100vh - var(--search-section-height) - var(--navbar-height) - 42px);
+  height: 100%;
+  overflow-y: scroll;
 }
 
 .results-grid {

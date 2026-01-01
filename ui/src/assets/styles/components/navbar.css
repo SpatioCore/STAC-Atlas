@@ -55,7 +55,7 @@
 .navbar-btn {
   padding: var(--spacing-xs) var(--spacing-md);
   background: transparent;
-  border: 1px solid var(--border);
+  border: 1.5px solid var(--border);
   border-radius: var(--radius);
   color: var(--text);
   font-size: var(--font-size-base);

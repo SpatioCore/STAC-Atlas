@@ -4,13 +4,14 @@
   display: flex;
   flex-direction: column;
   justify-content: space-between; 
-  background-color: var(--bg);
+  background-color: var(--card);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: var(--spacing-md);
+  padding: var(--spacing-sm) var(--spacing-md);
   transition: box-shadow var(--transition-fast);
-  max-width: 400px;
-  gap: var(--spacing-sm);
+  max-width: 500px;
+  min-height: 200px;
+  gap: var(--spacing-xs);
 }
 
 .search-result-card:hover {
@@ -22,7 +23,6 @@
   display: flex;
   justify-content: space-between; 
   align-items: flex-start;
-  /* margin-bottom: var(--spacing-xs); */
 }
 
 .card-title {
@@ -30,6 +30,11 @@
   font-size: var(--font-size-lg);
   font-weight: var(--font-weight-semibold);
   color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+  margin-right: var(--spacing-sm);
 }
 
 .license-badge {
@@ -45,42 +50,64 @@
 .provider-info {
   font-size: var(--font-size-sm);
   color: var(--muted-fg);
-  margin-bottom: var(--spacing-sm);
+  min-height: 20px;
 }
 
+.card-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: var(--spacing-xs);
+}
 
 .description {
   font-size: var(--font-size-base);
   color: var(--text);
   margin-bottom: 0;
-  line-height: var(--line-height-normal);
+  line-height: var(--line-height-tight);
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  margin-bottom: var(--spacing-md);
+  min-height: 62px; /* Fixed height for 3 lines */
 }
 
 /* Tags */
 .tags-list {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--spacing-sm);
-  /* margin-bottom: var(--spacing-lg); */
+  gap: var(--spacing-xs);
+  min-height: 44px; /* Fixed height for tag area */
+  max-height: 44px; /* Limit to 2 rows */
+  overflow: hidden;
 }
 
 .tag {
-  background-color: var(--muted-bg);
+  background-color: var(--bg);
   color: var(--text);
   font-size: var(--font-size-xs);
   padding: 0 var(--spacing-sm);
   border-radius: var(--radius-sm);
   font-weight: var(--font-weight-medium);
-  border : 1px solid var(--border);
+  border: 1px solid var(--border);
+  max-height: 20px;
+}
+
+.tag-more {
+  background-color: var(--muted-bg);
+  color: var(--muted-fg);
+  font-style: italic;
 }
 
 /* Footer & Buttons */
 .card-footer {
   display: flex;
   gap: var(--spacing-sm);
+}
+
+.card-footer button:first-child {
+  background-color: var(--primary);
+  border: none;
+  color: var(--text-white);
 }
