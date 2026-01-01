@@ -312,6 +312,33 @@ function validateLicense(license) {
   return { valid: true, normalized: trimmed };
 }
 
+/**
+ * Validates filter parameter (CQL2)
+ * @param {string|Object} filter - CQL2 filter
+ * @returns {Object} { valid: boolean, error?: string, normalized?: string|Object }
+ */
+function validateFilter(filter) {
+  if (!filter) return { valid: true };
+  // Basic validation, deep validation happens in the route handler via cql2-wasm
+  return { valid: true, normalized: filter };
+}
+
+/**
+ * Validates filter-lang parameter
+ * @param {string} lang - Filter language
+ * @returns {Object} { valid: boolean, error?: string, normalized?: string }
+ */
+function validateFilterLang(lang) {
+  if (!lang) return { valid: true };
+  
+  const validLangs = ['cql2-text', 'cql2-json'];
+  if (!validLangs.includes(lang)) {
+    return { valid: false, error: `Invalid filter-lang. Supported: ${validLangs.join(', ')}` };
+  }
+  
+  return { valid: true, normalized: lang };
+}
+
 module.exports = {
   validateQ,
   validateBbox,
@@ -320,6 +347,8 @@ module.exports = {
   validateSortby,
   validateToken,
   validateProvider,
-  validateLicense
+  validateLicense,
+  validateFilter,
+  validateFilterLang
 };
 
