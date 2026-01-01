@@ -548,5 +548,5 @@ onMounted(() => {
 </script>
 
 <style scoped>
-@import '@/assets/styles/components/collection-detail.css';
+@import '@/assets/styles/views/collection-detail.css';
 </style>

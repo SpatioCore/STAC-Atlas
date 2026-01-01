@@ -123,7 +123,10 @@ onMounted(() => {
             :disabled="currentPage === 1"
             @click="goToFirstPage"
           >
-            ««
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="11 17 6 12 11 7"></polyline>
+              <polyline points="18 17 13 12 18 7"></polyline>
+            </svg>
           </button>
           
           <button 
@@ -131,7 +134,9 @@ onMounted(() => {
             :disabled="currentPage === 1"
             @click="goToPrevPage"
           >
-            «
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="15 18 9 12 15 6"></polyline>
+            </svg>
           </button>
           
           <button
@@ -149,7 +154,9 @@ onMounted(() => {
             :disabled="currentPage === totalPages"
             @click="goToNextPage"
           >
-            »
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="9 18 15 12 9 6"></polyline>
+            </svg>
           </button>
           
           <button 
@@ -157,7 +164,10 @@ onMounted(() => {
             :disabled="currentPage === totalPages"
             @click="goToLastPage"
           >
-            »»
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="13 17 18 12 13 7"></polyline>
+              <polyline points="6 17 11 12 6 7"></polyline>
+            </svg>
           </button>
           
           <span class="pagination-info">
@@ -170,82 +180,5 @@ onMounted(() => {
 </template>
 
 <style scoped>
-.home {
-  display: flex;
-  width: 100vw;
-}
-
-.content-area {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  overflow: auto;
-}
-
-.loading-message,
-.error-message {
-  padding: 2rem;
-  text-align: center;
-  font-size: 1.1rem;
-}
-
-.loading-message {
-  color: var(--color-text-secondary, #666);
-}
-
-.error-message {
-  color: var(--color-error, #d32f2f);
-}
-
-.pagination {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--spacing-sm);
-  padding: var(--spacing-sm);
-  margin-top: auto;
-  border-top: 1px solid var(--border);
-}
-
-.pagination-btn {
-  min-width: 20px;
-  height: 25px;
-  padding: 0 var(--spacing-md);
-  border: 1px solid var(--border);
-  background-color: var(--bg);
-  color: var(--text);
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  font-size: var(--font-size-base);
-  font-weight: var(--font-weight-medium);
-  transition: all var(--transition-fast);
-}
-
-.pagination-btn:hover:not(:disabled) {
-  background-color: var(--muted-bg);
-  border-color: var(--primary);
-}
-
-.pagination-btn.active {
-  background-color: var(--primary);
-  border-color: var(--primary);
-  color: var(--text-white);
-}
-
-.pagination-btn.active:hover {
-  background-color: var(--primary);
-  border-color: var(--primary);
-}
-
-.pagination-btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-.pagination-info {
-  min-width: 150px;
-  margin-left: var(--spacing-md);
-  font-size: var(--font-size-sm, 13px);
-  color: var(--muted-fg, #666);
-}
+@import '@/assets/styles/views/home.css';
 </style>
