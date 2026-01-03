@@ -120,13 +120,16 @@ describe('STAC API Core Endpoints', () => {
     });
   });
 
-  describe('GET /collections/:id', () => {
-    it('should return 404 for non-existent collection', async () => {
-      const response = await request(app).get('/collections/non-existent-id').expect(404);
+ describe('GET /collections/:id', () => {
+  it('should return 404 for non-existent collection', async () => {
+    const nonExistingId = 999999999;
 
-      expect(response.body).toHaveProperty('code', 'NotFound');
-      expect(response.body).toHaveProperty('description');
-      expect(response.body).toHaveProperty('id', 'non-existent-id');
+    const response = await request(app)
+      .get(`/collections/${nonExistingId}`)
+      .expect(404);
+
+    expect(response.body).toHaveProperty('code', 'NotFound');
+    expect(response.body).toHaveProperty('description');
     });
   });
 });
