@@ -9,8 +9,8 @@
 CREATE INDEX idx_catalog_title ON catalog (title);
 CREATE INDEX idx_catalog_updated_at ON catalog (updated_at);
 
-CREATE INDEX idx_catalog_fulltext ON catalog
-USING GIN (to_tsvector('simple', coalesce(title,'') || ' ' || coalesce(description,'')));
+-- Full-text search index on computed search_vector column (includes title, description, and keywords)
+CREATE INDEX idx_catalog_search_vector ON catalog USING GIN (search_vector);
 
 CREATE INDEX idx_catalog_links_catalog_id ON catalog_links (catalog_id);
 CREATE INDEX idx_catalog_keywords_catalog ON catalog_keywords (catalog_id);
@@ -30,8 +30,8 @@ CREATE INDEX idx_collection_active ON collection (is_active);
 
 CREATE INDEX idx_collection_spatial ON collection USING GIST (spatial_extent);
 
-CREATE INDEX idx_collection_fulltext ON collection
-USING GIN (to_tsvector('simple', coalesce(title,'') || ' ' || coalesce(description,'')));
+-- Full-text search index on computed search_vector column (includes title, description, and keywords)
+CREATE INDEX idx_collection_search_vector ON collection USING GIN (search_vector);
 
 CREATE INDEX idx_collection_jsonb ON collection USING GIN (full_json);
 

@@ -9,6 +9,7 @@ on:
       - main
     paths:
       - 'api/**'
+      - 'db/**'
       - '.github/workflows/api-ci.yml'
   pull_request:
     branches:
@@ -17,6 +18,7 @@ on:
       - main
     paths:
       - 'api/**'
+      - 'db/**'
       - '.github/workflows/api-ci.yml'
 
 jobs:
