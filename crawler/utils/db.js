@@ -17,13 +17,36 @@ const pool = new Pool({
 });
 
 async function initDb() {
+  const host = process.env.PGHOST;
+  const port = parseInt(process.env.PGPORT, 10);
+  const database = process.env.PGDATABASE;
+  const user = process.env.PGUSER;
+  
   // Test database connection
-  const client = await pool.connect();
+  let client;
   try {
+    client = await pool.connect();
     await client.query('SELECT 1');
-    console.log('DB connection established successfully');
+    console.log(`DB connection established successfully to ${host}:${port}/${database}`);
+  } catch (error) {
+    console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.error('DATABASE CONNECTION FAILED');
+    console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.error(`  Host:     ${host}`);
+    console.error(`  Port:     ${port}`);
+    console.error(`  Database: ${database}`);
+    console.error(`  User:     ${user}`);
+    console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.error(`  Error:    ${error.message}`);
+    if (error.code) {
+      console.error(`  Code:     ${error.code}`);
+    }
+    console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    throw error;
   } finally {
-    client.release();
+    if (client) {
+      client.release();
+    }
   }
 }
 
