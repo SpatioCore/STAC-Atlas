@@ -71,23 +71,22 @@ describe('STAC API Core Endpoints', () => {
   });
 
   describe('GET /collections', () => {
-    it('should return a FeatureCollection structure', async () => {
+      it('should return a STAC Collections response', async () => {
       const response = await request(app).get('/collections').expect(200);
 
-      expect(response.body).toHaveProperty('type', 'FeatureCollection');
+      
       expect(response.body).toHaveProperty('collections');
       expect(response.body).toHaveProperty('links');
-      expect(response.body).toHaveProperty('context');
       expect(Array.isArray(response.body.collections)).toBe(true);
+      expect(Array.isArray(response.body.links)).toBe(true);
     });
 
-    it('should include pagination context', async () => {
-      const response = await request(app).get('/collections').expect(200);
-
-      expect(response.body.context).toHaveProperty('returned');
-      expect(response.body.context).toHaveProperty('limit');
-      expect(response.body.context).toHaveProperty('matched');
-    });
+      it('should include required link relations', async () => {
+   const response = await request(app).get('/collections').expect(200);
+    const rels = response.body.links.map(l => l.rel);
+    expect(rels).toContain('self');
+    expect(rels).toContain('root');
+  });
   });
 
   describe('GET /queryables', () => {

@@ -7,6 +7,71 @@ const { buildCollectionSearchQuery } = require('../db/buildCollectionSearchQuery
 const { parseCql2Text, parseCql2Json } = require('../utils/cql2');
 const { cql2ToSql } = require('../utils/cql2ToSql');
 
+// helper to map DB row to STAC Collection object
+// the full_json column contains the original STAC Collection Json as crawled but it is needed to set some fields/links correctly
+function toStacCollection(row, baseHost) {
+  const base =
+    row.full_json &&
+    typeof row.full_json === 'object' &&
+    !Array.isArray(row.full_json)
+      ? row.full_json
+      : {};
+
+  const id = base.id ?? String(row.id);
+
+  const collection = {
+    // merge full_json first to override/normalize below
+    ...base,
+    type: 'Collection',
+    stac_version: base.stac_version ?? row.stac_version ?? '1.1.0',
+    id,
+    title: base.title ?? row.title ?? id,
+    description: base.description ?? row.description ?? '',
+    license: base.license ?? row.license ?? 'proprietary',
+  };
+
+  // assets must be an object/dict if present
+  if (collection.assets === null || collection.assets === undefined) {
+    delete collection.assets;
+  } else if (Array.isArray(collection.assets)) {
+    delete collection.assets;
+  } else if (typeof collection.assets !== 'object') {
+    delete collection.assets;
+  }
+
+  if (collection.summaries === null || collection.summaries === undefined) {
+    delete collection.summaries;
+  } else if (Array.isArray(collection.summaries) || typeof collection.summaries !== 'object') {
+    delete collection.summaries;
+  }
+
+  if (!collection.extent) {
+    const hasBbox =
+      row.minx !== null && row.miny !== null && row.maxx !== null && row.maxy !== null;
+
+    collection.extent = {
+      spatial: {
+        bbox: hasBbox ? [[row.minx, row.miny, row.maxx, row.maxy]] : [[-180, -90, 180, 90]],
+      },
+      temporal: {
+        interval: [[
+          row.temporal_extend_start ? new Date(row.temporal_extend_start).toISOString() : null,
+          row.temporal_extend_end ? new Date(row.temporal_extend_end).toISOString() : null,
+        ]],
+      },
+    };
+  }
+
+  // ensure links exist
+  collection.links = [
+    { rel: 'self', href: `${baseHost}/collections/${encodeURIComponent(id)}`, type: 'application/json' },
+    { rel: 'parent', href: `${baseHost}`, type: 'application/json' },
+    { rel: 'root', href: `${baseHost}`, type: 'application/json' }
+  ];
+
+  return collection;
+}
+
 // helper to run the built query (from documentation)
 async function runQuery(sql, params = []) {
   try {
@@ -79,8 +144,11 @@ router.get('/', validateCollectionSearchParams, async (req, res, next) => {
     });
 
     // execute Query against database
-    const collections = await runQuery(sql, values);
-    const returned = collections.length;
+    const baseHost = `${req.protocol}://${req.get('host')}`;
+    const rows = await runQuery(sql, values);
+    const returned = rows.length;
+    const collections = rows.map(r => toStacCollection(r, baseHost));
+    
 
     // Get total count for matched field
     // Build count query using same WHERE conditions
@@ -104,45 +172,37 @@ router.get('/', validateCollectionSearchParams, async (req, res, next) => {
     const countResult = await runQuery(countQuery, countValues);
     const matched = parseInt(countResult[0]?.total || 0);
 
-    // Base URL for links
-    const baseHost = `${req.protocol}://${req.get('host')}`;
-    const baseUrl = `${baseHost}${req.baseUrl}`;
 
-    const buildLink = (rel, tokenValue) => ({
-      rel,
-      href: `${baseUrl}?limit=${limit}&token=${tokenValue}`,
-      type: 'application/json'
-    });
+    // self MUST match the requested URL exactly (validator requirement)
+    const selfHref = `${baseHost}${req.originalUrl}`;
+
+    // helper to create pagination links while keeping existing query params
+    function withToken(newToken) {
+      const url = new URL(selfHref);
+      url.searchParams.set('limit', String(limit));
+      url.searchParams.set('token', String(newToken));
+      return url.toString();
+    }
 
     const links = [
-      buildLink('self', token),
-      {
-        rel: 'root',
-        href: baseHost,
-        type: 'application/json'
-      }
+      { rel: 'self', href: selfHref, type: 'application/json' },
+      { rel: 'root', href: baseHost, type: 'application/json' }
     ];
 
     // "next": only if returned === limit AND token + limit < matched
     if (returned === limit && token + limit < matched) {
-      links.push(buildLink('next', token + limit));
+      links.push({ rel: 'next', href: withToken(token + limit), type: 'application/json' });
     }
 
     // "prev": only if token > 0
     if (token > 0) {
       const prevToken = Math.max(0, token - limit);
-      links.push(buildLink('prev', prevToken));
+      links.push({ rel: 'prev', href: withToken(prevToken), type: 'application/json' });
     }
 
     res.json({
-      type: 'FeatureCollection',
       collections,
       links,
-      context: {
-        returned,
-        limit,
-        matched
-      }
     });
   } catch (error) {
     next(error);
@@ -165,23 +225,32 @@ router.get('/', validateCollectionSearchParams, async (req, res, next) => {
  *   SELECT part in buildCollectionSearchQuery. This allows the query builder
  *   (and later a mapping layer) to evolve without touching this route.
  */
+
 router.get('/:id', validateCollectionId, async (req, res, next) => {
+  
   try {
     const { id } = req.params;
 
-    // id is already syntactically validated by validateCollectionId.
-    // For the database we use a numeric id, matching the c.collection.id column type.
-    const numericId = parseInt(id, 10);
+// Numeric: use numeric filter
+const numericId = Number(id);
+const isNumericId = Number.isFinite(numericId) && String(numericId) === String(id);
 
-    // Reuse the shared query builder with an exact id filter.
-    // We request a single row (LIMIT 1) and no offset.
-    const { sql, values } = buildCollectionSearchQuery({
-      id: numericId,
-      limit: 1,
-      token: 0,
-    });
+// Build params depending on id type
+const queryParams = {
+  limit: 1,
+  token: 0,
+};
 
-    const rows = await runQuery(sql, values);
+if (isNumericId) {
+  queryParams.id = numericId;
+} else {
+  // STAC Collection IDs are strings use string filter
+  queryParams.collectionId = id;
+}
+
+const { sql, values } = buildCollectionSearchQuery(queryParams);
+
+const rows = await runQuery(sql, values);
 
     if (!rows || rows.length === 0) {
       // Return 404 with standardized error format
@@ -192,7 +261,7 @@ router.get('/:id', validateCollectionId, async (req, res, next) => {
       });
     }
 
-        const collection = rows[0];
+        const row = rows[0];
 
     const baseHost = `${req.protocol}://${req.get('host')}`;
     const selfHref = `${baseHost}${req.originalUrl}`;
@@ -208,11 +277,11 @@ router.get('/:id', validateCollectionId, async (req, res, next) => {
       { rel: 'root', href: rootHref, type: 'application/json' },
       { rel: 'parent', href: rootHref, type: 'application/json' }
     ];
-
+   const collection_id = toStacCollection(row, baseHost);
     // Return the collection with a normalized `links` array.
     // The rest of the attributes (id, title, extent, full_json, …) come directly
     // from the query builder / database.
-    res.json(Object.assign({}, collection, { links }));
+    res.json(Object.assign({}, collection_id, { links }));
   } catch (error) {
     next(error);
   }

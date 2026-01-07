@@ -88,7 +88,11 @@ function buildCollectionSearchQuery(params) {
     sortby,
     limit,
     token,
+<<<<<<< HEAD
     cqlFilter
+=======
+    collectionId
+>>>>>>> 9501896 (Add STAC API Validator workflow and enhance collection retrieval logic)
   } = params;
 
   // Base SELECT columns. We may append a relevance `rank` column below when `q` is present.
@@ -110,6 +114,10 @@ function buildCollectionSearchQuery(params) {
       c.description,
       c.license,
       c.spatial_extend,
+      ST_XMin(c.spatial_extend) AS minx,
+      ST_YMin(c.spatial_extend) AS miny,
+      ST_XMax(c.spatial_extend) AS maxx,
+      ST_YMax(c.spatial_extend) AS maxy,
       c.temporal_extend_start,
       c.temporal_extend_end,
       c.created_at,
@@ -130,9 +138,15 @@ function buildCollectionSearchQuery(params) {
   let i = 1;
 
   if (id !== undefined && id !== null) {
-    where.push(`id = $${i}`);
+    where.push(`c.id = $${i}`);
     values.push(id);
     i++;
+  }
+
+  if (collectionId !== undefined && collectionId !== null && collectionId !== '') {
+    where.push(`c.full_json->>'id' = $${i}`);
+    values.push(collectionId);
+    i += 1;
   }
 
   // Full-text search using weighted tsvector across title (weight A) and description (weight B).
