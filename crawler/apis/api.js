@@ -181,14 +181,10 @@ async function handleApiRoot({ request, json, crawler, log, indent, results }) {
     
     if (typeof stacObj.getApiCollectionsLink === 'function') {
         const collectionsLink = stacObj.getApiCollectionsLink();
-        if (collectionsLink) {
-            const linkUrl = typeof collectionsLink.getAbsoluteUrl === 'function'
-                ? collectionsLink.getAbsoluteUrl()
-                : collectionsLink.href;
-            if (linkUrl) {
-                collectionsEndpoint = linkUrl;
-                log.info(`${indent}Found collections link via stac-js: ${collectionsEndpoint}`);
-            }
+        if (collectionsLink && collectionsLink.href) {
+            // Direkt die href verwenden - diese ist bereits absolut im JSON
+            collectionsEndpoint = collectionsLink.href;
+            log.info(`${indent}Found collections link via stac-js: ${collectionsEndpoint}`);
         }
     }
     
