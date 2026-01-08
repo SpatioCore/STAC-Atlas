@@ -12,6 +12,7 @@ const {
   validateFilter,
   validateFilterLang
 } = require('../validators/collectionSearchParams');
+const { ErrorResponses } = require('../utils/errorResponse');
 
 /**
  * Express middleware to validate Collection Search query parameters
@@ -124,12 +125,14 @@ function validateCollectionSearchParams(req, res, next) {
     normalized['filter-lang'] = filterLangResult.normalized;
   }
   
-  // If any validation errors occurred, return 400 with details
+  // If any validation errors occurred, return 400 with RFC 7807 format
   if (errors.length > 0) {
-    return res.status(400).json({
-      code: 'InvalidParameterValue',
-      description: errors.join('; ')
-    });
+    const errorResponse = ErrorResponses.badRequest(
+      errors.join('; '),
+      req.requestId,
+      req.originalUrl
+    );
+    return res.status(400).json(errorResponse);
   }
   
   // Attach normalized params to request for use in route handler
