@@ -103,7 +103,5 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER catalog_keywords_update_vector
-AFTER INSERT OR DELETE ON catalog_keywords
-FOR EACH ROW
-EXECUTE FUNCTION update_catalog_search_vector_on_keyword_change();
+-- NOTE: The trigger for catalog_keywords is defined in 06_triggers.sql
+-- because it depends on the catalog_keywords table which is created there
