@@ -1,6 +1,6 @@
 <template>
   <header class="navbar">
-    <div class="navbar-brand">
+    <RouterLink to="/" class="navbar-brand">
       <div class="navbar-logo">
         <img src="@/assets/Atlas Logo.png" alt="STAC Atlas Logo" class="logo-icon" />
       </div>
@@ -8,7 +8,7 @@
         <h1>STAC Atlas</h1>
         <p class="navbar-subtitle">Geospatial Data Explorer</p>
       </div>
-    </div>
+    </RouterLink>
 
     <div class="navbar-actions">
       <button 
@@ -42,6 +42,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
+import { RouterLink } from 'vue-router'
 import { useDark } from '@vueuse/core'
 import { Globe, Sun, Moon, Info } from 'lucide-vue-next'
 
