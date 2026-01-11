@@ -123,5 +123,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- NOTE: The trigger for collection_keywords is defined in 06_triggers.sql
--- because it depends on the collection_keywords table which is created there
+CREATE TRIGGER collection_keywords_update_vector
+AFTER INSERT OR DELETE ON collection_keywords
+FOR EACH ROW
+EXECUTE FUNCTION update_collection_search_vector_on_keyword_change();
