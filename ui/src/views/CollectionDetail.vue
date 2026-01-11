@@ -98,12 +98,16 @@
               </div>
               
               <div class="contact-wrapper">
-                <button @click="toggleContactModal">
-                  <User :size="16" />
-                  Contact
+                <button 
+                  @click="toggleContactModal"
+                  :disabled="providerInfo.length === 0"
+                  :class="{ 'button--disabled': providerInfo.length === 0 }"
+                >
+                  <Building2 :size="16" />
+                  Providers
                 </button>
                 
-                <!-- Contact Popover -->
+                <!-- Providers Popover -->
                 <div v-if="showContactModal" class="contact-popover">
                   <h3 class="popover-title">Provider Information</h3>
                   
@@ -200,7 +204,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import { Globe, ExternalLink, User } from 'lucide-vue-next'
+import { Globe, ExternalLink, Building2 } from 'lucide-vue-next'
 import InfoCard from '@/components/InfoCard.vue'
 import ItemCard from '@/components/ItemCard.vue'
 import { api } from '@/services/api'

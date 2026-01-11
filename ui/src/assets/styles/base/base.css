@@ -60,6 +60,20 @@ button:hover {
   transform: scale(1.01);
 }
 
+button:disabled,
+button.button--disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+button:disabled:hover,
+button.button--disabled:hover {
+  border-color: var(--border);
+  box-shadow: none;
+  transform: none;
+}
+
 /* Utilities */
 .container {
   width: 100%;
