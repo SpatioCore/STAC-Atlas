@@ -88,7 +88,8 @@ function buildCollectionSearchQuery(params) {
     sortby,
     limit,
     token,
-    collectionId
+    collectionId,
+    cqlFilter
   } = params;
 
   // Base SELECT columns. We may append a relevance `rank` column below when `q` is present.
