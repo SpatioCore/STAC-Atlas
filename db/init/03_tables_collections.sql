@@ -33,6 +33,7 @@ CREATE TABLE collection_summaries (
     collection_id INTEGER REFERENCES collection(id) ON DELETE CASCADE,
     name TEXT,
     kind TEXT,
+    source_url TEXT,
     range_min NUMERIC,
     range_max NUMERIC,
     set_value TEXT,

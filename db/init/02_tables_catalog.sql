@@ -18,6 +18,7 @@ CREATE TABLE catalog (
 CREATE TABLE catalog_links (
     id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     catalog_id INTEGER REFERENCES catalog(id) ON DELETE CASCADE,
+    source_url TEXT,
     rel TEXT,
     href TEXT,
     type TEXT,
