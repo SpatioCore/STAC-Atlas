@@ -88,11 +88,7 @@ function buildCollectionSearchQuery(params) {
     sortby,
     limit,
     token,
-<<<<<<< HEAD
-    cqlFilter
-=======
     collectionId
->>>>>>> 9501896 (Add STAC API Validator workflow and enhance collection retrieval logic)
   } = params;
 
   // Base SELECT columns. We may append a relevance `rank` column below when `q` is present.
