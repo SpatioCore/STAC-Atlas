@@ -94,7 +94,7 @@
 /* Bottom Row - Metadata and Info Cards side by side */
 .collection-detail__bottom-row {
   display: grid;
-  grid-template-columns: 1fr 450px;
+  grid-template-columns: 1fr 2fr;
   gap: var(--spacing-md);
   align-items: start;
 }
@@ -156,12 +156,14 @@
 /* Info Cards Section */
 .info-cards-section {
   background-color: transparent;
-
+  height: 100%;
 }
 
 .info-cards-section__grid {
   display: flex;
   flex-direction: column;
+  height: 100%;
+  justify-content: space-between;
   gap: var(--spacing-sm);
 }
 
