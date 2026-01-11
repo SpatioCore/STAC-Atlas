@@ -33,6 +33,7 @@ CREATE TABLE collection_summaries (
     collection_id INTEGER REFERENCES collection(id) ON DELETE CASCADE,
     name TEXT,
     kind TEXT,
+    source_url TEXT,
     range_min NUMERIC,
     range_max NUMERIC,
     set_value TEXT,
@@ -122,7 +123,5 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER collection_keywords_update_vector
-AFTER INSERT OR DELETE ON collection_keywords
-FOR EACH ROW
-EXECUTE FUNCTION update_collection_search_vector_on_keyword_change();
+-- NOTE: The trigger for collection_keywords is defined in 06_triggers.sql
+-- because it depends on the catalog_keywords table which is created there
