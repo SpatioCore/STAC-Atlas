@@ -6,6 +6,68 @@
 import create from 'stac-js';
 import { normalizeCollection } from './normalization.js';
 import { tryCollectionEndpoints } from './endpoints.js';
+import db from './db.js';
+
+/**
+ * Batch size for saving collections to database
+ * After this many collections are collected, they will be flushed to DB
+ * @type {number}
+ */
+const BATCH_SIZE = 1000;
+
+/**
+ * Flushes collected collections to the database and clears the array
+ * @async
+ * @param {Object} results - Results object containing collections array
+ * @param {Object} log - Logger instance
+ * @param {boolean} force - If true, flush even if below batch size (used at end of crawl)
+ * @returns {Promise<{saved: number, failed: number}>} Count of saved and failed collections
+ */
+export async function flushCollectionsToDb(results, log, force = false) {
+    if (!force && results.collections.length < BATCH_SIZE) {
+        return { saved: 0, failed: 0 };
+    }
+    
+    if (results.collections.length === 0) {
+        return { saved: 0, failed: 0 };
+    }
+    
+    const collectionsToSave = [...results.collections];
+    results.collections.length = 0; // Clear the array to free memory
+    
+    let saved = 0;
+    let failed = 0;
+    
+    log.info(`[BATCH] Flushing ${collectionsToSave.length} collections to database...`);
+    
+    for (const collection of collectionsToSave) {
+        try {
+            await db.insertOrUpdateCollection(collection);
+            saved++;
+        } catch (err) {
+            log.warning(`[BATCH] Failed to save collection ${collection.id}: ${err.message}`);
+            failed++;
+        }
+    }
+    
+    log.info(`[BATCH] Saved ${saved} collections, ${failed} failed`);
+    
+    return { saved, failed };
+}
+
+/**
+ * Checks if batch size is reached and flushes if necessary
+ * @async
+ * @param {Object} results - Results object containing collections array
+ * @param {Object} log - Logger instance
+ */
+async function checkAndFlush(results, log) {
+    if (results.collections.length >= BATCH_SIZE) {
+        const { saved, failed } = await flushCollectionsToDb(results, log, false);
+        results.stats.collectionsSaved += saved;
+        results.stats.collectionsFailed += failed;
+    }
+}
 
 /**
  * Handles catalog requests - validates STAC, extracts child catalogs and collections
@@ -57,6 +119,9 @@ export async function handleCatalog({ request, json, crawler, log, indent, resul
         results.collections.push(collection);
         results.stats.collectionsFound++;
         log.info(`${indent}Extracted collection: ${collection.id} - ${collection.title}`);
+        
+        // Check if we should flush to database
+        await checkAndFlush(results, log);
     }
     
     // Try to get collections from this catalog
@@ -203,5 +268,8 @@ export async function handleCollections({ request, json, crawler, log, indent, r
         if (collections.length > 0) {
             log.info(`${indent}   Sample: ${collections[0].id} - ${collections[0].title}`);
         }
+        
+        // Check if we should flush to database
+        await checkAndFlush(results, log);
     }
 }

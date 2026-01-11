@@ -3,8 +3,8 @@
  * @module catalogs/catalog
  */
 
-import { HttpCrawler } from 'crawlee';
-import { handleCatalog, handleCollections } from '../utils/handlers.js';
+import { HttpCrawler, log as crawleeLog } from 'crawlee';
+import { handleCatalog, handleCollections, flushCollectionsToDb } from '../utils/handlers.js';
 
 /**
  * Creates and runs a Crawlee HttpCrawler to crawl STAC catalogs
@@ -27,6 +27,8 @@ async function crawlCatalogs(initialCatalogs, config = {}) {
             successfulRequests: 0,
             failedRequests: 0,
             collectionsFound: 0,
+            collectionsSaved: 0,
+            collectionsFailed: 0,
             catalogsProcessed: 0,
             stacCompliant: 0,
             nonCompliant: 0
@@ -96,6 +98,15 @@ async function crawlCatalogs(initialCatalogs, config = {}) {
     console.log(`\nStarting Crawlee crawler with ${initialRequests.length} initial catalogs...\n`);
     await crawler.run();
     
+    // Flush any remaining collections to database
+    console.log('\nFlushing remaining collections to database...');
+    const finalFlush = await flushCollectionsToDb(results, crawleeLog, true);
+    results.stats.collectionsSaved += finalFlush.saved;
+    results.stats.collectionsFailed += finalFlush.failed;
+    
+    // Clear catalogs array to free memory (we don't need them after crawl)
+    results.catalogs.length = 0;
+    
     console.log('\nCrawl Statistics:');
     console.log(`   Total Requests: ${results.stats.totalRequests}`);
     console.log(`   Successful: ${results.stats.successfulRequests}`);
@@ -103,7 +114,9 @@ async function crawlCatalogs(initialCatalogs, config = {}) {
     console.log(`   STAC Compliant: ${results.stats.stacCompliant}`);
     console.log(`   Non-Compliant: ${results.stats.nonCompliant}`);
     console.log(`   Catalogs Processed: ${results.stats.catalogsProcessed}`);
-    console.log(`   Collections Found: ${results.stats.collectionsFound}\n`);
+    console.log(`   Collections Found: ${results.stats.collectionsFound}`);
+    console.log(`   Collections Saved to DB: ${results.stats.collectionsSaved}`);
+    console.log(`   Collections Failed: ${results.stats.collectionsFailed}\n`);
 
     return results;
 }
