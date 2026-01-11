@@ -32,22 +32,22 @@ Die Abnahmekriterien definieren die zwingend erforderlichen Funktionalitäten de
 - Effiziente Indizierung für schnelle Abfragen (< 100 ms)
 
 #### STAC API
-- Konforme Implementierung der STAC API Specification
-- Implementierung der Collection Search Extension
-- Abruf einzelner Collections (GET /collections/{id})
+- Konforme Implementierung der STAC API Specification<!-- VI JoKl -->
+- Implementierung der Collection Search Extension<!-- VI JoKl -->
+- Abruf einzelner Collections (GET /collections/{id})<!-- VI JoKl -->
 - Erweiterte Suchfunktion (GET /colllections) mit Filterung nach:
-  - id
-  - Titel
-  - Beschreibung
-  - Räumlicher Ausdehnung
-  - Zeitlicher Ausdehnung
-  - Schlüsselwörtern
-  - Provider
-  - Lizenz
-  - DOIs
-- CQL2-Filterung für komplexe Abfragen
-- Parallele Verarbeitung von mindestens 100 Anfragen
-- Antwortzeiten: einfache Abfragen ≤ 1s, komplexe Abfragen ≤ 5s
+  - id<!-- VI JoKl -->
+  - Titel<!-- VI JoKl -->
+  - Beschreibung<!-- VI JoKl -->
+  - Räumlicher Ausdehnung<!-- VI JoKl -->
+  - Zeitlicher Ausdehnung<!-- VI JoKl -->
+  - Schlüsselwörtern<!-- UVI-80, noch nicht als Suchfunktion eingetragen, JoKl -->
+  - Provider<!-- VI JoKl -->
+  - Lizenz<!-- VI JoKl -->
+  - DOIs<!-- UVI-50, Die DOI-Unterstützung ist im Queryables-Schema vorhanden, aber in der eigentlichen Collection-Suche und im Datenbank-Query fehlt die explizite Filterung nach DOI, JoKl -->
+- CQL2-Filterung für komplexe Abfragen<!-- VI JoKl -->
+- Parallele Verarbeitung von mindestens 100 Anfragen<!-- UVI-80, finde keinen Nachweis dafür das das wirklich so ist, JoKl -->
+- Antwortzeiten: einfache Abfragen ≤ 1s, komplexe Abfragen ≤ 5s<!-- UVI-80, finde keinen Nachweis dafür das das wirklich so ist, JoKl -->
 
 #### UI (Web-Interface)
 - Nutzerfreundliche Web-Oberfläche zur Suche und Filterung
@@ -64,18 +64,18 @@ Die Abnahmekriterien definieren die zwingend erforderlichen Funktionalitäten de
 - Anzeige der Collection-Metadaten
 
 #### Allgemein
-- Containerisierung aller Komponenten mit Docker
-- System startbar per Einzeiler: `docker-compose up --build`
-- Open Source unter Apache 2.0 Lizenz
-- Standardkonforme Datenmodellierung nach STAC Specification
+- Containerisierung aller Komponenten mit Docker<!-- VI JoKl -->
+- System startbar per Einzeiler: `docker-compose up --build`<!-- VI JoKl -->
+- Open Source unter Apache 2.0 Lizenz<!-- VI JoKl -->
+- Standardkonforme Datenmodellierung nach STAC Specification<!-- VI JoKl -->
 
 ### 1.2 Wunschkriterien
 
 Die Wunschkriterien beschreiben optionale Funktionalitäten, die das System über die Grundanforderungen hinaus erweitern würden. Diese Features sind nicht zwingend erforderlich, würden aber den Nutzen und die Attraktivität der Plattform erheblich steigern. Ihre Implementierung erfolgt in Abhängigkeit von verfügbaren Ressourcen und Zeit.
 
 #### Allgemein
-- On-Demand Abruf von Items einer Collection (ohne persistente Speicherung)
-- Integration der Lösung in das bestehende STAC Index API
+- On-Demand Abruf von Items einer Collection (ohne persistente Speicherung)<!-- NI JoKl -->
+- Integration der Lösung in das bestehende STAC Index API<!-- UVI-80, Umsetzung vorbereitet, aber noch nicht vollständig nachgewiesen, JoKl -->
 
 #### Crawler
 - Konfigurierbare Crawling-Schedule
@@ -162,11 +162,11 @@ CQL2-Filter werden serverseitig in SQL-WHERE-Klauseln übersetzt.
 Inkrementelle Updates und Soft-Deletes (active = false) sichern Integrität und Revisionsfähigkeit.
 
 ### 3.3 STAC API-konforme Schnittstelle
-Das Backend stellt eine API bereit, die vollständig mit der STAC API-Spezifikation kompatibel ist und standardisierte Zugriffe auf die gespeicherten STAC Collections ermöglicht, unter anderem die Endpunkte `/` (Landing), `/conformance`, `/collections`, `/collections/{id}` und `/queryables` (global und/oder pro Collection) (6.1.2.1, 6.1.2.2, 6.1.2.3). 
-Die API wird primär in JavaScript / Node.js (22) mit Express umgesetzt (6.2.4.2).  
-Für die Übersetzung und Auswertung von CQL2-Abfragen wird cql2-rs (Rust) zu WebAssembly kompiliert und in-process im Node-Prozess eingebunden (geringe Latenz, einfache Containerisierung) (6.1.2.4, 6.1.2.5, 6.1.2.6).  
+Das Backend stellt eine API bereit, die vollständig mit der STAC API-Spezifikation kompatibel ist und standardisierte Zugriffe auf die gespeicherten STAC Collections ermöglicht, unter anderem die Endpunkte `/` (Landing), `/conformance`, `/collections`, `/collections/{id}` und `/queryables` (global und/oder pro Collection) (6.1.2.1, 6.1.2.2, 6.1.2.3). <!-- VI JoKl -->
+Die API wird primär in JavaScript / Node.js (22) mit Express umgesetzt (6.2.4.2). <!-- VI JoKl -->
+Für die Übersetzung und Auswertung von CQL2-Abfragen wird cql2-rs (Rust) zu WebAssembly kompiliert und in-process im Node-Prozess eingebunden (geringe Latenz, einfache Containerisierung) (6.1.2.4, 6.1.2.5, 6.1.2.6). <!-- UVI-80, meines Wissens nach implementiert konnte ich aber nicht nachweisen, JoKl -->
 Als Fallback bleibt alternativ pycql2; sollten sich gravierende Schwierigkeiten mit cql2-rs ergeben, kann optional ein Python-Backend (z. B. FastAPI) implementiert werden, das die Anfrageverarbeitung und CQL2-Übersetzung übernimmt (6.1.2.7).  
-Die API ist klar vom Crawler getrennt und fokussiert auf Abfrage und Filterung der gespeicherten Collections.
+Die API ist klar vom Crawler getrennt und fokussiert auf Abfrage und Filterung der gespeicherten Collections. <!-- VI JoKl -->
 
 ### 3.4 UI (Web-Frontend)
 Das Web-Frontend wird mit Vue.js (Version 3) entwickelt (6.1.3.2) und bietet eine benutzerfreundliche Oberfläche zur Suche, Filterung und Visualisierung der STAC Collections, inklusive Kartenansicht (6.1.3.1, 6.1.3.3, 6.1.3.4, 6.1.3.5, 6.1.3.7, 6.1.3.8, 6.1.3.9).  
@@ -198,12 +198,19 @@ Komponente | Funktion (Kurzbeschreibung) | Optionale Umsetzung | Akzeptanzkriter
 | Crawler | Logging & Monitoring der Crawl-Aktivitäten | % | Dashboards/Metriken (Rate, Fehler, Status) | M | 6.1.1 12. |
 | Crawler | Version-agnostische STAC-Extensions erkennen und als Tags speichern (EO, SAR, Point Cloud) | ✔ | Extensions-Tags in DB & Queryables sichtbar | $ | 6.1.1 13. |
 | STAC-API | API gemäß relevanten Spezifikationen gültig (STAC API und Collection Search Extension) | – | GET `/` und `/conformance` enthält zutreffende URIs | H | 6.1.2 1. |
+<!-- VI JoKl -->
 | STAC-API | Erweiterung der bestehenden STAC Index API; bleibt selbst gültige STAC-API | – | Root/Collections gültig - Getestet durch `STAC Validator` und `STAC API Validator` und Jest-Tests für die Collection Search Extension | H | 6.1.2 2. |
+<!-- VI JoKl -->w
 | STAC-API | Collection Search: Freitext `q`, Filter, Sortierung | – | Beispiel-Queries liefern erwartete Treffer | H | 6.1.2 3. |
+<!-- VI JoKl -->
 | STAC-API | CQL2-Filtering (Basic CQL2 (`AND`, `OR`, `NOT`, `=`, `<>`, `<`, `<=`, `>`, `>=`, `IS NULL`)) für Collection-Eigenschaften | – | Gültige Filter → 200 Antworten; ungültige → 400 Antworten mit Fehlerbeschreibung | H | 6.1.2 4. |
+<!-- VI JoKl -->
 | STAC-API | Zusätzliche CQL2-Fähigkeiten (Advanced Comparison Operators (`LIKE/BETWEEN/IN`, `casei/accenti`, `Spatial/Temporal`, `Arrays`)) | % | Conformance-URIs ergänzt; Tests erfolgreich | M | 6.1.2 5. (optional) |
+<!-- VI JoKl -->
 | STAC-API | CQL2 als Standalone-Library bereitstellen | $ | Lib mit Parser/Validation + README | L | 6.1.2 6. (optional) |
+<!-- NI JoKl -->
 | STAC-API | Integration der neuen Funktionen in bestehende STAC Index API | $ | End-to-End-Tests (Crawler→API→UI) grün | M | 6.1.2 7. |
+<!-- UVI-60 JoKl -->
 | Web-UI | Intuitive Suchoberfläche für Collections | – | Usability-Test: Kernflows bestehen | H | 6.1.3 1. |
 | Web-UI | Implementierung in Vue (v3) zur Einbindung in STAC Index | – | Build integriert; Routing/State funktionsfähig | M | 6.1.3 2. |
 | Web-UI | Interaktive Auswahl von Bounding Box und Zeitintervall | – | BBox/Datetime erzeugen korrekte Parameter | H | 6.1.3 3. |
@@ -683,20 +690,20 @@ Damit bildet die API die zentrale Kommunikationsschnittstelle zwischen der Daten
 und ermöglicht einen einheitlichen, standardkonformen Zugriff auf alle gespeicherten STAC-Daten.
 
 #### 9.3.2 Endpunkte
-1. Bereitstellung von Collections
+1. Bereitstellung von Collections<!-- UVI-90, s.o., JoKl -->
    - `GET /collections` 
      - Gibt eine Liste aller gespeicherten Collections aus der Datenbank zurück.
    - Die Antwort ist konform zum STAC API Standard und enthält Metadaten wie `id`, `title`, `description`, `extent`, `keywords`, `providers`, `license`, sowie relevante links.
    - Ergebnisse werden pagininiert und alphabetisch nach `title` sortiert (Standardverhalten).
 
-2. Abruf einer bestimmten Collection
+2. Abruf einer bestimmten Collection<!-- VI JoKl -->
    - `GET /collections/{id}`
      - Liefert die vollständigen Metadaten einer einzelnen Collection, einschließlich des gesamten STAC-konformen JSON-Objekts.
    - Wird eine unbekannte ID angefragt, gibt die API eine strukturierte Fehlermeldung gemäß STAC-Spezifikation zurück (`404 Not Found`, JSON mit `code`, `description`, `id`).
    - Die Antwort enthält auch links zur zugehörigen Quelle (Original-STAC-API oder Katalog).
    - `GET /collections/{id}` -> Liefert die vollständigen Metadaten einer einzelnen Collection
    
-3. Collection Search
+3. Collection Search<!-- VI JoKl -->
 - `GET /collections`
   und
 - `POST /collections`
