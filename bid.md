@@ -24,12 +24,12 @@ Die Abnahmekriterien definieren die zwingend erforderlichen Funktionalitäten de
 - Robustes Error-Handling mit Retry-Logic
 
 #### Datenbank
-- Persistente Speicherung von STAC-Collection-Metadaten
+- Persistente Speicherung von STAC-Collection-Metadaten <!-- VI SöHo -->
 - Unterstützung strukturierter Suchabfragen (CQL2)
-- Volltextsuche über Titel, Beschreibung und Keywords
-- Räumliche Filterung (Bounding Box) mittels PostGIS
-- Zeitliche Filterung nach Start- und Endzeitpunkten
-- Effiziente Indizierung für schnelle Abfragen (< 100 ms)
+- Volltextsuche über Titel, Beschreibung und Keywords <!-- VI SöHo -->
+- Räumliche Filterung (Bounding Box) mittels PostGIS <!-- VI SöHo -->
+- Zeitliche Filterung nach Start- und Endzeitpunkten <!-- VI SöHo -->
+- Effiziente Indizierung für schnelle Abfragen (< 100 ms) <!-- VI SöHo -->
 
 #### STAC API
 - Konforme Implementierung der STAC API Specification
@@ -231,11 +231,12 @@ Die Tabellen enthalten jeweils Primärschlüssel zur eindeutigen Identifikation 
 
 ---
 
-### Tabellenbereich „Catalogs“
+### Tabellenbereich „Catalogs“ <!-- VI SöHo -->
 
 Der Bereich **Catalogs** bildet die hierarchische Struktur der STAC-Kataloge ab. Jeder Katalog speichert seine Metadaten inklusive Versionierung, Typ, Beschreibung und zugehöriger Links. Über Zwischentabellen werden Erweiterungen (STAC Extensions) referenziert.  
 
-#### Tabelle: `catalog`
+#### Tabelle: `catalog` <!-- VI SöHo -->
+<!-- CR: Es wurde die Spalte search_vector als tsvector zur effizienteren Bestimmung und Verarbeitung der Vektordaten hinzugefügt-->
 
 | Spalte        | Beschreibung / Inhalt                   | Datentyp / Format     |
 |---------------|------------------------------------------|------------------------|
@@ -249,7 +250,8 @@ Der Bereich **Catalogs** bildet die hierarchische Struktur der STAC-Kataloge ab.
 
 Die Haupttabelle `catalog` bildet den zentralen Einstiegspunkt der Kataloghierarchie. Sie speichert allgemeine Metadaten und dient als Ankerpunkt für die zugehörigen Relationen. Diese Tabelle ist notwenidg um zu schauen, ob der crawler die aktueller Version des `catalogs` gespeichert hat, oder diesen `catalog` erneut crawlen muss. Somit kann der crawler bei einem erneuten crawl effektiver und schneller arbeiten.
 
-#### Tabelle: `catalog_links`
+#### Tabelle: `catalog_links` <!-- VI SöHo -->
+<!-- CR: Es wurde die Spalte source_url als text zur schnelleren Bestimmung des Ursprungs-catalogs hinzugefügt-->
 
 | Spalte       | Beschreibung / Inhalt                        | Datentyp / Format     |
 |---------------|----------------------------------------------|------------------------|
@@ -262,7 +264,7 @@ Die Haupttabelle `catalog` bildet den zentralen Einstiegspunkt der Kataloghierar
 
 Die Tabelle `catalog_links` beschreibt die Verknüpfungen zwischen einzelnen Katalogen oder externen Referenzen und implementiert damit die STAC-Link-Struktur.
 
-#### Tabelle: catalog:stac_extension
+#### Tabelle: catalog:stac_extension <!-- VI SöHo -->
 
 | Spalte              | Beschreibung / Inhalt                    | Datentyp / Format |
 |----------------------|------------------------------------------|-------------------|
@@ -271,13 +273,25 @@ Die Tabelle `catalog_links` beschreibt die Verknüpfungen zwischen einzelnen Kat
 
 Diese Relation beschreibt, welche STAC-Erweiterungen in einem bestimmten Katalog verwendet werden. Hier wird eine eigene Tabelle benötigt da hier eine (n:n)-Beziehung zwischen den beiden tabellen vorliegt.
 
+#### Tabelle: crawllog_catalog <!-- VI SöHo -->
+
+| Spalte       | Beschreibung / Inhalt                    | Datentyp / Format |
+|---------------|------------------------------------------|-------------------|
+| **id**        | Eindeutige ID des Crawlvorgangs          | integer (PK)      |
+| catalog_id    | Referenz auf `catalog.id`                | integer (FK)      |
+| last_crawled  | Zeitpunkt des letzten Crawls             | timestamp         | 
+
+Protokolliert die Zeitpunkte der letzten Crawling-Vorgänge für jeden Katalog. 
+
 ---
 
 ### Tabellenbereich „Collections“
 
 Der Bereich **Collections** bildet die Sammlungen von Collections innerhalb eines Katalogs ab. Jede Collection enthält spezifische Metadaten, räumliche Ausdehnungen, zeitliche Intervalle sowie referenzierte Provider, Assets und Summaries.  
 
-#### Tabelle: collection
+#### Tabelle: collection <!-- VI SöHo -->
+<!-- CR: Es wurde die Spalte stac_id als Integer zur einfacheren Suche und spezifischen Erkennung der verschiedenen stac collections zu gewährleisten -->
+<!-- CR: Es wurde die Spalte search_vector als tsvector zur effizienteren Bestimmung und Verarbeitung der Vektordaten hinzugefügt-->
 
 | Spalte                | Beschreibung / Inhalt                                    | Datentyp / Format  |
 |------------------------|----------------------------------------------------------|--------------------|
@@ -298,7 +312,8 @@ Der Bereich **Collections** bildet die Sammlungen von Collections innerhalb eine
 
 Die `collection`-Tabelle dient als zentrales Objekt für die Speicherung der Sammlungsinformationen. Neben den textuellen Attributen werden hier räumliche und zeitliche Dimensionen gespeichert, die für Filter- und Suchoperationen entscheidend sind.  
 
-#### Tabelle: collection_summaries
+#### Tabelle: collection_summaries <!-- VI SöHo -->
+<!-- CR: Es wurde die Spalte source_url als text zur schnelleren Bestimmung der Ursprung-collection hinzugefügt-->
 
 | Spalte        | Beschreibung / Inhalt                                 | Datentyp / Format |
 |----------------|-------------------------------------------------------|-------------------|
@@ -313,7 +328,7 @@ Die `collection`-Tabelle dient als zentrales Objekt für die Speicherung der Sam
 
 Diese Tabelle speichert statistische oder beschreibende Zusammenfassungen einzelner Collections. Über den Fremdschlüssel `collection_id` wird sichergestellt, dass alle Summary-Werte eindeutig zugeordnet werden können.  
 
-#### Tabelle: collection:assets
+#### Tabelle: collection:assets <!-- VI SöHo -->
 
 | Spalte                 | Beschreibung / Inhalt                 | Datentyp / Format |
 |-------------------------|---------------------------------------|-------------------|
@@ -323,7 +338,7 @@ Diese Tabelle speichert statistische oder beschreibende Zusammenfassungen einzel
 
 Dient der Verknüpfung von Collections mit ihren zugehörigen Assets, einschließlich der Angabe spezifischer Rollen. Dies ist nötig, da hier eine (n:n)-Beziehung vorliegt.
 
-#### Tabelle: collection:keywords
+#### Tabelle: collection:keywords <!-- VI SöHo -->
 
 | Spalte        | Beschreibung / Inhalt                | Datentyp / Format |
 |----------------|--------------------------------------|-------------------|
@@ -332,7 +347,7 @@ Dient der Verknüpfung von Collections mit ihren zugehörigen Assets, einschlie�
 
 Relationstabelle zur Mehrfachzuordnung von Keywords an Collections. Dadurch können Colletions gezielt über Schlagwörter gefiltert werden. Diese Tabelle wird benötigt, da hier eine (n:n)-Beziehung vorliegt.
 
-#### Tabelle: collection:stac_extension
+#### Tabelle: collection:stac_extension <!-- VI SöHo -->
 
 | Spalte              | Beschreibung / Inhalt                 | Datentyp / Format |
 |----------------------|---------------------------------------|-------------------|
@@ -351,49 +366,6 @@ Relationstabelle zur Mehrfachzuordnung von stac_extension an Collections. Dadurc
 
 Definiert die Zuordnung von Datenanbietern (Providern) zu einzelnen Collections. Über das Feld `collection_provider_roles` können die jeweiligen Rollen (z. B. „producer“, „licensor“) eindeutig beschrieben werden.
 
----
-
-### Allgemeine und Hilfstabellen
-
-Neben den spezifischen Tabellen für Catalogs und Collections existieren mehrere **nicht-spezifische Hilfstabellen**, die für eine einheitliche Referenzierung, Nachverfolgung und Filterung verwendet werden. Diese werden benötigt, da diese Tabellen mit den Tabellen `collections` und `catalogs` eine n:n-Beziehung haben und somit die datenbank unnötig viele Daten speichern würde wenn man diese Daten direkt in einer der beiden Tabellen referenzieren würde.
-
-#### Tabelle: providers
-
-| Spalte | Beschreibung / Inhalt                 | Datentyp / Format |
-|---------|---------------------------------------|-------------------|
-| **id**  | Eindeutige ID des Providers           | integer (PK)      |
-| provider| Name oder Organisation des Providers  | text              |
-
-Speichert die Informationen zu Datenanbietern, Organisationen oder Institutionen.  
-
-#### Tabelle: keywords
-
-| Spalte | Beschreibung / Inhalt          | Datentyp / Format |
-|---------|--------------------------------|-------------------|
-| **id**  | Eindeutige ID des Keywords     | integer (PK)      |
-| keyword | Bezeichnung des Schlagworts    | text              |
-
-Liste aller verwendeten Schlagwörter, die in unterschiedlichen Kontexten wiederverwendet werden können.  
-
-#### Tabelle: stac_extensions
-
-| Spalte | Beschreibung / Inhalt               | Datentyp / Format |
-|---------|-------------------------------------|-------------------|
-| **id**  | Eindeutige ID der Extension         | integer (PK)      |
-| stac_extension | Name oder URL der Erweiterung | text             |
-
-Verwaltet die in STAC definierten Erweiterungen, die sowohl von Catalogs als auch von Collections genutzt werden können.  
-
-#### Tabelle: crawllog_catalog
-
-| Spalte       | Beschreibung / Inhalt                    | Datentyp / Format |
-|---------------|------------------------------------------|-------------------|
-| **id**        | Eindeutige ID des Crawlvorgangs          | integer (PK)      |
-| catalog_id    | Referenz auf `catalog.id`                | integer (FK)      |
-| last_crawled  | Zeitpunkt des letzten Crawls             | timestamp         | 
-
-Protokolliert die Zeitpunkte der letzten Crawling-Vorgänge für jeden Katalog.  
-
 #### Tabelle: crawllog_collection
 
 | Spalte       | Beschreibung / Inhalt                    | Datentyp / Format |
@@ -403,6 +375,40 @@ Protokolliert die Zeitpunkte der letzten Crawling-Vorgänge für jeden Katalog.
 | last_crawled  | Zeitpunkt des letzten Crawls             | timestamp         |
 
 Analog zur vorherigen Tabelle dient `crawllog_collection` der Nachverfolgung der Crawling-Zyklen für Collections.  
+
+---
+
+### Allgemeine und Hilfstabellen <!-- VI SöHo -->
+<!-- CR: Es wurde eine weitere Tabelle für die assets der collections angelegt. Diese ist bereits implementiert und verfügbar, jedoch wurde diese in der bid vergessen-->
+
+Neben den spezifischen Tabellen für Catalogs und Collections existieren mehrere **nicht-spezifische Hilfstabellen**, die für eine einheitliche Referenzierung, Nachverfolgung und Filterung verwendet werden. Diese werden benötigt, da diese Tabellen mit den Tabellen `collections` und `catalogs` eine n:n-Beziehung haben und somit die datenbank unnötig viele Daten speichern würde wenn man diese Daten direkt in einer der beiden Tabellen referenzieren würde.
+
+#### Tabelle: providers <!-- VI SöHo -->
+
+| Spalte | Beschreibung / Inhalt                 | Datentyp / Format |
+|---------|---------------------------------------|-------------------|
+| **id**  | Eindeutige ID des Providers           | integer (PK)      |
+| provider| Name oder Organisation des Providers  | text              |
+
+Speichert die Informationen zu Datenanbietern, Organisationen oder Institutionen.  
+
+#### Tabelle: keywords <!-- VI SöHo -->
+
+| Spalte | Beschreibung / Inhalt          | Datentyp / Format |
+|---------|--------------------------------|-------------------|
+| **id**  | Eindeutige ID des Keywords     | integer (PK)      |
+| keyword | Bezeichnung des Schlagworts    | text              |
+
+Liste aller verwendeten Schlagwörter, die in unterschiedlichen Kontexten wiederverwendet werden können.  
+
+#### Tabelle: stac_extensions <!-- VI SöHo -->
+
+| Spalte | Beschreibung / Inhalt               | Datentyp / Format |
+|---------|-------------------------------------|-------------------|
+| **id**  | Eindeutige ID der Extension         | integer (PK)      |
+| stac_extension | Name oder URL der Erweiterung | text             |
+
+Verwaltet die in STAC definierten Erweiterungen, die sowohl von Catalogs als auch von Collections genutzt werden können.   
 
 ---
 
@@ -647,20 +653,20 @@ Es werden alle stabilen STAC-Versionen, durch Migration unterstützt.
 Eine Crawling-Plan (Schedule) ermöglicht die zeitliche Steuerung einzelner Crawl-Vorgänge. Es soll eine wöchentliche Aktualisierungen des Indexes durchgeführt werden.
 Die Ergebnisse werden in einer PostgreSQL-Datenbank gespeichert.
 
-### 9.2 Datenbank-Komponente <!-- Sönke -->
-Die Datenbankkomponente stellt die zentrale Grundlage für die Speicherung, Verwaltung und Abfrage aller vom Crawler erfassten Metadaten dar. Sie dient der persistenten Ablage sämtlicher Inhalte, einschließlich der vollständigen STAC-JSON-Strukturen, und ermöglicht deren effiziente Weiterverarbeitung innerhalb der Gesamtarchitektur. Als Datenbanksystem wird **PostgreSQL** in Kombination mit der Erweiterung **PostGIS** eingesetzt, um sowohl relationale als auch geographische Abfragen performant unterstützen zu können.
+### 9.2 Datenbank-Komponente <!-- Sönke --> 
+Die Datenbankkomponente stellt die zentrale Grundlage für die Speicherung, Verwaltung und Abfrage aller vom Crawler erfassten Metadaten dar. Sie dient der persistenten Ablage sämtlicher Inhalte, einschließlich der vollständigen STAC-JSON-Strukturen, und ermöglicht deren effiziente Weiterverarbeitung innerhalb der Gesamtarchitektur. Als Datenbanksystem wird **PostgreSQL** in Kombination mit der Erweiterung **PostGIS** eingesetzt, um sowohl relationale als auch geographische Abfragen performant unterstützen zu können. <!-- VI SöHo -->
+<!-- PR: der 2. Satz macht so wie er hier steht keinen Sinn (mehr). Das müsste umformuliert werden: jeweils die Haupttabellen catalog und collection und dazu dann Erweiterungen, die die effizenz der DB erhöhen -->
+Die Struktur der Datenbank ist in mehrere logisch voneinander getrennte Teiltabellen gegliedert. Neben der Haupttabelle, in der alle grundlegenden Informationen abgelegt werden, existieren Tabellen wie `collection`, `catalog`, sowie vielen anderen (vgl. 5. Produktdaten). Diese Unterteilung sorgt für eine klare Trennung der Metadatenbereiche und ermöglicht eine performante Abfrage durch gezielte Normalisierung. Über Primär- und Fremdschlüsselbeziehungen sind die Tabellen miteinander verknüpft, sodass alle relevanten Daten effizient referenziert werden können. <!-- VI SöHo -->
 
-Die Struktur der Datenbank ist in mehrere logisch voneinander getrennte Teiltabellen gegliedert. Neben der Haupttabelle, in der alle grundlegenden Informationen abgelegt werden, existieren Tabellen wie `collection`, `catalog`, sowie vielen anderen (vgl. 5. Produktdaten). Diese Unterteilung sorgt für eine klare Trennung der Metadatenbereiche und ermöglicht eine performante Abfrage durch gezielte Normalisierung. Über Primär- und Fremdschlüsselbeziehungen sind die Tabellen miteinander verknüpft, sodass alle relevanten Daten effizient referenziert werden können.
+Um eine schnelle und ressourcenschonende Datensuche zu gewährleisten, werden verschiedene Indizes eingerichtet. Neben klassischen **B-Tree-Indizes** für ID- und Zeitspalten kommen **GIN-** und **GiST-Indizes** zum Einsatz, um Text- und Geometrieabfragen zu optimieren. Dies betrifft insbesondere die Felder für Titel, Beschreibung, Keywords, zeitliche Angaben sowie die räumlichen Geometrien. Die Implementierung einer **Volltextsuche** auf Basis von **PostgreSQL-TSVector** ermöglicht zudem eine performante Freitextsuche über Titel, Beschreibungen und Schlagwörter, einschließlich Relevanzbewertung und optionaler Mehrsprachigkeit. <!-- VI SöHo -->
 
-Um eine schnelle und ressourcenschonende Datensuche zu gewährleisten, werden verschiedene Indizes eingerichtet. Neben klassischen **B-Tree-Indizes** für ID- und Zeitspalten kommen **GIN-** und **GiST-Indizes** zum Einsatz, um Text- und Geometrieabfragen zu optimieren. Dies betrifft insbesondere die Felder für Titel, Beschreibung, Keywords, zeitliche Angaben sowie die räumlichen Geometrien. Die Implementierung einer **Volltextsuche** auf Basis von **PostgreSQL-TSVector** ermöglicht zudem eine performante Freitextsuche über Titel, Beschreibungen und Schlagwörter, einschließlich Relevanzbewertung und optionaler Mehrsprachigkeit.
-
-Für die geographische Filterung wird die räumliche Ausdehnung eines Datensatzes als **PostGIS-Geometrieobjekt** gespeichert. Dadurch sind Abfragen nach Bounding Boxes, Überschneidungen, Entfernungen oder räumlichem Enthaltensein möglich. Zusätzlich werden Start- und Endzeitpunkte in separaten Spalten abgelegt, um zeitbasierte Filterungen zu unterstützen. Ein zusammengesetzter Index auf diesen Zeitfeldern gewährleistet eine effiziente Ausführung von Abfragen über Zeiträume hinweg.
+Für die geographische Filterung wird die räumliche Ausdehnung eines Datensatzes als **PostGIS-Geometrieobjekt** gespeichert. Dadurch sind Abfragen nach Bounding Boxes, Überschneidungen, Entfernungen oder räumlichem Enthaltensein möglich. Zusätzlich werden Start- und Endzeitpunkte in separaten Spalten abgelegt, um zeitbasierte Filterungen zu unterstützen. Ein zusammengesetzter Index auf diesen Zeitfeldern gewährleistet eine effiziente Ausführung von Abfragen über Zeiträume hinweg. <!-- VI SöHo -->
 
 Ein zentrales Merkmal der Datenbankkomponente ist die **Übersetzung von CQL2-Ausdrücken** in entsprechende SQL-WHERE-Bedingungen. Diese Funktionalität erlaubt es, standardisierte Filterausdrücke (z. B. aus STAC-konformen API-Abfragen) direkt in SQL-Statements umzusetzen, wodurch eine hohe Kompatibilität und Erweiterbarkeit erreicht wird.
 
-Zur Unterstützung inkrementeller Updates ist die Datenbank so ausgelegt, dass der Crawler neue oder geänderte Datensätze erkennen und gezielt aktualisieren kann, ohne dass ein vollständiger Neuimport erforderlich ist. Änderungen werden anhand eindeutiger Identifikatoren identifiziert, wodurch sowohl die Datenintegrität als auch die Verarbeitungsgeschwindigkeit verbessert werden.
+Zur Unterstützung inkrementeller Updates ist die Datenbank so ausgelegt, dass der Crawler neue oder geänderte Datensätze erkennen und gezielt aktualisieren kann, ohne dass ein vollständiger Neuimport erforderlich ist. Änderungen werden anhand eindeutiger Identifikatoren identifiziert, wodurch sowohl die Datenintegrität als auch die Verarbeitungsgeschwindigkeit verbessert werden.<!-- VI SöHo -->
 
-Gelöschte oder aktuell vom Crawler nicht mehr erreichbare Datensätze werden in der Datenbank **nicht physisch entfernt**, sondern erhalten das Attribut `active = false`. Auf diese Weise bleibt der historische Zustand der Datensätze erhalten, was eine revisionssichere Nachverfolgung und spätere Analyse ermöglicht. Dieses Vorgehen unterstützt zudem eine transparente Datenhaltung und erleichtert eventuelle Wiederherstellungen.
+Gelöschte oder aktuell vom Crawler nicht mehr erreichbare Datensätze werden in der Datenbank **nicht physisch entfernt**, sondern erhalten das Attribut `active = false`. Auf diese Weise bleibt der historische Zustand der Datensätze erhalten, was eine revisionssichere Nachverfolgung und spätere Analyse ermöglicht. Dieses Vorgehen unterstützt zudem eine transparente Datenhaltung und erleichtert eventuelle Wiederherstellungen. <!-- VI SöHo -->
 
 Insgesamt ermöglicht die Datenbankkomponente eine robuste, skalierbare und abfrageoptimierte Verwaltung der Metadaten. Durch den Einsatz von Indizes, Geometrieunterstützung und standardisierten Filtermechanismen (CQL2) bildet sie die Grundlage für eine performante Bereitstellung der Daten innerhalb der gesamten Systemarchitektur.
 
@@ -811,21 +817,21 @@ Der Datenbankzugriff erfolgt asynchron und wird durch Connection-Pooling optimie
 Die Implementierung folgt einem klar strukturierten Vorgehen in mehreren Phasen, die jeweils definierte Meilensteine umfassen und eine schrittweise Integration in das Gesamtsystem ermöglichen.
 
 #### Verwendete Technologien
-- **NodeJS 20**  
-- **PostgreSQL** als relationales Datenbanksystem  
-- **PostGIS** für Geometrie- und Raumdaten  
-- **Prisma ORM** zur Datenmodellierung und Migration  
+- **NodeJS 20** <!-- CR: wird nicht benötigt in der DB Komponente, wird erst beim Abruf der API auf die Datenbank benötigt  -->
+- **PostgreSQL** als relationales Datenbanksystem  <!-- VI SöHo -->
+- **PostGIS** für Geometrie- und Raumdaten  <!-- VI SöHo -->
+- **Prisma ORM** zur Datenmodellierung und Migration  <!-- UVI-60 SöHo -->
 - **Express.js** als REST-Schnittstelle zur Integration mit dem Crawler  
-- **Jest** als Testumgebung
-- **Docker** zur Bereitstellung der Entwicklungs- und Testumgebung  
+- **Jest** als Testumgebung <!-- VI SöHo -->
+- **Docker** zur Bereitstellung der Entwicklungs- und Testumgebung  <!-- VI SöHo -->
 
 #### Phasen und Meilensteine
 
 1. **Analyse- und Entwurfsphase (M1)**  
-   In dieser Phase werden das Datenmodell und die Schnittstellenanforderungen definiert. Die STAC-konformen Metadatenstrukturen werden analysiert und in ein relationales Schema überführt. Hierzu wird ein erstes **Prisma-Datenmodell** erstellt, das alle Tabellen (z.B. `collection`, `catalog`, `keywords` usw.) sowie deren Beziehungen enthält.  
-   Ergebnis: Validiertes ER-Diagramm und initiales Datenmodell (`schema.prisma`).
+   In dieser Phase werden das Datenmodell und die Schnittstellenanforderungen definiert. Die STAC-konformen Metadatenstrukturen werden analysiert und in ein relationales Schema überführt. Hierzu wird ein erstes **Prisma-Datenmodell** erstellt, das alle Tabellen (z.B. `collection`, `catalog`, `keywords` usw.) sowie deren Beziehungen enthält. 
+   Ergebnis: Validiertes ER-Diagramm und initiales Datenmodell (`schema.prisma`). <!-- UVI-60 SöHo -->
 
-2. **Implementierungsphase (M2)**  
+2. **Implementierungsphase (M2)**  <!-- CR: das PRISMA datenmodell war nicht Grundlage der weiteren impementierung -->
    Aufbauend auf dem Datenmodell wird die Datenbank über Prisma-Migrationen aufgebaut. Dabei werden alle Tabellen und Fremdschlüsselbeziehungen erzeugt.  
    Parallel werden erste API-Endpunkte über **Express.js** implementiert, um einfache CRUD-Operationen zu testen.  
    Ergebnis: funktionierendes Datenbankschema mit Zugriff über ORM und API-Testendpunkte.
@@ -839,7 +845,7 @@ Die Implementierung folgt einem klar strukturierten Vorgehen in mehreren Phasen,
    Anschließend werden die Such- und Filtermechanismen implementiert. Dazu gehört die Integration einer **Volltextsuche** auf Basis von PostgreSQL-TSVector, die Anbindung von **PostGIS** für Bounding-Box- und Distanzabfragen sowie die Umsetzung einer Übersetzungsschicht für **CQL2-Filterausdrücke**.  
    Ergebnis: performante Such- und Filterfunktionen mit optimierten Indizes.
 
-5. **Deployment und Dokumentation (M5)**  
+5. **Deployment und Dokumentation (M5)**  <!-- UVI-80 SöHo -->
    Die produktive Bereitstellung erfolgt über **Docker Compose** <!-- , wobei separate Umgebungen für Entwicklung und Produktion eingerichtet werden.-->
    Das Prisma-Schema, die Migrationsdateien und die API-Routen werden versioniert und dokumentiert. Eine technische Dokumentation beschreibt die Struktur, Indexierung und Updateprozesse der Datenbank.  
    Ergebnis: einsatzbereite, dokumentierte Datenbankkomponente.
