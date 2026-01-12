@@ -9,7 +9,7 @@ Die Plattform ermöglicht es Nutzern, Collections anbieterübergreifend zu suche
 Das Projekt besteht aus vier Hauptkomponenten, die nahtlos zusammenarbeiten:
 - **Crawler** – erfasst automatisch Daten aus verschiedenen STAC-Katalogen und hält diese aktuell
 - **Datenbank** – speichert Metadaten persistent und ermöglicht effiziente Abfragen
-- **STAC API** – ermöglicht standardisierten, programmatischen Zugriff auf die indexierten Collections
+- **STAC API** – ermöglicht standardisierten, programmatischen Zugriff auf die indexierten Collections <!-- VI ViKu -->
 - **UI** – bietet eine nutzerfreundliche Web-Oberfläche mit visueller Suche und interaktiver Kartenansicht
 
 ### 1.1 Abnahmekriterien
@@ -166,7 +166,7 @@ Das Backend stellt eine API bereit, die vollständig mit der STAC API-Spezifikat
 Die API wird primär in JavaScript / Node.js (22) mit Express umgesetzt (6.2.4.2).  
 Für die Übersetzung und Auswertung von CQL2-Abfragen wird cql2-rs (Rust) zu WebAssembly kompiliert und in-process im Node-Prozess eingebunden (geringe Latenz, einfache Containerisierung) (6.1.2.4, 6.1.2.5, 6.1.2.6).  
 Als Fallback bleibt alternativ pycql2; sollten sich gravierende Schwierigkeiten mit cql2-rs ergeben, kann optional ein Python-Backend (z. B. FastAPI) implementiert werden, das die Anfrageverarbeitung und CQL2-Übersetzung übernimmt (6.1.2.7).  
-Die API ist klar vom Crawler getrennt und fokussiert auf Abfrage und Filterung der gespeicherten Collections.
+Die API ist klar vom Crawler getrennt und fokussiert auf Abfrage und Filterung der gespeicherten Collections. <!-- UIV 80 ViKu -->
 
 ### 3.4 UI (Web-Frontend)
 Das Web-Frontend wird mit Vue.js (Version 3) entwickelt (6.1.3.2) und bietet eine benutzerfreundliche Oberfläche zur Suche, Filterung und Visualisierung der STAC Collections, inklusive Kartenansicht (6.1.3.1, 6.1.3.3, 6.1.3.4, 6.1.3.5, 6.1.3.7, 6.1.3.8, 6.1.3.9).  
@@ -197,13 +197,13 @@ Komponente | Funktion (Kurzbeschreibung) | Optionale Umsetzung | Akzeptanzkriter
 | Crawler | Fehlerbehandlung + Retry; problematische Quellen überspringen | % | Backoff/Retry-Logik; Fehlerbericht vorhanden | M | 6.1.1 11. |
 | Crawler | Logging & Monitoring der Crawl-Aktivitäten | % | Dashboards/Metriken (Rate, Fehler, Status) | M | 6.1.1 12. |
 | Crawler | Version-agnostische STAC-Extensions erkennen und als Tags speichern (EO, SAR, Point Cloud) | ✔ | Extensions-Tags in DB & Queryables sichtbar | $ | 6.1.1 13. |
-| STAC-API | API gemäß relevanten Spezifikationen gültig (STAC API und Collection Search Extension) | – | GET `/` und `/conformance` enthält zutreffende URIs | H | 6.1.2 1. |
-| STAC-API | Erweiterung der bestehenden STAC Index API; bleibt selbst gültige STAC-API | – | Root/Collections gültig - Getestet durch `STAC Validator` und `STAC API Validator` und Jest-Tests für die Collection Search Extension | H | 6.1.2 2. |
-| STAC-API | Collection Search: Freitext `q`, Filter, Sortierung | – | Beispiel-Queries liefern erwartete Treffer | H | 6.1.2 3. |
-| STAC-API | CQL2-Filtering (Basic CQL2 (`AND`, `OR`, `NOT`, `=`, `<>`, `<`, `<=`, `>`, `>=`, `IS NULL`)) für Collection-Eigenschaften | – | Gültige Filter → 200 Antworten; ungültige → 400 Antworten mit Fehlerbeschreibung | H | 6.1.2 4. |
-| STAC-API | Zusätzliche CQL2-Fähigkeiten (Advanced Comparison Operators (`LIKE/BETWEEN/IN`, `casei/accenti`, `Spatial/Temporal`, `Arrays`)) | % | Conformance-URIs ergänzt; Tests erfolgreich | M | 6.1.2 5. (optional) |
+| STAC-API | API gemäß relevanten Spezifikationen gültig (STAC API und Collection Search Extension) | – | GET `/` und `/conformance` enthält zutreffende URIs | H | 6.1.2 1. | <!-- VI ViKu -->
+| STAC-API | Erweiterung der bestehenden STAC Index API; bleibt selbst gültige STAC-API | – | Root/Collections gültig - Getestet durch `STAC Validator` und `STAC API Validator` und Jest-Tests für die Collection Search Extension | H | 6.1.2 2. | <!-- VI ViKu -->
+| STAC-API | Collection Search: Freitext `q`, Filter, Sortierung | – | Beispiel-Queries liefern erwartete Treffer | H | 6.1.2 3. | <!-- VI ViKu -->
+| STAC-API | CQL2-Filtering (Basic CQL2 (`AND`, `OR`, `NOT`, `=`, `<>`, `<`, `<=`, `>`, `>=`, `IS NULL`)) für Collection-Eigenschaften | – | Gültige Filter → 200 Antworten; ungültige → 400 Antworten mit Fehlerbeschreibung | H | 6.1.2 4. | <!-- VI ViKu -->
+| STAC-API | Zusätzliche CQL2-Fähigkeiten (Advanced Comparison Operators (`LIKE/BETWEEN/IN`, `casei/accenti`, `Spatial/Temporal`, `Arrays`)) | % | Conformance-URIs ergänzt; Tests erfolgreich | M | 6.1.2 5. (optional) | <!-- VI ViKu -->
 | STAC-API | CQL2 als Standalone-Library bereitstellen | $ | Lib mit Parser/Validation + README | L | 6.1.2 6. (optional) |
-| STAC-API | Integration der neuen Funktionen in bestehende STAC Index API | $ | End-to-End-Tests (Crawler→API→UI) grün | M | 6.1.2 7. |
+| STAC-API | Integration der neuen Funktionen in bestehende STAC Index API | $ | End-to-End-Tests (Crawler→API→UI) grün | M | 6.1.2 7. | <!-- VI ViKu -->
 | Web-UI | Intuitive Suchoberfläche für Collections | – | Usability-Test: Kernflows bestehen | H | 6.1.3 1. |
 | Web-UI | Implementierung in Vue (v3) zur Einbindung in STAC Index | – | Build integriert; Routing/State funktionsfähig | M | 6.1.3 2. |
 | Web-UI | Interaktive Auswahl von Bounding Box und Zeitintervall | – | BBox/Datetime erzeugen korrekte Parameter | H | 6.1.3 3. |
@@ -450,7 +450,7 @@ Die Crawling-Durchläufe sollen über Logging und Metriken wie der Anzahl gecraw
 
 2. **Gleichzeitige Zugriffe (Concurrency)**  
    - Das System muss mindestens **50 gleichzeitige Leseanfragen** und **10 gleichzeitige Schreibanfragen** ohne merkliche Leistungseinbußen (< 10 % längere Antwortzeit) verarbeiten können.  
-   - Gleichzeitige API-Anfragen dürfen keine Deadlocks oder Timeout-Fehler erzeugen.
+   - Gleichzeitige API-Anfragen dürfen keine Deadlocks oder Timeout-Fehler erzeugen. 
 
 3. **Suchindex und Filterleistung**  
    - Die Datenbank muss einen Volltextindex bereitstellen, der Suchabfragen über Metadatenfelder (`title`, `description`, `keywords`, `providers`) innerhalb von **≤ 3 Sekunden** ermöglicht.  
@@ -493,6 +493,7 @@ Verarbeitung von mindestens 100 parallelen Anfragen,
 Antwortzeiten unter 5 s für einfache Abfragen und unter 1 min für komplexe Filterabfragen.
 
 Damit stellt die STAC API eine leistungsfähige, flexible und erweiterbare Grundlage für die standardisierte Suche innerhalb der indizierten STAC Collections dar.
+<!-- UVI 90 ViKu -->
 
 ## 6.4 UI <!-- Justin -->
 Die UI-Komponente dient als benutzerfreundliche Schnittstelle zur Suche, Filterung und Exploration von STAC-Collections über die bereitgestellte STAC API.  
@@ -535,30 +536,31 @@ Die nachfolgenden Maßnahmen gewährleisten die Korrektheit, Wartbarkeit, Standa
 
 ### 7.1 Code-Qualität und Tests
   #### 7.1.1 Unit-Tests 
-   - Für alle zentralen Backend-Module (insbesondere STAC-API-Routen, CQL2-Parser, Datenbank-Abfrage-Logik und Crawler-Importfunktionen) werden Unit-Tests mit einem geeigneten Framework (jest) erstellt.
-   - Für das Frontend werden Unit-Tests mit einem geeigneten Framework (Jest) erstellt.
-   - Zielabdeckung: mindestens 80 % Branch- und Statement-Coverage.
-   - Tests werden automatisiert bei jedem Commit und Merge-Request in der GitHub-Pipeline ausgeführt.
-   - Fehlgeschlagene Unit-Tests blockieren den Merge in den Haupt-Branch, um jederzeit lauffähigen Code in geteilten Systemen zu ermöglichen.
+   - Für alle zentralen Backend-Module (insbesondere STAC-API-Routen, CQL2-Parser, Datenbank-Abfrage-Logik und Crawler-Importfunktionen) werden Unit-Tests mit einem geeigneten Framework (jest) erstellt. <!-- VI ViKu -->
+   - Für das Frontend werden Unit-Tests mit einem geeigneten Framework (Jest) erstellt. <!-- VI ViKu -->
+   - Zielabdeckung: mindestens 80 % Branch- und Statement-Coverage. <!-- UVI 70 ViKu -->
+   - Tests werden automatisiert bei jedem Commit und Merge-Request in der GitHub-Pipeline ausgeführt. <!-- VI ViKu -->
+   - Fehlgeschlagene Unit-Tests blockieren den Merge in den Haupt-Branch, um jederzeit lauffähigen Code in geteilten Systemen zu ermöglichen. <!-- VI ViKu -->
 
   #### 7.1.2 Integrationstests
    - Zusätzlich zu den Unit-Tests werden Integrationstests definiert, um das Zusammenspiel der Komponenten (STAC-API ↔ Crawler-DB ↔ Web UI) zu verifizieren.
    - Diese Tests prüfen:
      - Korrektes Schreiben von Collection-Metadaten durch den Crawler in die Datenbank.
      - Abrufbarkeit und Filterbarkeit dieser Daten über die STAC-API-Endpunkte (/collections, /search).
-     - Validität der API-Antworten im STAC-Standardformat.
-     - Pagination-, Sortier- und Filterfunktionen (CQL2).
-   - Die Integrationstests werden in einer getrennten Testumgebung ausgeführt, die der realen Systemarchitektur entspricht (wahlweise über ein separates Docker-Compose-Setup oder im Rahmen des regulären Setups).
+     - Validität der API-Antworten im STAC-Standardformat. <!-- VI ViKu -->
+     - Pagination-, Sortier- und Filterfunktionen (CQL2). <!-- VI ViKu -->
+   - Die Integrationstests werden in einer getrennten Testumgebung ausgeführt, die der realen Systemarchitektur entspricht (wahlweise über ein separates Docker-Compose-Setup oder im Rahmen des regulären Setups). <!-- NI ViKu -->
   
 ### 7.2 Kontinuierliche Integration (CI)
 - Es wird eine GitHub Actions-Pipeline eingerichtet, die alle wesentlichen Qualitätssicherungs-Schritte automatisiert:
-   - Build – Installation aller Abhängigkeiten und Prüfung auf erfolgreiche Kompilierung.
-   - Linting – Automatische Kontrolle der Codequalität (z. B. mit flake8 für Python und ESLint für JavaScript/Vue-Komponenten).
-   - Test – Ausführung sämtlicher Unit-Tests und Komponententests (jest und pytest) sowie Integrationstests über die GitHub Actions-Pipeline.
-   - Validation – Ausführung der STAC- und API-Validatoren (s. Abschnitte 7.3 und 7.4).
-   - Coverage-Report – automatische Generierung und Veröffentlichung in den Pipeline-Logs.
-- Die CI-Pipeline wird bei jedem Push und Pull-Request gegen den head-Branch jeder Komponente ausgeführt.
-- Nur bei erfolgreicher Pipeline-Ausführung dürfen Änderungen in den stabilen Branch übernommen werden (Branch-Protection-Rule).
+   - Build – Installation aller Abhängigkeiten und Prüfung auf erfolgreiche Kompilierung. <!-- VI ViKu -->
+   - Linting – Automatische Kontrolle der Codequalität (z. B. mit flake8 für Python und ESLint für JavaScript/Vue-Komponenten). <!-- VI ViKu -->
+   - Test – Ausführung sämtlicher Unit-Tests und Komponententests (jest und pytest) sowie Integrationstests über die GitHub Actions-Pipeline. <!-- VI ViKu -->
+   - Validation – Ausführung der STAC- und API-Validatoren (s. Abschnitte 7.3 und 7.4). <!-- VI ViKu -->
+   - Coverage-Report – automatische Generierung und Veröffentlichung in den Pipeline-Logs. <!-- NI ViKu -->
+- Die CI-Pipeline wird bei jedem Push und Pull-Request gegen den head-Branch jeder Komponente ausgeführt. <!-- VI ViKu -->
+- Nur bei erfolgreicher Pipeline-Ausführung dürfen Änderungen in den stabilen Branch übernommen werden (Branch-Protection-Rule). <!-- VI ViKu -->
+  
 
 ### 7.3 STAC-Validator
 - Jede durch den Crawler importierte und in der Datenbank gespeicherte Collection wird mit dem offiziellen STAC Validator
@@ -566,53 +568,54 @@ Die nachfolgenden Maßnahmen gewährleisten die Korrektheit, Wartbarkeit, Standa
 - Validierung erfolgt:
    - beim erstmaligen Import (Crawler-Phase),
    - bei Änderungen oder Re-Crawls,
-   - zusätzlich regelmäßig in der CI-Pipeline anhand von Stichproben.
-- Collections, die nicht vollständig dem aktuellen STAC-Standard entsprechen, werden automatisch strukturell angepasst oder konvertiert, bevor sie in den       Index übernommen werden.
+   - zusätzlich regelmäßig in der CI-Pipeline anhand von Stichproben. 
+- Collections, die nicht vollständig dem aktuellen STAC-Standard entsprechen, werden automatisch strukturell angepasst oder konvertiert, bevor sie in den       Index übernommen werden. 
 - Kann eine automatische Anpassung nicht durchgeführt werden, wird die betreffende Collection als inkompatibel markiert, nicht in den Index               aufgenommen und in einem separaten Fehlerprotokoll dokumentiert.
-- Die Validierungsergebnisse, sowie alle Anpassungen werden im Crawler-Log und in den CI-Reports dokumentiert.
+- Die Validierungsergebnisse, sowie alle Anpassungen werden im Crawler-Log und in den CI-Reports dokumentiert. 
 
 ### 7.4 STAC-API-Validator
 - Die implementierte STAC API wird mit dem offiziellen stac-api-validator
-  (bzw. OGC Conformance-Tests) überprüft.
+  (bzw. OGC Conformance-Tests) überprüft. 
 - Geprüfte Aspekte:
-   - Gültigkeit der API-Antworten nach STAC API-Spezifikation (v1.x).
-   - Unterstützung der Collection Search Extension und der CQL2-Query Language (Basic).
-   - Korrekte Implementierung der Endpoints (`/`, `/conformance`, `/collections`, `/collections/{id}`).
+   - Gültigkeit der API-Antworten nach STAC API-Spezifikation (v1.x). 
+   - Unterstützung der Collection Search Extension und der CQL2-Query Language (Basic). 
+   - Korrekte Implementierung der Endpoints (`/`, `/conformance`, `/collections`, `/collections/{id}`). 
 -Die Collection Search Extension wird zusätzlich durch eigene Integrationstests validiert, da der offizielle Validator derzeit keine automatisierte Prüfung dieser Erweiterung unterstützt. 
 - Der Validator wird:
-   - nach jedem erfolgreichen Build in der CI-Pipeline ausgeführt,
-   - manuell vor der Endabgabe für einen vollständigen Compliance-Report verwendet.
+   - nach jedem erfolgreichen Build in der CI-Pipeline ausgeführt, 
+   - manuell vor der Endabgabe für einen vollständigen Compliance-Report verwendet. 
 - Ziel: 100 % bestehende STAC-Validator-Tests, sowie erfolgreiche interne Validierung der Collection Search Extension.
+<!-- UVI 70 ViKu -->
 
 ### 7.5 Dokumentations- und Wartungsqualität
-- Alle Module werden mit aussagekräftigen Kommentaren dokumentiert, entsprechend der jeweils verwendeten Programmiersprache (z. B. PyDoc für Python-Module oder JSDoc für JavaScript/Vue-Komponenten).
+- Alle Module werden mit aussagekräftigen Kommentaren dokumentiert, entsprechend der jeweils verwendeten Programmiersprache (z. B. PyDoc für Python-Module oder JSDoc für JavaScript/Vue-Komponenten). <!-- UVI 90 ViKu -->
 
 ## 8. Sonstige nichtfunktionale Anforderungen <!-- Jakob -->
 
 ### 8.1 Dokumentation und Code-Qualität
-- Code-Dokumentation mit JSDoc (JavaScript/TypeScript)
-- Repository-Dokumentation (README, Setup-Anleitungen)
-- API-Dokumentation via OpenAPI/Swagger
-- Bedienungsanleitung für Endnutzer
-- Linter: ESLint (JavaScript/TypeScript)
-- Code-Formatierung: Prettier (JavaScript/TypeScript)
-- Modulare Architektur
+- Code-Dokumentation mit JSDoc (JavaScript/TypeScript) <!-- VI ViKu -->
+- Repository-Dokumentation (README, Setup-Anleitungen) <!-- VI ViKu -->
+- API-Dokumentation via OpenAPI/Swagger <!-- UVI-80 ViKu -->
+- Bedienungsanleitung für Endnutzer <!-- VI ViKu -->
+- Linter: ESLint (JavaScript/TypeScript) <!-- VI ViKu -->
+- Code-Formatierung: Prettier (JavaScript/TypeScript) 
+- Modulare Architektur <!-- VI ViKu -->
 
 ### 8.2 Projektmanagement und Entwicklungsprozess
-- Traditionelles Projektmanagement über GitHub-Projekte (Kunde erhält Zugriff)
-- Versionskontrolle mit Git
-- GitHub-Pipeline für CI/CD
-- Jeder Code wird vor einem Push reviewed (Vier-Augen-Prinzip)
-- Open Source unter Apache 2.0 Lizenz
-- Lizenzkonforme Verweise auf genutzte Software
+- Traditionelles Projektmanagement über GitHub-Projekte (Kunde erhält Zugriff) <!-- VI ViKu -->
+- Versionskontrolle mit Git <!-- VI ViKu -->
+- GitHub-Pipeline für CI/CD <!-- VI ViKu -->
+- Jeder Code wird vor einem Push reviewed (Vier-Augen-Prinzip) <!-- VI ViKu -->
+- Open Source unter Apache 2.0 Lizenz <!-- VI ViKu -->
+- Lizenzkonforme Verweise auf genutzte Software <!-- VI ViKu -->
 
 ### 8.3 Deployment und Wartbarkeit
-- Jede Komponente als eigenständiger Docker-Container
-- System startbar per Einzeiler: `docker-compose up --build`
-- Konfigurierbarkeit über Umgebungsvariablen
-- Klare Trennung der Komponenten (Crawler, Datenbank, API, UI)
-- Definierte Schnittstellen zwischen Komponenten
-- API-Versionierung und Erweiterbarkeit
+- Jede Komponente als eigenständiger Docker-Container <!-- VI ViKu -->
+- System startbar per Einzeiler: `docker-compose up --build` 
+- Konfigurierbarkeit über Umgebungsvariablen <!-- VI ViKu -->
+- Klare Trennung der Komponenten (Crawler, Datenbank, API, UI) <!-- VI ViKu -->
+- Definierte Schnittstellen zwischen Komponenten <!-- VI ViKu -->
+- API-Versionierung und Erweiterbarkeit <!-- VI ViKu -->
 
 ### 8.4 Sicherheit und Logging
 - Sichere Datenbankverbindungen
@@ -624,8 +627,8 @@ Die nachfolgenden Maßnahmen gewährleisten die Korrektheit, Wartbarkeit, Standa
 - Strukturierte Error-Logs mit konfigurierbaren Log-Levels
 
 ### 8.5 Benutzerfreundlichkeit
-- API in Englisch
-- Frontend in Englisch und Deutsch mit Sprachumschaltung
+- API in Englisch 
+- Frontend in Englisch und Deutsch mit Sprachumschaltung 
 - Browser-Kompatibilität (80% User-Abdeckung)
 - Farbenblindentauglich (kontrastreiche Farbschemata)
 - Semantisches HTML und Tastaturnavigation
@@ -674,10 +677,10 @@ Die STAC API-Komponente stellt eine standardisierte Schnittstelle bereit, über 
 Sie verbindet das Datenbank-Backend, in dem die Metadaten der Collections gespeichert sind, mit der Web-Benutzeroberfläche und externen Anwendungen.
 
 Über die API können Nutzende:
-   - Alle verfügbaren Collections abrufen oder gezielt nach bestimmten Daten suchen
-   - Filterungen und Sortierungen anhand von Schlüsselwörtern, räumlichen und zeitlichen Ausdehnungen oder weiteren Metadaten durchführen
-   - Details einzelner Collections abrufen, einschließlich Beschreibung, Lizenz, Provider und räumlicher Ausdehnung
-   - die Ergebnisse als STAC-konformes JSON-Format abrufen, das auch von anderen STAC-fähigen Anwendungen weiterverarbeitet werden kann
+   - Alle verfügbaren Collections abrufen oder gezielt nach bestimmten Daten suchen <!-- VI ViKu -->
+   - Filterungen und Sortierungen anhand von Schlüsselwörtern, räumlichen und zeitlichen Ausdehnungen oder weiteren Metadaten durchführen <!-- VI ViKu -->
+   - Details einzelner Collections abrufen, einschließlich Beschreibung, Lizenz, Provider und räumlicher Ausdehnung <!-- UVI 80 ViKu -->
+   - die Ergebnisse als STAC-konformes JSON-Format abrufen, das auch von anderen STAC-fähigen Anwendungen weiterverarbeitet werden kann <!-- VI ViKu -->
 
 Damit bildet die API die zentrale Kommunikationsschnittstelle zwischen der Datenbank und der Web-UI
 und ermöglicht einen einheitlichen, standardkonformen Zugriff auf alle gespeicherten STAC-Daten.
@@ -685,23 +688,24 @@ und ermöglicht einen einheitlichen, standardkonformen Zugriff auf alle gespeich
 #### 9.3.2 Endpunkte
 1. Bereitstellung von Collections
    - `GET /collections` 
-     - Gibt eine Liste aller gespeicherten Collections aus der Datenbank zurück.
-   - Die Antwort ist konform zum STAC API Standard und enthält Metadaten wie `id`, `title`, `description`, `extent`, `keywords`, `providers`, `license`, sowie relevante links.
+     - Gibt eine Liste aller gespeicherten Collections aus der Datenbank zurück. <!-- VI ViKu -->
+   - Die Antwort ist konform zum STAC API Standard und enthält Metadaten wie `id`, `title`, `description`, `extent`, `keywords`, `providers`, `license`, sowie relevante links. <!-- UVI 80 ViKu -->
    - Ergebnisse werden pagininiert und alphabetisch nach `title` sortiert (Standardverhalten).
+<!-- CR: Default-Sortierung erfolgt nach id bzw. Rank und nicht strikt alphabetisch nach title ViKu -->
 
 2. Abruf einer bestimmten Collection
    - `GET /collections/{id}`
-     - Liefert die vollständigen Metadaten einer einzelnen Collection, einschließlich des gesamten STAC-konformen JSON-Objekts.
-   - Wird eine unbekannte ID angefragt, gibt die API eine strukturierte Fehlermeldung gemäß STAC-Spezifikation zurück (`404 Not Found`, JSON mit `code`, `description`, `id`).
-   - Die Antwort enthält auch links zur zugehörigen Quelle (Original-STAC-API oder Katalog).
-   - `GET /collections/{id}` -> Liefert die vollständigen Metadaten einer einzelnen Collection
+     - Liefert die vollständigen Metadaten einer einzelnen Collection, einschließlich des gesamten STAC-konformen JSON-Objekts.<!-- VI ViKu -->
+   - Wird eine unbekannte ID angefragt, gibt die API eine strukturierte Fehlermeldung gemäß STAC-Spezifikation zurück (`404 Not Found`, JSON mit `code`, `description`, `id`). <!-- UVI 90 ViKu -->
+   - Die Antwort enthält auch links zur zugehörigen Quelle (Original-STAC-API oder Katalog). <!-- VI ViKu -->
+   - `GET /collections/{id}` -> Liefert die vollständigen Metadaten einer einzelnen Collection <!-- VI ViKu -->
    
 3. Collection Search
 - `GET /collections`
   und
 - `POST /collections`
 - Ermöglicht die gezielte Filterung und Suche nach Collections innerhalb des Index.
-- Unterstützt wird sowohl die einfache Query-Parameter-Variante (GET) als auch komplexe CQL2-Abfragen (POST).
+- Unterstützt wird sowohl die einfache Query-Parameter-Variante (GET) als auch komplexe CQL2-Abfragen (POST). <!-- VI ViKu -->
 
 - Unterstützte Filterparameter (GET):
    - `q` → Freitextsuche über Titel, Beschreibung und Schlüsselwörter
@@ -710,12 +714,14 @@ und ermöglicht einen einheitlichen, standardkonformen Zugriff auf alle gespeich
    - `provider` → Name oder Kürzel des Datenanbieters
    - `license` → Lizenzfilter 
    - `limit` → Anzahl der zurückgegebenen Ergebnisse pro Seite
-   - `sortby` → Sortierung 
+   - `sortby` → Sortierung
+  <!-- VI ViKu -->
 
 - Erweiterte Filterung über CQL2 (POST):
    - Die API implementiert CQL2 Basic Filtering zur semantischen Abfrage von Eigenschaften:
    - Vergleichsoperatoren: `=`, `!=`, `<`, `<=`, `>`, `>=`
    - Logische Operatoren: `and`, `or`, `not`
+  <!-- VI ViKu -->
   
 #### 9.3.3 Sicherheit, Performance und Erweiterbarkeit
 Die STAC API-Komponente bildet das zentrale Zugriffssystem auf die indexierten STAC-Collections.
@@ -848,19 +854,19 @@ Die Implementierung folgt einem klar strukturierten Vorgehen in mehreren Phasen,
 ### 10.3 STAC API <!-- Robin -->
 | ID | Arbeitspaket | Ziel/Output | Schritte (Stichpunkte) | Reuse/Technologien |
 |----|--------------|-------------|-------------------------|--------------------|
-| AP-01 | Projekt-Skeleton & Infrastruktur | Lauffähiges API-Grundgerüst mit Konfiguration & Logging | Repo-Struktur (`/api`, `/docs`); Apache-2.0 LICENSE; ENV-Konfig (Port, DB-URL vom DB-Team); strukturierte Logs; einfache Health-Route `GET /` | Python+FastAPI *oder* Node+Fastify/Express; uvicorn/node pm2; dotenv |
-| AP-02 | Daten-Vertrag & Queryables (API-Seite) | Konsistentes Feld-Set & ` /queryables` für die UI | Such-/Filterfelder festlegen (id, title, description, extent, keywords, providers.name, license, doi, `summaries.platform/constellation/gsd/processing:level`); Datentypen (CQL2-kompatibel) definieren; `GET /queryables` (global/optional pro Collection); Dokumentation für UI | STAC Collections/Queryables Best Practices; CQL2 Typen |
-| AP-03 | STAC-Core Endpunkte | STAC-konforme Basisrouten bereitstellen | `GET /` (Landing + Links), `GET /conformance` (Core+Collections vorerst), `GET /collections`, `GET /collections/{id}`; Link-Relationen & Service-Doku referenzieren | OpenAPI/Swagger-UI; STAC API Core/Collections |
-| AP-04 | Collection Search – Routen & Parameter | Collection-Search-Schnittstelle mit `q`, `filter`, `sort`, Paging | Route definieren (Parametrisierung von `/collections`); Request-Validierung; Paging-Links | STAC Collection Search Extension; API Framework Middleware |
-| AP-05 | CQL2 Basic – Parsing & Validierung | Gültige CQL2-Basic-Filter erkennen & valide/klare Fehlermeldungen liefern | Bestehende Parser/Validator-Lib einbinden; Request-Modelle (JSON/Text); Fehlermeldungen standardisieren | *cql2-rs* oder *pycql2* |
-| AP-06 | CQL2-Ausführung – AST → SQL | CQL2-AST in effiziente SQL-Where-Klauseln übersetzen | Visitor/Mapper je Knotentyp (Vergleich, Logik, `IS NULL`, optional `LIKE/IN/BETWEEN`); Parametrisiertes SQL; Schutz vor teuren Scans (Zeit/Seite begrenzen) | — |
-| AP-07 | Freitext `q` & Sortierung | Relevanzbasierte Freitextsuche + stabile Sortierung | Felder für `q` bestimmen (title, description, keywords, providers); Whitelist für `sortby`; Validierung bei nicht unterstützten Feldern → 400 | API-seitige Param-Validierung |
-| AP-08 | Conformance & OpenAPI | Vollständige Konformitätsangaben & saubere API-Doku | `/conformance` um Collection Search + Filter (Basic CQL2) erweitern (später optional Advanced); OpenAPI/Service-Desc verlinken; Beispiele dokumentieren | STAC Conformance-URIs; OpenAPI Generator/Swagger-UI |
-| AP-09 | Fehlerbehandlung & Antwortformate | Konsistente HTTP-Fehler & STAC-kompatible Antworten | Einheitliche Fehlerstruktur (400/404/422/500) | RFC7807 |
-| AP-10 | Performance & Parallelität (API-Ebene) | Anforderungen an Latenz/Parallelität API-seitig erfüllen | Server-Worker/Threading konfigurieren; DB-Poolgrößen (Client-Seite) abstimmen; Limits/Timeouts setzen; typische Queries als Synthetic-Checks | uvicorn/gunicorn-Workers oder Node Cluster; Locust/k6 für Synthetic |
-| AP-11 | Security & Betrieb (API-Ebene) | Sichere Standardkonfiguration & Betriebsfähigkeit | CORS/Headers; Request-Größenlimits; Rate-Limiting/Burst-Schutz; strukturierte Logs & Basis-Metriken; einfache Traces | fastapi-middlewares/helmet/express-rate-limit; OpenTelemetry (leichtgewichtig) |
-| AP-12 | Deployment & Cross-OS | Reproduzierbare Bereitstellung der API | Container/Dockerfile nur für API; Compose (optional) ohne DB-Build; Windows & Linux Smoke-Tests; ENV-Templates | Docker/Podman; Make/Taskfile; `.env.example` |
-| AP-13 | Integration & E2E Demo | Nachweis „Crawler → API → UI“ aus API-Sicht | DB- & UI-Team liefern Staging-Instanzen | curl/Postman Collections; minimaler Demo-Guide |
+| AP-01 | Projekt-Skeleton & Infrastruktur | Lauffähiges API-Grundgerüst mit Konfiguration & Logging | Repo-Struktur (`/api`, `/docs`); Apache-2.0 LICENSE; ENV-Konfig (Port, DB-URL vom DB-Team); strukturierte Logs; einfache Health-Route `GET /` | Python+FastAPI *oder* Node+Fastify/Express; uvicorn/node pm2; dotenv | <!-- VI ViKu -->
+| AP-02 | Daten-Vertrag & Queryables (API-Seite) | Konsistentes Feld-Set & ` /queryables` für die UI | Such-/Filterfelder festlegen (id, title, description, extent, keywords, providers.name, license, doi, `summaries.platform/constellation/gsd/processing:level`); Datentypen (CQL2-kompatibel) definieren; `GET /queryables` (global/optional pro Collection); Dokumentation für UI | STAC Collections/Queryables Best Practices; CQL2 Typen |<!-- UVI-80 ViKu-->
+| AP-03 | STAC-Core Endpunkte | STAC-konforme Basisrouten bereitstellen | `GET /` (Landing + Links), `GET /conformance` (Core+Collections vorerst), `GET /collections`, `GET /collections/{id}`; Link-Relationen & Service-Doku referenzieren | OpenAPI/Swagger-UI; STAC API Core/Collections | <!-- VI ViKu -->
+| AP-04 | Collection Search – Routen & Parameter | Collection-Search-Schnittstelle mit `q`, `filter`, `sort`, Paging | Route definieren (Parametrisierung von `/collections`); Request-Validierung; Paging-Links | STAC Collection Search Extension; API Framework Middleware |<!-- VI ViKu -->
+| AP-05 | CQL2 Basic – Parsing & Validierung | Gültige CQL2-Basic-Filter erkennen & valide/klare Fehlermeldungen liefern | Bestehende Parser/Validator-Lib einbinden; Request-Modelle (JSON/Text); Fehlermeldungen standardisieren | *cql2-rs* oder *pycql2* | <!-- VI ViKu -->
+| AP-06 | CQL2-Ausführung – AST → SQL | CQL2-AST in effiziente SQL-Where-Klauseln übersetzen | Visitor/Mapper je Knotentyp (Vergleich, Logik, `IS NULL`, optional `LIKE/IN/BETWEEN`); Parametrisiertes SQL; Schutz vor teuren Scans (Zeit/Seite begrenzen) | — | <!-- VI ViKu -->
+| AP-07 | Freitext `q` & Sortierung | Relevanzbasierte Freitextsuche + stabile Sortierung | Felder für `q` bestimmen (title, description, keywords, providers); Whitelist für `sortby`; Validierung bei nicht unterstützten Feldern → 400 | API-seitige Param-Validierung | <!-- VI ViKu -->
+| AP-08 | Conformance & OpenAPI | Vollständige Konformitätsangaben & saubere API-Doku | `/conformance` um Collection Search + Filter (Basic CQL2) erweitern (später optional Advanced); OpenAPI/Service-Desc verlinken; Beispiele dokumentieren | STAC Conformance-URIs; OpenAPI Generator/Swagger-UI | <!-- VI ViKu -->
+| AP-09 | Fehlerbehandlung & Antwortformate | Konsistente HTTP-Fehler & STAC-kompatible Antworten | Einheitliche Fehlerstruktur (400/404/422/500) | RFC7807 | <!-- VI ViKu -->
+| AP-10 | Performance & Parallelität (API-Ebene) | Anforderungen an Latenz/Parallelität API-seitig erfüllen | Server-Worker/Threading konfigurieren; DB-Poolgrößen (Client-Seite) abstimmen; Limits/Timeouts setzen; typische Queries als Synthetic-Checks | uvicorn/gunicorn-Workers oder Node Cluster; Locust/k6 für Synthetic | <!-- NI ViKu -->
+| AP-11 | Security & Betrieb (API-Ebene) | Sichere Standardkonfiguration & Betriebsfähigkeit | CORS/Headers; Request-Größenlimits; Rate-Limiting/Burst-Schutz; strukturierte Logs & Basis-Metriken; einfache Traces | fastapi-middlewares/helmet/express-rate-limit; OpenTelemetry (leichtgewichtig) | <!-- NI ViKu -->
+| AP-12 | Deployment & Cross-OS | Reproduzierbare Bereitstellung der API | Container/Dockerfile nur für API; Compose (optional) ohne DB-Build; Windows & Linux Smoke-Tests; ENV-Templates | Docker/Podman; Make/Taskfile; `.env.example` | <!-- NI ViKu -->
+| AP-13 | Integration & E2E Demo | Nachweis „Crawler → API → UI“ aus API-Sicht | DB- & UI-Team liefern Staging-Instanzen | curl/Postman Collections; minimaler Demo-Guide | <!-- NI ViKu -->
 
 
 ### 10.4 UI <!-- Justin -->
