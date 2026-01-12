@@ -230,15 +230,15 @@ Komponente | Funktion (Kurzbeschreibung) | Optionale Umsetzung | Akzeptanzkriter
 | STAC-API | Zusätzliche CQL2-Fähigkeiten (Advanced Comparison Operators (`LIKE/BETWEEN/IN`, `casei/accenti`, `Spatial/Temporal`, `Arrays`)) | % | Conformance-URIs ergänzt; Tests erfolgreich | M | 6.1.2 5. (optional) |
 | STAC-API | CQL2 als Standalone-Library bereitstellen | $ | Lib mit Parser/Validation + README | L | 6.1.2 6. (optional) |
 | STAC-API | Integration der neuen Funktionen in bestehende STAC Index API | $ | End-to-End-Tests (Crawler→API→UI) grün | M | 6.1.2 7. |
-| <!-- VI JuKr --> Web-UI | Intuitive Suchoberfläche für Collections | – | Usability-Test: Kernflows bestehen | H | 6.1.3 1. |
-| <!-- VI JuKr --> Web-UI | Implementierung in Vue (v3) zur Einbindung in STAC Index | – | Build integriert; Routing/State funktionsfähig | M | 6.1.3 2. |
-| <!-- VI JuKr --> Web-UI | Interaktive Auswahl von Bounding Box und Zeitintervall | – | BBox/Datetime erzeugen korrekte Parameter | H | 6.1.3 3. |
+| <!-- VI Simon --> Web-UI | Intuitive Suchoberfläche für Collections | – | Usability-Test: Kernflows bestehen | H | 6.1.3 1. |
+| <!-- VI Simon --> Web-UI | Implementierung in Vue (v3) zur Einbindung in STAC Index | – | Build integriert; Routing/State funktionsfähig | M | 6.1.3 2. |
+| <!-- VI Simon --> Web-UI | Interaktive Auswahl von Bounding Box und Zeitintervall | – | BBox/Datetime erzeugen korrekte Parameter | H | 6.1.3 3. |
 | <!-- ?? --> Web-UI | Composable Queryables in der UI → generiert CQL2-Ausdruck | – | UI-Builder erzeugt valide CQL2 (Server-OK) | H | 6.1.3 4. |
-| <!-- VI JuKr --> Web-UI | Kartenansicht mit Visualisierung räumlicher Extents | – | Extents werden auf interaktiver Karte dargestellt | M | 6.1.3 5. |
-| <!-- VI JuKr --> Web-UI | Links zur Originalquelle (Katalog/API) und optional zur Item Search | – | Links korrekt & erreichbar | M | 6.1.3 6. |
-| <!-- VI JuKr --> Web-UI | Inspection-Ansicht für Collections (Details) | – | Detailseite zeigt alle Kernfelder | M | 6.1.3 7. |
+| <!-- VI Simon --> Web-UI | Kartenansicht mit Visualisierung räumlicher Extents | – | Extents werden auf interaktiver Karte dargestellt | M | 6.1.3 5. |
+| <!-- VI Simon --> Web-UI | Links zur Originalquelle (Katalog/API) und optional zur Item Search | – | Links korrekt & erreichbar | M | 6.1.3 6. |
+| <!-- VI Simon --> Web-UI | Inspection-Ansicht für Collections (Details) | – | Detailseite zeigt alle Kernfelder | M | 6.1.3 7. |
 | <!-- UVI-50 JuKr -->Web-UI | Items der Collections inspizieren können | % | Item-Liste/Detail aufrufbar | L | 6.1.3 8. (optional) |
-| <!-- NI JuKr --> Web-UI | Collections vergleichen (Mehrfachauswahl & Vergleich) | % | Vergleichsansicht mit minimum 2 Collections | L | 6.1.3 9. (optional) |
+| <!-- NI Simon --> Web-UI | Collections vergleichen (Mehrfachauswahl & Vergleich) | % | Vergleichsansicht mit minimum 2 Collections | L | 6.1.3 9. (optional) |
 
 Legende Spalte "Umsetzung"
 
@@ -793,7 +793,7 @@ Die UI-Komponente stellt die grafische Benutzeroberfläche (GUI) der Plattform d
 <!-- Falsher Ort ?? JuKr -->
 ~~Außerdem werden alle Crawl-Aktivitäten protokolliert, um Transparenz und Nachvollziehbarkeit zu gewährleisten.~~
 
-<!-- VI JuKr -->
+<!-- VI Simon -->
 Funktionen beinhalten die Übersetzung der Benutzereingaben (Filter) in CQL2-Suchanfragen und die visuelle Darstellung der Daten in einer Liste sowie auf einer Karte.  
 Die Umsetzung erfolgt in VueJS v3 und soll eine potenzielle zukünftige Integration in den bestehenden STAC-Index ermöglichen.
 
@@ -812,7 +812,7 @@ Bereitstellung einer intuitiven Suchoberfläche:
   - Quelle: Ein Link zum originalen STAC-Katalog (Quell-API) wird pro Sammlung bereitgestellt.
   - Paginierung: Für große Treffermengen steht eine erweiterte Seitenansicht zur Verfügung.
 
-<!-- VUI-80 JuKr -->
+<!-- UVI-80 Simon - Performance muss noch getestet werden, Kompatibilität sollte jedoch gewährleistet sein durch Chrome -->
 ### 9.4.2 UX <!-- Simon -->
 
 - Performance:
@@ -939,15 +939,15 @@ Die Implementierung folgt einem klar strukturierten Vorgehen in mehreren Phasen,
 Die Implementierung der UI-Komponente erfolgt auf Basis moderner Webtechnologien, die eine hohe Performance, Wartbarkeit und Erweiterbarkeit gewährleisten.  
 Die folgende Übersicht fasst die wesentlichen Werkzeuge und Frameworks zusammen und erläutert ihre jeweilige Auswahlbegründung:
 
-<!-- VI JuKr -->
+<!-- VI Simon -->
 - **Framework:** Vue 3 (Composition API)
 
-<!-- VI JuKr -->
+<!-- VI Simon -->
 - **Build-Tool:** Vite (Node.js 20)  
   Vite bietet sehr schnelle Entwicklungs- und Build-Zeiten durch modernes ESM-Bundling und Hot-Module-Replacement.  
   Dadurch kann die Benutzeroberfläche auch bei größeren Datenmengen performant entwickelt und getestet werden.
 
-<!-- VI JuKr -->
+<!-- VI Simon -->
 - **Programmiersprache:** JavaScript / TypeScript
 
 <!-- VI JuKr -->
@@ -960,22 +960,22 @@ Die folgende Übersicht fasst die wesentlichen Werkzeuge und Frameworks zusammen
   Der Vue Router ermöglicht die Abbildung komplexer Navigations- und Filterzustände in der URL.  
   Dadurch können Suchergebnisse oder Filterparameter als Deep-Link geteilt und reproduzierbar gespeichert werden.
 
-<!-- VI JuKr -->
+<!-- VI Simon -->
 - **Kartenbibliothek:** MapLibre GL JS  
   MapLibre wurde aufgrund seiner hohen Performance bei der Darstellung großer Geometriedatensätze und der Unterstützung von Vektorkarten gewählt.  
   Im Gegensatz zu alternativen Bibliotheken wie Leaflet bietet MapLibre native Unterstützung für Layer-Styles, Clustering und interaktive Filterung, was den Anforderungen an die Visualisierung räumlicher Extents entspricht.
 
-<!-- VI JuKr -->
+<!-- VI Simon -->
 - **Styling:** Plain CSS mit strukturierter Aufteilung (`reset.css`, `vars.css`, `components/*.css`)  
   Auf den Einsatz eines UI-Frameworks (z. B. Tailwind oder Bootstrap) wird bewusst verzichtet, um volle Kontrolle über Design, Barrierefreiheit und Performance zu behalten.  
   Die Trennung in Reset-, Variablen- und Komponenten-Dateien ermöglicht eine klare Strukturierung und spätere Erweiterbarkeit (z. B. Theme-Unterstützung).
 
-<!-- VI JuKr -->
+<!-- VI Simon -->
 - **Design & Prototyping:** Figma  
   Figma wird zur Erstellung interaktiver Prototypen, Farbschemata und UI-Komponenten eingesetzt.  
   Dadurch kann das Design frühzeitig mit Nutzenden und im Team abgestimmt werden, bevor die Implementierung erfolgt.
 
-<!-- NI JuKr -->
+<!-- NI Simon -->
 - **Testing:** Jest (Unit-Tests), Playwright (End-to-End-Tests)  
   Jest wird für Komponententests auf Funktionsebene eingesetzt, um die Logik einzelner Module zu prüfen.  
   Playwright dient der automatisierten End-to-End-Validierung der Benutzerinteraktionen über verschiedene Browser hinweg.  
@@ -990,22 +990,22 @@ Die folgende Übersicht fasst die wesentlichen Werkzeuge und Frameworks zusammen
 Das Frontend folgt einer komponentenbasierten Architektur, um eine klare Trennung der Verantwortlichkeiten, Wiederverwendbarkeit und Wartbarkeit zu gewährleisten.  
 Zentrale Bestandteile sind:
 
-<!-- VI JuKr -->
+<!-- VI Simon -->
 - **Karten-Komponente:**  
   Stellt den zentralen Kartenbereich auf Basis von MapLibre GL JS dar.  
   Zeigt räumliche Extents der STAC-Collections an und ermöglicht Interaktion durch Zoom, Pan, Bounding-Box-Selektion und Hover-Informationen.
 
-<!-- VI JuKr -->
+<!-- VI Simon -->
 - **FilterPanel-Komponente:**  
   Sidebar zur Definition von Suchparametern wie Zeitintervall, Raumfilter, Schlüsselwörtern, Provider und Lizenz.  
   Die Filterparameter werden intern im Pinia-Store verwaltet und in CQL2-kompatible Suchanfragen übersetzt.
 
-<!-- VI JuKr -->
+<!-- VI Simon -->
 - **Ergebnisliste-Komponente:**  
   Scrollbare Listen-/ Gridansicht mit Kurzinfos zu gefundenen Collections (z. B. Titel, Beschreibung, Provider, Lizenz).  
   Bietet Aktionen zum Öffnen der Detailansicht oder zur Navigation in die Karte.
 
-<!-- VI JuKr -->
+<!-- VI Simon -->
 - **Modal/Seiten-Komponente:**  
   Popup- oder Seitenansicht zur Anzeige vollständiger Metadaten einer Collection, einschließlich DOI, Lizenz, zeitlicher und räumlicher Extent sowie verfügbarer Vorschaubilder.
 
