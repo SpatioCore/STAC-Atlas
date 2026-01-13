@@ -3,7 +3,7 @@
  * @module catalogs/catalog
  */
 
-import { HttpCrawler, log as crawleeLog } from 'crawlee';
+import { HttpCrawler, log as crawleeLog, Configuration } from 'crawlee';
 import { handleCatalog, handleCollections, flushCollectionsToDb } from '../utils/handlers.js';
 
 /**
@@ -14,6 +14,9 @@ import { handleCatalog, handleCollections, flushCollectionsToDb } from '../utils
  * @returns {Promise<Object>} Crawl results with collections and statistics
  */
 async function crawlCatalogs(initialCatalogs, config = {}) {
+    // Use in-memory storage to avoid file lock race conditions under high concurrency
+    Configuration.getGlobalConfig().set('persistStorage', false);
+    
     const timeoutSecs = config.timeout && config.timeout !== Infinity 
         ? Math.ceil(config.timeout / 1000) 
         : 60;
@@ -37,6 +40,8 @@ async function crawlCatalogs(initialCatalogs, config = {}) {
 
     const crawler = new HttpCrawler({
         requestHandlerTimeoutSecs: timeoutSecs,
+        maxConcurrency: 20, // Limit concurrency to prevent lock file race conditions
+        maxRequestsPerMinute: 200, // Rate limit to avoid overwhelming targets
         
         async requestHandler({ request, json, crawler, log }) {
             results.stats.totalRequests++;

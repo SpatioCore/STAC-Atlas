@@ -3,7 +3,7 @@
  * @module apis/api
  */
 
-import { HttpCrawler } from 'crawlee';
+import { HttpCrawler, Configuration } from 'crawlee';
 import create from 'stac-js';
 import { normalizeCollection } from '../utils/normalization.js';
 import { handleCollections } from '../utils/handlers.js';
@@ -17,6 +17,9 @@ import { handleCollections } from '../utils/handlers.js';
  * @returns {Promise<Object>} Results object with collections array and statistics
  */
 async function crawlApis(urls, isApi, config = {}) {
+    // Use in-memory storage to avoid file lock race conditions under high concurrency
+    Configuration.getGlobalConfig().set('persistStorage', false);
+    
     if (!isApi || !Array.isArray(urls) || urls.length === 0) {
         return {
             collections: [],
@@ -53,6 +56,8 @@ async function crawlApis(urls, isApi, config = {}) {
 
     const crawler = new HttpCrawler({
         requestHandlerTimeoutSecs: timeoutSecs,
+        maxConcurrency: 20, // Limit concurrency to prevent lock file race conditions
+        maxRequestsPerMinute: 200, // Rate limit to avoid overwhelming targets
         
         async requestHandler({ request, json, crawler, log }) {
             results.stats.totalRequests++;
