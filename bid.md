@@ -83,8 +83,8 @@ Die Wunschkriterien beschreiben optionale Funktionalitäten, die das System übe
 #### Crawler
 
 - Konfigurierbare Crawling-Schedule <!-- NI HuHi --> <!--  UVI-20 (Grundlage besteht, aber noch nicht eingestellt) JaWo -->
-- Blacklisting fehlerhafter Quellen <!-- NI HuHi --> <!--  NI JaWo -->
-- Erfassung zusätzlicher STAC Extensions <!-- VI HuHi --> <!-- VI  JaWo -->
+- Blacklisting fehlerhafter Quellen <!-- NI HuHi --> <!--  NI JaWo --> <!-- NI LeKr --> 
+- Erfassung zusätzlicher STAC Extensions <!-- VI HuHi --> <!-- VI  JaWo --> <!-- VI LeKr --> 
 
 #### UI
 - Polygon-basierte räumliche Suche (nicht nur Bounding Box)
@@ -154,9 +154,9 @@ Alle Komponenten werden in einer modernen, containerisierten Umgebung entwickelt
 
 ### 3.1 Crawler
 
-Der Crawler wird in JavaScript implementiert und ist zuständig für das automatische Auffinden und Einlesen von STAC Collections aus dem STAC Index sowie verlinkten Katalogen/APIs (6.1.1.1, 6.1.1.2). (6.2.4.2) <!-- VI HuHi -->
-Er schreibt die Daten in die Datenbank (6.1.1.7, 6.1.1.3) und führt regelmäßige, inkrementelle Aktualisierungen durch, um eine aktuelle Indexierung sicherzustellen (6.1.1.6). <!--NVI-75 HuHi --> 
-Protokollierung (z. B. Zeitstempel/Status) stellt Nachvollziehbarkeit sicher (6.1.1.4, 6.1.1.12). Dokumentation zu Build/Deployment/Testing wird pro Komponente bereitgestellt (6.2.4.3). <!--NVI-75 HuHi --> <!-- VI JaWo -->
+Der Crawler wird in JavaScript implementiert und ist zuständig für das automatische Auffinden und Einlesen von STAC Collections aus dem STAC Index sowie verlinkten Katalogen/APIs (6.1.1.1, 6.1.1.2). (6.2.4.2) <!-- VI HuHi --> <!-- VI LeKr --> 
+Er schreibt die Daten in die Datenbank (6.1.1.7, 6.1.1.3) und führt regelmäßige, inkrementelle Aktualisierungen durch, um eine aktuelle Indexierung sicherzustellen (6.1.1.6). <!--NVI-75 HuHi --> <!-- NVI LeKr --> 
+Protokollierung (z. B. Zeitstempel/Status) stellt Nachvollziehbarkeit sicher (6.1.1.4, 6.1.1.12). Dokumentation zu Build/Deployment/Testing wird pro Komponente bereitgestellt (6.2.4.3). <!--NVI-75 HuHi --> <!-- VI JaWo --> <!-- NVI LeKr --> 
 
 ### 3.2 Datenbankmanagementsystem
 PostgreSQL in Kombination mit PostGIS bildet die zentrale Datengrundlage.  
@@ -420,14 +420,14 @@ Indizes auf allen relevanten Attributen (IDs, Zeitstempel, Textfelder und Geomet
 ## 6. Leistungsanforderungen
 
 ### 6.1 Crawler <!-- Humam -->
-Die Crawler-Komponente soll eine hohe Effizienz, Stabilität und Skalierbar sein, um große Mengen an STAC-Katalogen und -APIs regelmäißg und zuverlässig zu erfassen.<!-- VI  JaWo -->
+Die Crawler-Komponente soll eine hohe Effizienz, Stabilität und Skalierbar sein, um große Mengen an STAC-Katalogen und -APIs regelmäißg und zuverlässig zu erfassen.<!-- VI  JaWo --> <!-- VI LeKr --> 
 
 #### 6.1.1 Crawling Leistung
 
 Der Crawler soll in der Lage sein aus dem STAC-Index Quellen innerhalb einer Woche zu analysieren. In folge dessen soll auch die Aktualisierung aller bekannter und neuer Quellen maximal eine Woche betragen. Die einzelnen STAC-Collections sollen jeweils innerhalb von < 5 Sekunden abgerufen und verarbeitet werden. Zudem soll der Crawler alle vorgegebenen Rate-Limits einhalten, um die externen Dienste nicht zu überlasten (z.B. max. 20 Request/Minute pro Quelle). <!-- NVI-70 (Rate Limiting) HuHi --> <!-- VI JaWo --><!-- CR: Beispiel Wert nicht wirklich treffend.  JaWo -->
 
 #### 6.1.2 Crawling Parallelität und Skalierbarkeit
-Die Implementierung soll asynchrones und paralleles Crawling unterstützten. Es wird nur ein einzelene Crawler-Instanz sein, um die Komplexität mit Datenbankkonflikten zu vermeiden. Es wird darauf geachtet so zu programmieren, um in Zukunft horizontale Skalierung mit mehren Crawlern möglich zu machen. <!-- VI HuHi --> <!-- VI  JaWo -->
+Die Implementierung soll asynchrones und paralleles Crawling unterstützten. Es wird nur ein einzelene Crawler-Instanz sein, um die Komplexität mit Datenbankkonflikten zu vermeiden. Es wird darauf geachtet so zu programmieren, um in Zukunft horizontale Skalierung mit mehren Crawlern möglich zu machen. <!-- VI HuHi --> <!-- VI  JaWo --> <!-- VI LeKr --> 
 
 #### 6.1.3 Crawling Zuverlässigkeit unf Fehlertoleranz
 Der Crawler darf bei fehlerhaften oder inaktiven Quellen nicht vollständig abbrechen. Die Quellen, die dreimal hintereinander fehlschlagen, sollen als inaktiv bis zum Crawling Event behandelt werden. Fehler und Wiederholungen müssen protokolliert werden. Alle ursprünglich erreichbaren STAC collections und catalogs sollen in der Datenbank dann als inaktiv gekennzeichnet werden. <!-- NVI-80 (Als Inaktiv markiert fehlt) HuHi --> <!--   NVI-70 JaWo --><!-- CR: Fehler und wiederholungen sollten nicht zu lang protokolliert werden, Gefahr von großen unnötigen Datenmengen.  JaWo -->
@@ -440,11 +440,11 @@ Der Crawler darf im Normalbetrieb auf einer Standard-VM mit (2 vCPUs, 8GB RAM) b
 Die Crawling-Durchläufe sollen über Logging und Metriken wie der Anzahl gecrawlter Quellen, Anzahl gecrawlter Collections und Laufzeit überwacht werden. Die Metriken werden nur über eine Lokale Datei von einem System-Admin abrufbar sein. <!-- NVI-80 (Keine Lokale Datei, sollte aber noch gemacht werden) HuHi --> <!-- VI (nicht lokale Datei sondern Konsolen-Output)   JaWo -->
 
 #### 6.1.8 Abnahmekriterien
-- Der Crawler kann mindestens einen realen STAC Katalog vollständig traversieren. <!-- VI HuHi --> <!-- VI  JaWo -->
-- Collections werden in PostgreSQL mit PostGIS persistiert. <!-- VI HuHi -->
-- Die Validierung erfolgt gegen das STAC JSON Schema und auftretende Fehler werden protokolliert. <!-- VI HuHi --> <!-- VI  JaWo -->
-- Bei Fehlern sind Wiederholungsversuche implementiert und dauerhaft fehlerhafte Quellen können als inaktiv markiert werden. <!-- NVI-80 (Inaktiv Markieren fehlt) HuHi --> <!-- NI  JaWo -->
-- Strukturierte Logs sind vorhanden. <!-- NI HuHi -->
+- Der Crawler kann mindestens einen realen STAC Katalog vollständig traversieren. <!-- VI HuHi --> <!-- VI  JaWo --> <!-- VI LeKr --> 
+- Collections werden in PostgreSQL mit PostGIS persistiert. <!-- VI HuHi --> <!-- VI LeKr --> 
+- Die Validierung erfolgt gegen das STAC JSON Schema und auftretende Fehler werden protokolliert. <!-- VI HuHi --> <!-- VI  JaWo --> <!-- VI LeKr --> 
+- Bei Fehlern sind Wiederholungsversuche implementiert und dauerhaft fehlerhafte Quellen können als inaktiv markiert werden. <!-- NVI-80 (Inaktiv Markieren fehlt) HuHi --> <!-- NI  JaWo -->  
+- Strukturierte Logs sind vorhanden. <!-- NI HuHi --> <!-- NI LeKr --> 
 
 ### 6.2 Datenbank <!-- Sönke -->
 
@@ -649,11 +649,11 @@ Die nachfolgenden Maßnahmen gewährleisten die Korrektheit, Wartbarkeit, Standa
 ### 9.1 Crawler-Komponente <!-- Lenn -->
 
 Der Crawler bekommt über die STAC Index API, alle STAC Kataloge und STAC APIs die gecrawled werden müssen. Dabei sollen alle Collections erfolgreich erfasst werden. <!-- VI HuHi -->
-Das Crawling erfolgt rekursiv, sodass Collections in nahezu beliebiger Tiefe (<1024 Ebenen) innerhalb verschachtelter Kataloge erkannt werden. Es werden ausschließlich Catalogs und Collections und keine Items erfasst. Die Crawling Vorgänge extrahieren die relevanten Metadaten jeder Collection (6.1.1.3), das vollständige JSON-Objekt jeder Kollektion und speichern sie zusammen mit der Quell-URL, dem Katalognamen und dem Zeitstempel des letzten Crawls. Zusätzlich wird auch ein Parameter, über die aktuelle Verfügbarkeit der Collection hinzugefügt. <!-- VI HuHi --> <!-- NVI-80, verfügbarkeit? JaWo -->
+Das Crawling erfolgt rekursiv, sodass Collections in nahezu beliebiger Tiefe (<1024 Ebenen) innerhalb verschachtelter Kataloge erkannt werden. Es werden ausschließlich Catalogs und Collections und keine Items erfasst. Die Crawling Vorgänge extrahieren die relevanten Metadaten jeder Collection (6.1.1.3), das vollständige JSON-Objekt jeder Kollektion und speichern sie zusammen mit der Quell-URL, dem Katalognamen und dem Zeitstempel des letzten Crawls. Zusätzlich wird auch ein Parameter, über die aktuelle Verfügbarkeit der Collection hinzugefügt. <!-- VI HuHi --> <!-- NVI-80, verfügbarkeit? JaWo --> <!-- NVI LeKr-80, es werden noch nicht alle Metadaten korrekt gespeichert --> 
 
-Es werden alle stabilen STAC-Versionen, durch Migration unterstützt. <!-- VI HuHi --> <!--  VI JaWo -->
-Eine Crawling-Plan (Schedule) ermöglicht die zeitliche Steuerung einzelner Crawl-Vorgänge. Es soll eine wöchentliche Aktualisierungen des Indexes durchgeführt werden. <!-- NI HuHi --> <!-- NI  JaWo -->
-Die Ergebnisse werden in einer PostgreSQL-Datenbank gespeichert. <!-- VI HuHi -->
+Es werden alle stabilen STAC-Versionen, durch Migration unterstützt. <!-- VI HuHi --> <!--  VI JaWo --> <!-- VI LeKr --> 
+Eine Crawling-Plan (Schedule) ermöglicht die zeitliche Steuerung einzelner Crawl-Vorgänge. Es soll eine wöchentliche Aktualisierungen des Indexes durchgeführt werden. <!-- NI HuHi --> <!-- NI  JaWo --> <!-- NI LeKr --> 
+Die Ergebnisse werden in einer PostgreSQL-Datenbank gespeichert. <!-- VI HuHi --> <!-- NVI LeKr-90, es werden noch nicht alle Metadaten korrekt gespeichert --> 
 
 ### 9.2 Datenbank-Komponente <!-- Sönke -->
 Die Datenbankkomponente stellt die zentrale Grundlage für die Speicherung, Verwaltung und Abfrage aller vom Crawler erfassten Metadaten dar. Sie dient der persistenten Ablage sämtlicher Inhalte, einschließlich der vollständigen STAC-JSON-Strukturen, und ermöglicht deren effiziente Weiterverarbeitung innerhalb der Gesamtarchitektur. Als Datenbanksystem wird **PostgreSQL** in Kombination mit der Erweiterung **PostGIS** eingesetzt, um sowohl relationale als auch geographische Abfragen performant unterstützen zu können.
@@ -767,27 +767,27 @@ Bereitstellung einer intuitiven Suchoberfläche:
 Also auch sowas wie verwendete Technologie, Teilschritte (Meilensteine?) etc.. WBS wäre auch nett-->
 ### 10.1 Crawler
 
-Ziel des Crawler‑Moduls ist die automatische Erfassung, Validierung und Speicherung von STAC‑Collections aus verteilten Quellen in einer PostgreSQL‑Datenbank mit PostGIS‑Erweiterung. Der Crawler soll robust gegenüber transienten Fehlern sein (konfigurierbare Retries mit Backoff), Monitoring‑Metriken liefern und idempotente Persistenz gewährleisten, damit wiederholte Crawls keine Duplikate erzeugen.<!--  VI JaWo -->
+Ziel des Crawler‑Moduls ist die automatische Erfassung, Validierung und Speicherung von STAC‑Collections aus verteilten Quellen in einer PostgreSQL‑Datenbank mit PostGIS‑Erweiterung. Der Crawler soll robust gegenüber transienten Fehlern sein (konfigurierbare Retries mit Backoff), Monitoring‑Metriken liefern und idempotente Persistenz gewährleisten, damit wiederholte Crawls keine Duplikate erzeugen.<!--  VI JaWo --> <!-- VI LeKr --> 
 
 #### 10.1.1 Technologien
 
 Der Crawler wird als Node.js‑Anwendung konzipiert werden. Es wird JavaScript genutzt, um bessere Wartbarkeit und Weiterentwicklung innerhalb der Gruppe zu erreichen und die Probleme mit bestimmten Versionen von z.B. Python zu unterbinden. <!-- VI HuHi -->
-Für das STAC‑Handling kommen [stac-js](https://github.com/moregeo-it/stac-js) und [stac-migrate](https://github.com/stac-utils/stac-migrate) zum Migrieren älterer STAC‑Versionen zum Einsatz. Für HTTP‑Zugriffe eignen sich `axios`, da es Timeouts und Retries unterstützt. Alternativ kann `node‑fetch` verwendet werden.  <!-- VI (wir nutzten axios um die STAC Index API zu fetchen) HuHi --> <!-- CR: wir nutzen kein Axios mehr.   JaWo -->
+Für das STAC‑Handling kommen [stac-js](https://github.com/moregeo-it/stac-js) und [stac-migrate](https://github.com/stac-utils/stac-migrate) zum Migrieren älterer STAC‑Versionen zum Einsatz. Für HTTP‑Zugriffe eignen sich `axios`, da es Timeouts und Retries unterstützt. Alternativ kann `node‑fetch` verwendet werden.  <!-- VI (wir nutzten axios um die STAC Index API zu fetchen) HuHi --> <!-- CR: wir nutzen kein Axios mehr.   JaWo --> <!-- VI LeKr --> 
 Beim Crawling und Queueing sind für komplexe Szenarien, Frameworks wie `Crawlee (Apify)` oder vergleichbare Lösungen mit integrierter Queue/Retry‑Logik empfehlenswert, für leichtere Implementierungen bieten sich `p‑queue` oder `Bottleneck` zur Steuerung von Parallelität und Rate‑Limits an.  <!-- VI HuHi --> <!-- CR: alles mit Crawlee  JaWo -->
 Zur zeitgesteuerten Ausführung kann lokal `node‑cron` genutzt werden. Die Validierung erfolgt via JSON‑Schema Validator (z. B. `ajv`) unter Verwendung der offiziellen STAC‑Schemas.  <!-- CR: Validierung nicht nötig, da STAC Funktion create() schon automatisch ein Valides STAC Objekt erstellt HuHi -->
-Die Anbindung an die Datenbank kann mit `node‑postgres (pg)` erfolgen.  <!-- VI HuHi -->
-Für Logging und Monitoring werden strukturierte Logs eingesetzt.  <!-- VI HuHi --> <!-- NI  JaWo -->
-Zur Auslieferung und Reproduzierbarkeit der Laufzeitumgebung wird Docker genutzt. <!-- VI HuHi -->
+Die Anbindung an die Datenbank kann mit `node‑postgres (pg)` erfolgen.  <!-- VI HuHi --> <!-- VI LeKr --> 
+Für Logging und Monitoring werden strukturierte Logs eingesetzt.  <!-- VI HuHi --> <!-- NI  JaWo --> <!-- NI LeKr --> 
+Zur Auslieferung und Reproduzierbarkeit der Laufzeitumgebung wird Docker genutzt. <!-- VI HuHi --><!-- VI LeKr --> 
 
 #### 10.1.2 Architektur
 
 Die Architektur ist modular aufgebaut und besteht aus folgenden Komponenten: 
 Der Source Manager persistiert Quellendaten (URL, Typ, Crawl‑Intervall, Status, letzte Ausführung) und stellt eine Admin‑API zum Aktivieren/Deaktivieren sowie für manuelle Trigger bereit. <!-- CR: Eine Admin API ist nicht erwünscht, besser über env einstellen HuHi -->
-Der Scheduler plant die periodischen Crawls gemäß der konfigurierten Intervalle. <!-- NI HuHi -->
-Die Crawler Engine lädt STAC‑Kataloge und STAC‑APIs asynchron, folgt relevanten Link‑Relationen (child, catalog, collection) und beachtet dabei Rate‑Limits, mögliche robots.txt‑Regeln sowie Parallelitätsgrenzen. <!-- VI HuHi -->  <!-- NVI-80, keine Robots.txt wird beachtet soweit ich weiß.  JaWo -->
-Der Metadata Extractor / Normalizer migriert STAC‑Versionen mit stac‑migrate, modelliert Objekte (z. B. mit stac‑js) und extrahiert die relevanten Felder. <!-- VI HuHi -->
+Der Scheduler plant die periodischen Crawls gemäß der konfigurierten Intervalle. <!-- NI HuHi --> <!-- NI LeKr --> 
+Die Crawler Engine lädt STAC‑Kataloge und STAC‑APIs asynchron, folgt relevanten Link‑Relationen (child, catalog, collection) und beachtet dabei Rate‑Limits, mögliche robots.txt‑Regeln sowie Parallelitätsgrenzen. <!-- VI HuHi -->  <!-- NVI-80, keine Robots.txt wird beachtet soweit ich weiß.  JaWo --> <!-- VI LeKr --> 
+Der Metadata Extractor / Normalizer migriert STAC‑Versionen mit stac‑migrate, modelliert Objekte (z. B. mit stac‑js) und extrahiert die relevanten Felder. <!-- VI HuHi --> <!-- VI LeKr --> 
 Der Validator prüft die Objekte gegen die STAC JSON‑Schemas (z. B. mit `ajv)` und protokolliert Validierungsfehler samt Persistenz der Rohdaten zur Analyse. <!-- VI HuHi -->
-Der Database Writer verwaltet Indizes und Transaktionen. Die Logger / Monitor‑Komponente erfasst Fehler, Durchsatz, Latenzen und stellt Health‑Checks bzw. Metriken bereit. <!-- VI HuHi -->
+Der Database Writer verwaltet Indizes und Transaktionen. Die Logger / Monitor‑Komponente erfasst Fehler, Durchsatz, Latenzen und stellt Health‑Checks bzw. Metriken bereit. <!-- VI HuHi --> <!-- VI LeKr --> 
 Optional existiert eine Admin UI / API zur Anzeige von Quellen, Fehlerlogs und für manuelle Resets. <!-- NI HuHi -->
 
 #### 10.1.3 Ablauf
@@ -798,13 +798,13 @@ Optional existiert eine Admin UI / API zur Anzeige von Quellen, Fehlerlogs und f
 
 3. Rekursives Crawling und Pagination: Die Engine folgt Link‑Rela‑Typen wie child, catalog und collection sowie paginiert bei STAC APIs; neue URLs/Tasks werden in die Queue aufgenommen und asynchron abgearbeitet, wobei Rate‑Limits und Parallelität berücksichtigt werden. <!-- NVI-80 (Rate Limiting fehlt) HuHi -->
 
-4. Migration: Gefundene STAC‑Objekte werden mit stac‑migrate in eine einheitliche STAC‑Version überführt und anschließend in ein internes Datenmodell für die Suche umgewandelt. <!-- VI HuHi -->
+4. Migration: Gefundene STAC‑Objekte werden mit stac‑migrate in eine einheitliche STAC‑Version überführt und anschließend in ein internes Datenmodell für die Suche umgewandelt. <!-- VI HuHi --> <!-- VI LeKr --> 
 
-5. Extraktion & Normalisierung: Aus den STAC‑Objekten werden Schlüsselattribute extrahiert (z. B. id, title, description, extent – bbox und temporal, providers, license, assets, HREFs). Die BBOX‑Angaben werden in eine PostGIS‑Geometrie konvertiert (z. B. Envelope/Polygon), zeitliche Angaben als TIMESTAMP abgelegt. <!-- VI HuHi -->
+5. Extraktion & Normalisierung: Aus den STAC‑Objekten werden Schlüsselattribute extrahiert (z. B. id, title, description, extent – bbox und temporal, providers, license, assets, HREFs). Die BBOX‑Angaben werden in eine PostGIS‑Geometrie konvertiert (z. B. Envelope/Polygon), zeitliche Angaben als TIMESTAMP abgelegt. <!-- VI HuHi --> <!-- VI LeKr --> 
 
 6. Validierung: Die Objekte werden gegen die STAC JSON‑Schemas validiert; bei Nicht‑Konformität werden die Fehler protokolliert und die Rohdaten je nach Policy entweder gespeichert, markiert oder ignoriert. <!-- VI HuHi -->
 
-7. Persistenz: Validierte Collections werden idempotent in die collections‑Tabelle geschrieben (Upsert). Zusätzlich wird sources.last_crawled aktualisiert. Optional können Audit/History‑Einträge erzeugt werden oder Änderungen nur dann persistiert werden, wenn sich der Inhalt (z. B. hash(collection)) geändert hat. <!-- VI HuHi -->
+7. Persistenz: Validierte Collections werden idempotent in die collections‑Tabelle geschrieben (Upsert). Zusätzlich wird sources.last_crawled aktualisiert. Optional können Audit/History‑Einträge erzeugt werden oder Änderungen nur dann persistiert werden, wenn sich der Inhalt (z. B. hash(collection)) geändert hat. <!-- VI HuHi --> <!-- NVI-80 LeKr, funktioniert das speichern der collections jetzt richtig? --> 
 
 8. Fehlerbehandlung: Transiente Fehler werden mit einem exponentiellen Backoff mehrfach (z. B. bis zu 3 Versuche) neu versucht; bei dauerhaften Fehlern wird die Quelle markiert und ein Alert/Notification erzeugt. Es soll eine Dead‑Letter‑Queue für manuelle Analyse existieren. <!-- NVI (Wor noch nicht als Inaktive markiert) HuHi -->
 
