@@ -6,6 +6,25 @@
 import dotenv from 'dotenv';
 import { parseCliArgs } from './cli.js';
 
+/**
+ * Checks if a URL points to a static catalog file rather than an API endpoint
+ * @param {string} url - URL to check
+ * @returns {boolean} True if URL appears to be a static file
+ */
+export function isStaticCatalogUrl(url) {
+    if (!url || typeof url !== 'string') return false;
+    
+    // Check if URL ends with common static catalog file patterns
+    const staticPatterns = [
+        /\.json$/i,           // ends with .json
+        /\/collection\.json/i, // collection.json file
+        /\/catalog\.json/i,    // catalog.json file
+        /\/stac\.json/i        // stac.json file
+    ];
+    
+    return staticPatterns.some(pattern => pattern.test(url));
+}
+
 // Load environment variables from .env file
 dotenv.config();
 

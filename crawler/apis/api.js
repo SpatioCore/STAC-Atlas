@@ -9,6 +9,9 @@ import { normalizeCollection } from '../utils/normalization.js';
 import { handleCollections } from '../utils/handlers.js';
 
 /**
+ * Note: This crawler is for REAL APIs only. Static catalogs (*.json files)
+ * are now routed to the catalog crawler in index.js
+ * 
  * Crawls STAC APIs to retrieve collection information without fetching items.
  * 
  * @param {string[]} urls - Array of API URLs to crawl

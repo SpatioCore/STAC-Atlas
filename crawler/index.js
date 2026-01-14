@@ -7,10 +7,9 @@ import axios from 'axios';
 import { processCatalogs } from './utils/normalization.js';
 import { crawlCatalogs } from './catalogs/catalog.js';
 import { crawlApis } from './apis/api.js';
-import { getConfig } from './utils/config.js';
+import { getConfig, isStaticCatalogUrl } from './utils/config.js';
 import { formatDuration } from './utils/time.js';
 import db from './utils/db.js';
-import { formatDuration } from './utils/time.js';
 
 /**
  * URL of the STAC Index API endpoint
@@ -73,17 +72,31 @@ export const crawler = async () => {
         
         console.log(`\nCatalogs: ${catalogsSaved} saved, ${catalogsFailed} failed\n`);
         
+        // Separate static catalogs from real APIs
+        const staticCatalogs = catalogs.filter(cat => cat.isApi === true && isStaticCatalogUrl(cat.url));
+        const regularCatalogs = catalogs.filter(cat => cat.isApi !== true);
+        const realApis = catalogs.filter(cat => cat.isApi === true && !isStaticCatalogUrl(cat.url));
+        
+        console.log(`\nCatalog Classification:`);
+        console.log(`  Regular Catalogs: ${regularCatalogs.length}`);
+        console.log(`  Static Catalogs (mismarked as APIs): ${staticCatalogs.length}`);
+        console.log(`  Real APIs: ${realApis.length}\n`);
+        
         // Crawl catalogs if mode is 'catalogs' or 'both'
         if (config.mode === 'catalogs' || config.mode === 'both') {
             console.log('\nCrawling collections and nested catalogs with Crawlee...\n');
             
+            // Combine regular catalogs with static catalogs (mismarked as APIs)
+            const allCatalogsToProcess = [...regularCatalogs, ...staticCatalogs];
+            
             // Note: MAX_CATALOGS limit is for debugging purposes only
             // Set maxCatalogs to 0 or use --max-catalogs 0 for unlimited catalog crawling
             const catalogsToProcess = config.maxCatalogs === 0 
-                ? catalogs 
-                : catalogs.slice(0, config.maxCatalogs);
+                ? allCatalogsToProcess 
+                : allCatalogsToProcess.slice(0, config.maxCatalogs);
             
-            console.log(`Processing ${catalogsToProcess.length} catalogs (max: ${config.maxCatalogs === 0 ? 'unlimited' : config.maxCatalogs})\n`);
+            console.log(`Processing ${catalogsToProcess.length} catalogs (max: ${config.maxCatalogs === 0 ? 'unlimited' : config.maxCatalogs})`);
+            console.log(`  (includes ${staticCatalogs.length} static catalogs mismarked as APIs)\n`);
             
             try {
                 const results = await crawlCatalogs(catalogsToProcess, config);
@@ -98,15 +111,13 @@ export const crawler = async () => {
         // Crawl APIs if mode is 'apis' or 'both'
         if (config.mode === 'apis' || config.mode === 'both') {
             console.log('\nCrawling APIs...');
-            const apiUrls = catalogs
-                .filter(cat => cat.isApi === true)
-                .map(cat => cat.url);
+            const apiUrls = realApis.map(cat => cat.url);
                 
             if (apiUrls.length > 0) {
                 // Note: MAX_APIS limit is for debugging purposes only
                 // Set maxApis to 0 or use --max-apis 0 for unlimited API crawling
                 const apisToProcess = config.maxApis === 0 ? apiUrls : apiUrls.slice(0, config.maxApis);
-                console.log(`Found ${apiUrls.length} APIs. Processing ${apisToProcess.length} (max: ${config.maxApis === 0 ? 'unlimited' : config.maxApis})...`);
+                console.log(`Found ${realApis.length} real APIs. Processing ${apisToProcess.length} (max: ${config.maxApis === 0 ? 'unlimited' : config.maxApis})...`);
                 
                 try {
                     const apiResults = await crawlApis(apisToProcess, true, config);
