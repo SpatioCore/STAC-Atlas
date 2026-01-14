@@ -7,6 +7,12 @@ services:
     restart: unless-stopped
     environment:
       - NODE_ENV=production
+    networks:
+      - stac-network
     # Optional: Add volume to persist data
     # volumes:
     #   - ./data:/app/data
+
+networks:
+  stac-network:
+    external: true

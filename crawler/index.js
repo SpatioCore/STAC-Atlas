@@ -10,6 +10,7 @@ import { crawlApis } from './apis/api.js';
 import { getConfig } from './utils/config.js';
 import { formatDuration } from './utils/time.js';
 import db from './utils/db.js';
+import { formatDuration } from './utils/time.js';
 
 /**
  * URL of the STAC Index API endpoint
@@ -185,6 +186,7 @@ export const crawler = async () => {
 };
 
 // Run crawler if this file is executed directly
-if (import.meta.url === `file:///${process.argv[1].replace(/\\/g, '/')}`) {
+const isMainModule = import.meta.url === `file://${process.argv[1]}`;
+if (isMainModule || import.meta.url === `file:///${process.argv[1].replace(/\\/g, '/')}`) {
     crawler();
 }

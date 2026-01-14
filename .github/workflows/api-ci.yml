@@ -1,0 +1,220 @@
+name: API CI/CD Pipeline
+
+# Trigger: At every push or pull request to dev, dev-api or main branches affecting the api/ directory or this workflow file
+on:
+  push:
+    branches:
+      - dev-api
+      - dev
+      - main
+    paths:
+      - 'api/**'
+      - '.github/workflows/api-ci.yml'
+  pull_request:
+    branches:
+      - dev-api
+      - dev
+      - main
+    paths:
+      - 'api/**'
+      - '.github/workflows/api-ci.yml'
+
+jobs:
+  # Job 1: Build and Test
+  test:
+    name: Build & Test
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        node-version: [22.x]
+    
+    steps:
+      # Step 1: Checkout Repository
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      # Step 2: Setup Node.js
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+          cache-dependency-path: api/package-lock.json
+      
+      # Step 3: Create .env file from secrets
+      - name: Create .env file
+        working-directory: api
+        run: |
+          cat > .env << EOF
+          # Server Configuration
+          PORT=3000
+          NODE_ENV=test
+          
+          # Database Configuration
+          DB_HOST=${{ secrets.DB_HOST }}
+          DB_PORT=${{ secrets.DB_PORT }}
+          DB_NAME=${{ secrets.DB_NAME }}
+          DB_USER=${{ secrets.DB_USER }}
+          DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+          DB_SSL=false
+          
+          # Connection Pool Configuration
+          DB_POOL_MAX=20
+          DB_POOL_MIN=2
+          DB_IDLE_TIMEOUT=30000
+          DB_CONNECTION_TIMEOUT=10000
+          
+          # CORS Configuration
+          CORS_ORIGIN=*
+          
+          # API Configuration
+          API_TITLE=STAC Atlas
+          API_DESCRIPTION=A centralized platform for managing, indexing, and providing STAC Collection metadata
+          API_VERSION=1.0.0
+          EOF
+      
+      # Step 4: Install dependencies
+      - name: Install dependencies
+        run: |
+          cd api
+          npm ci
+      
+      # Step 5: Linting (ESLint)
+      - name: Run ESLint
+        run: |
+          cd api
+          npm run lint --if-present
+        continue-on-error: true
+      
+      # Step 6: Run tests
+      - name: Run tests
+        run: |
+          cd api
+          # Run Jest in-band (single process) with a higher default test timeout
+          npm test -- --runInBand --testTimeout=30000
+      
+      # Step 7: Generate coverage report
+      - name: Generate coverage report
+        run: |
+          cd api
+          npm test -- --runInBand --testTimeout=30000 --coverage --coverageReporters=text --coverageReporters=lcov
+        continue-on-error: true
+      
+      # Step 8: Upload coverage as artifact
+      - name: Upload coverage reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-report
+          path: api/coverage/
+          retention-days: 30
+      
+      # Step 9: Upload test results as artifact
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: api/test-results/
+          retention-days: 30
+  
+  # Job 2: Validate build
+  build:
+    name: Validate Build
+    runs-on: ubuntu-latest
+    needs: test
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          cache: 'npm'
+          cache-dependency-path: api/package-lock.json
+      
+      - name: Create .env file
+        working-directory: api
+        run: |
+          cat > .env << EOF
+          # Server Configuration
+          PORT=3000
+          NODE_ENV=test
+          
+          # Database Configuration
+          DB_HOST=${{ secrets.DB_HOST }}
+          DB_PORT=${{ secrets.DB_PORT }}
+          DB_NAME=${{ secrets.DB_NAME }}
+          DB_USER=${{ secrets.DB_USER }}
+          DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+          DB_SSL=false
+          
+          # Connection Pool Configuration
+          DB_POOL_MAX=20
+          DB_POOL_MIN=2
+          DB_IDLE_TIMEOUT=30000
+          DB_CONNECTION_TIMEOUT=10000
+          
+          # CORS Configuration
+          CORS_ORIGIN=*
+          
+          # API Configuration
+          API_TITLE=STAC Atlas
+          API_DESCRIPTION=A centralized platform for managing, indexing, and providing STAC Collection metadata
+          API_VERSION=1.0.0
+          EOF
+      
+      - name: Install dependencies
+        run: |
+          cd api
+          npm ci
+      
+      - name: Validate application starts
+        run: |
+          cd api
+          timeout 10s npm start || code=$?; if [[ $code -ne 124 && $code -ne 0 ]]; then exit $code; fi
+        continue-on-error: false
+  
+  # Job 3: Security Audit
+  security:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          cache: 'npm'
+          cache-dependency-path: api/package-lock.json
+      
+      - name: Run npm audit
+        run: |
+          cd api
+          npm audit --audit-level=moderate
+        continue-on-error: true
+  
+  # Job 4: Status-Check for Branch Protection
+  ci-success:
+    name: CI Success
+    runs-on: ubuntu-latest
+    needs: [test, build]
+    if: always()
+    
+    steps:
+      - name: Check all jobs succeeded
+        run: |
+          if [ "${{ needs.test.result }}" != "success" ] || [ "${{ needs.build.result }}" != "success" ]; then
+            echo "CI Pipeline failed!"
+            echo "Test status: ${{ needs.test.result }}"
+            echo "Build status: ${{ needs.build.result }}"
+            exit 1
+          else
+            echo "All CI checks passed successfully!"
+          fi

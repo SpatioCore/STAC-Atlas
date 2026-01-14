@@ -25,10 +25,10 @@ CREATE INDEX idx_crawllog_catalog_last ON crawllog_catalog (last_crawled);
 -- Basic collection lookups
 CREATE INDEX idx_collection_title ON collection (title);
 
-CREATE INDEX idx_collection_temp ON collection (temporal_extend_start, temporal_extend_end);
+CREATE INDEX idx_collection_temp ON collection (temporal_extent_start, temporal_extent_end);
 CREATE INDEX idx_collection_active ON collection (is_active);
 
-CREATE INDEX idx_collection_spatial ON collection USING GIST (spatial_extend);
+CREATE INDEX idx_collection_spatial ON collection USING GIST (spatial_extent);
 
 CREATE INDEX idx_collection_fulltext ON collection
 USING GIN (to_tsvector('simple', coalesce(title,'') || ' ' || coalesce(description,'')));

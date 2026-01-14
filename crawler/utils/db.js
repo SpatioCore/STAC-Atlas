@@ -17,13 +17,36 @@ const pool = new Pool({
 });
 
 async function initDb() {
+  const host = process.env.PGHOST;
+  const port = parseInt(process.env.PGPORT, 10);
+  const database = process.env.PGDATABASE;
+  const user = process.env.PGUSER;
+  
   // Test database connection
-  const client = await pool.connect();
+  let client;
   try {
+    client = await pool.connect();
     await client.query('SELECT 1');
-    console.log('DB connection established successfully');
+    console.log(`DB connection established successfully to ${host}:${port}/${database}`);
+  } catch (error) {
+    console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.error('DATABASE CONNECTION FAILED');
+    console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.error(`  Host:     ${host}`);
+    console.error(`  Port:     ${port}`);
+    console.error(`  Database: ${database}`);
+    console.error(`  User:     ${user}`);
+    console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.error(`  Error:    ${error.message}`);
+    if (error.code) {
+      console.error(`  Code:     ${error.code}`);
+    }
+    console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    throw error;
   } finally {
-    client.release();
+    if (client) {
+      client.release();
+    }
   }
 }
 
@@ -144,12 +167,12 @@ async function insertOrUpdateCollection(collection) {
     await client.query('BEGIN');
 
     // Parse spatial extent (bbox)
-    let spatialExtend = null;
+    let spatialExtent = null;
     if (collection.extent?.spatial?.bbox && collection.extent.spatial.bbox[0]) {
       const bbox = collection.extent.spatial.bbox[0];
       if (bbox.length === 4) {
         // Create polygon from bbox [west, south, east, north]
-        spatialExtend = `EPSG:4326;POLYGON((${bbox[0]} ${bbox[1]}, ${bbox[2]} ${bbox[1]}, ${bbox[2]} ${bbox[3]}, ${bbox[0]} ${bbox[3]}, ${bbox[0]} ${bbox[1]}))`;
+        spatialExtent = `EPSG:4326;POLYGON((${bbox[0]} ${bbox[1]}, ${bbox[2]} ${bbox[1]}, ${bbox[2]} ${bbox[3]}, ${bbox[0]} ${bbox[3]}, ${bbox[0]} ${bbox[1]}))`;
       }
     }
 
@@ -181,9 +204,9 @@ async function insertOrUpdateCollection(collection) {
           type = $2,
           description = $3,
           license = $4,
-          spatial_extend = ST_GeomFromEWKT($5),
-          temporal_extend_start = $6,
-          temporal_extend_end = $7,
+          spatial_extent = ST_GeomFromEWKT($5),
+          temporal_extent_start = $6,
+          temporal_extent_end = $7,
           is_api = $8,
           is_active = $9,
           full_json = $10,
@@ -194,7 +217,7 @@ async function insertOrUpdateCollection(collection) {
           collection.type || 'Collection',
           collection.description || null,
           collection.license || null,
-          spatialExtend,
+          spatialExtent,
           temporalStart,
           temporalEnd,
           false, // is_api - will be determined by crawler
@@ -208,7 +231,7 @@ async function insertOrUpdateCollection(collection) {
       const collectionResult = await client.query(
         `INSERT INTO collection (
           stac_version, type, title, description, license,
-          spatial_extend, temporal_extend_start, temporal_extend_end,
+          spatial_extent, temporal_extent_start, temporal_extent_end,
           is_api, is_active, full_json, updated_at
         )
         VALUES ($1, $2, $3, $4, $5, ST_GeomFromEWKT($6), $7, $8, $9, $10, $11, now())
@@ -219,7 +242,7 @@ async function insertOrUpdateCollection(collection) {
           collectionTitle,
           collection.description || null,
           collection.license || null,
-          spatialExtend,
+          spatialExtent,
           temporalStart,
           temporalEnd,
           false, // is_api - will be determined by crawler
