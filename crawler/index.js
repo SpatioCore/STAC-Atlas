@@ -7,7 +7,8 @@ import axios from 'axios';
 import { processCatalogs } from './utils/normalization.js';
 import { crawlCatalogs } from './catalogs/catalog.js';
 import { crawlApis } from './apis/api.js';
-import { getConfig } from './utils/config.js';
+import { getConfig, isStaticCatalogUrl } from './utils/config.js';
+import { formatDuration } from './utils/time.js';
 import db from './utils/db.js';
 
 /**
@@ -20,15 +21,26 @@ const targetUrl = 'https://www.stacindex.org/api/catalogs';
  * Fetches catalog data from the STAC Index API and processes it
  * @async
  * @function crawler
- * @returns {Promise<void>}
+ * @returns {Promise<Object>} Returns statistics about the crawl including success status and runtime
  */
-const crawler = async () => {
+export const crawler = async () => {
+    // Start the timer
+    const startTime = Date.now();
+    let dbError = false;
+    let crawlError = false;
+    
     try {
         // Load configuration
         const config = getConfig();
         
         // Initialize database connection
-        await db.initDb();
+        try {
+            await db.initDb();
+        } catch (err) {
+            console.error(`\nDatabase initialization failed: ${err.message}`);
+            dbError = true;
+            throw err;
+        }
         
         // Display configuration
         console.log('\n=== STAC Crawler Configuration ===');
@@ -60,17 +72,31 @@ const crawler = async () => {
         
         console.log(`\nCatalogs: ${catalogsSaved} saved, ${catalogsFailed} failed\n`);
         
+        // Separate static catalogs from real APIs
+        const staticCatalogs = catalogs.filter(cat => cat.isApi === true && isStaticCatalogUrl(cat.url));
+        const regularCatalogs = catalogs.filter(cat => cat.isApi !== true);
+        const realApis = catalogs.filter(cat => cat.isApi === true && !isStaticCatalogUrl(cat.url));
+        
+        console.log(`\nCatalog Classification:`);
+        console.log(`  Regular Catalogs: ${regularCatalogs.length}`);
+        console.log(`  Static Catalogs (mismarked as APIs): ${staticCatalogs.length}`);
+        console.log(`  Real APIs: ${realApis.length}\n`);
+        
         // Crawl catalogs if mode is 'catalogs' or 'both'
         if (config.mode === 'catalogs' || config.mode === 'both') {
             console.log('\nCrawling collections and nested catalogs with Crawlee...\n');
             
+            // Combine regular catalogs with static catalogs (mismarked as APIs)
+            const allCatalogsToProcess = [...regularCatalogs, ...staticCatalogs];
+            
             // Note: MAX_CATALOGS limit is for debugging purposes only
             // Set maxCatalogs to 0 or use --max-catalogs 0 for unlimited catalog crawling
             const catalogsToProcess = config.maxCatalogs === 0 
-                ? catalogs 
-                : catalogs.slice(0, config.maxCatalogs);
+                ? allCatalogsToProcess 
+                : allCatalogsToProcess.slice(0, config.maxCatalogs);
             
-            console.log(`Processing ${catalogsToProcess.length} catalogs (max: ${config.maxCatalogs === 0 ? 'unlimited' : config.maxCatalogs})\n`);
+            console.log(`Processing ${catalogsToProcess.length} catalogs (max: ${config.maxCatalogs === 0 ? 'unlimited' : config.maxCatalogs})`);
+            console.log(`  (includes ${staticCatalogs.length} static catalogs mismarked as APIs)\n`);
             
             try {
                 const results = await crawlCatalogs(catalogsToProcess, config);
@@ -85,15 +111,13 @@ const crawler = async () => {
         // Crawl APIs if mode is 'apis' or 'both'
         if (config.mode === 'apis' || config.mode === 'both') {
             console.log('\nCrawling APIs...');
-            const apiUrls = catalogs
-                .filter(cat => cat.isApi === true)
-                .map(cat => cat.url);
+            const apiUrls = realApis.map(cat => cat.url);
                 
             if (apiUrls.length > 0) {
                 // Note: MAX_APIS limit is for debugging purposes only
                 // Set maxApis to 0 or use --max-apis 0 for unlimited API crawling
                 const apisToProcess = config.maxApis === 0 ? apiUrls : apiUrls.slice(0, config.maxApis);
-                console.log(`Found ${apiUrls.length} APIs. Processing ${apisToProcess.length} (max: ${config.maxApis === 0 ? 'unlimited' : config.maxApis})...`);
+                console.log(`Found ${realApis.length} real APIs. Processing ${apisToProcess.length} (max: ${config.maxApis === 0 ? 'unlimited' : config.maxApis})...`);
                 
                 try {
                     const apiResults = await crawlApis(apisToProcess, true, config);
@@ -136,11 +160,44 @@ const crawler = async () => {
 
     } catch (error) {
         console.error(`Error fetching ${targetUrl}: ${error.message}`);
+        if (!dbError) {
+            crawlError = true;
+        }
     } finally {
         // Close database connection
-        await db.close();
-        console.log('\nDatabase connection closed.');
+        if (!dbError) {
+            try {
+                await db.close();
+                console.log('\nDatabase connection closed.');
+            } catch (err) {
+                console.error(`Error closing database: ${err.message}`);
+            }
+        }
+        
+        // Display total running time
+        const endTime = Date.now();
+        const elapsedTime = endTime - startTime;
+        
+        console.log('\n=== Crawler Time Statistics ===');
+        console.log(`Total Running Time: ${formatDuration(elapsedTime)}`);
+        console.log(`Total Running Time (ms): ${elapsedTime}ms`);
+        console.log(`Status: ${dbError ? 'Database Error' : crawlError ? 'Crawl Error' : 'Success'}`);
+        console.log('================================\n');
+        
+        // Return statistics
+        return {
+            success: !dbError && !crawlError,
+            dbError,
+            crawlError,
+            elapsedTime,
+            startTime,
+            endTime
+        };
     }
 };
 
-crawler();
+// Run crawler if this file is executed directly
+const isMainModule = import.meta.url === `file://${process.argv[1]}`;
+if (isMainModule || import.meta.url === `file:///${process.argv[1].replace(/\\/g, '/')}`) {
+    crawler();
+}

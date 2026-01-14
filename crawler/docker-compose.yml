@@ -4,9 +4,12 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: stac-crawler
-    restart: unless-stopped
+    # restart: unless-stopped
     environment:
       - NODE_ENV=production
-    # Optional: Add volume to persist data
-    # volumes:
-    #   - ./data:/app/data
+    networks:
+      - stac-network
+
+networks:
+  stac-network:
+    external: true

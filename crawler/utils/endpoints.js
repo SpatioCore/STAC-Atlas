@@ -4,8 +4,11 @@
  */
 
 /**
- * Tries common STAC collection endpoints and enqueues successful ones
+ * Finds the collection endpoint from STAC catalog links
+ * STAC catalogs should advertise their collection endpoint via rel="data" or rel="collections"
+ * Falls back to a single /collections endpoint if no link is found
  * @async
+ * @param {Object} stacCatalog - Parsed STAC catalog object from stac-js
  * @param {string} baseUrl - Base catalog URL
  * @param {string} catalogId - Catalog ID for logging
  * @param {number} depth - Current depth
@@ -13,24 +16,59 @@
  * @param {Object} log - Logger
  * @param {string} indent - Indentation for logging
  */
-export async function tryCollectionEndpoints(baseUrl, catalogId, depth, crawler, log, indent) {
-    const collectionEndpoints = [
-        '/collections',
-        '/collections/',
-        '/api/v1/collections'
-    ];
+export async function tryCollectionEndpoints(stacCatalog, baseUrl, catalogId, depth, crawler, log, indent) {
+    let collectionUrl = null;
 
-    const requests = collectionEndpoints.map(endpoint => ({
-        url: `${baseUrl}${endpoint}`,
+    // Try to find collection endpoint from STAC links (proper STAC discovery)
+    if (stacCatalog && typeof stacCatalog.getLinks === 'function') {
+        const links = stacCatalog.getLinks();
+        
+        // Look for rel="data" (STAC API) or rel="collections" link
+        const collectionLink = links.find(link => 
+            link.rel === 'data' || link.rel === 'collections'
+        );
+
+        if (collectionLink) {
+            try {
+                collectionUrl = typeof collectionLink.getAbsoluteUrl === 'function'
+                    ? collectionLink.getAbsoluteUrl()
+                    : collectionLink.href;
+                
+                // Handle relative URLs
+                if (collectionUrl && !collectionUrl.startsWith('http')) {
+                    const basePath = baseUrl.substring(0, baseUrl.lastIndexOf('/'));
+                    collectionUrl = `${basePath}/${collectionUrl}`;
+                }
+                
+                log.info(`${indent}Found collection endpoint via STAC link (rel="${collectionLink.rel}"): ${collectionUrl}`);
+            } catch (err) {
+                log.warning(`${indent}Error resolving collection link: ${err.message}`);
+            }
+        }
+    }
+
+    // Fallback: if no link found, try the standard /collections endpoint
+    if (!collectionUrl) {
+        // Remove trailing filename (like catalog.json) from base URL
+        const urlParts = baseUrl.split('/');
+        const lastPart = urlParts[urlParts.length - 1];
+        
+        if (lastPart.includes('.json') || lastPart.includes('.')) {
+            urlParts.pop();
+        }
+        
+        collectionUrl = urlParts.join('/') + '/collections';
+        log.debug(`${indent}No collection link found, using fallback: ${collectionUrl}`);
+    }
+
+    // Enqueue single collection request
+    await crawler.addRequests([{
+        url: collectionUrl,
         label: 'COLLECTIONS',
         userData: {
             catalogUrl: baseUrl,
             catalogId,
             depth
-        },
-        // Don't retry failed endpoint attempts - just try the next one
-        maxRetries: 0
-    }));
-
-    await crawler.addRequests(requests);
+        }
+    }]);
 }

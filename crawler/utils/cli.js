@@ -23,6 +23,14 @@ export function parseCliArgs() {
             config.maxApis = parseInt(args[++i], 10);
         } else if (arg === '--timeout' || arg === '-t') {
             config.timeout = parseInt(args[++i], 10);
+        } else if (arg === '--max-concurrency') {
+            config.maxConcurrency = parseInt(args[++i], 10);
+        } else if (arg === '--requests-per-minute' || arg === '--rpm') {
+            config.maxRequestsPerMinute = parseInt(args[++i], 10);
+        } else if (arg === '--domain-delay') {
+            config.sameDomainDelaySecs = parseFloat(args[++i]);
+        } else if (arg === '--max-retries') {
+            config.maxRequestRetries = parseInt(args[++i], 10);
         } else if (arg === '--help' || arg === '-h') {
             printHelp();
             process.exit(0);
@@ -45,13 +53,24 @@ STAC Crawler Configuration Options:
   -a, --max-apis <number>        Maximum number of APIs to crawl (default: 5, use 0 for unlimited)
                                  Note: Limits are for debugging purposes only
   -t, --timeout <milliseconds>   Timeout for each crawl operation in ms (default: 30000)
+  
+  Rate Limiting Options:
+  --max-concurrency <number>     Maximum concurrent requests (default: 5)
+  --requests-per-minute, --rpm   Maximum requests per minute (default: 60)
+  --domain-delay <seconds>       Delay between requests to same domain (default: 1)
+  --max-retries <number>         Maximum retries for failed requests (default: 3)
+  
   -h, --help                     Show this help message
 
 Environment Variables:
-  CRAWL_MODE          Same as --mode
-  MAX_CATALOGS        Same as --max-catalogs (use 0 for unlimited)
-  MAX_APIS            Same as --max-apis (use 0 for unlimited)
-  TIMEOUT_MS          Same as --timeout
+  CRAWL_MODE               Same as --mode
+  MAX_CATALOGS             Same as --max-catalogs (use 0 for unlimited)
+  MAX_APIS                 Same as --max-apis (use 0 for unlimited)
+  TIMEOUT_MS               Same as --timeout
+  MAX_CONCURRENCY          Same as --max-concurrency
+  MAX_REQUESTS_PER_MINUTE  Same as --requests-per-minute
+  SAME_DOMAIN_DELAY_SECS   Same as --domain-delay
+  MAX_REQUEST_RETRIES      Same as --max-retries
 
 Examples:
   node index.js --mode catalogs --max-catalogs 20
