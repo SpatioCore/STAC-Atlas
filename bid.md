@@ -7,7 +7,7 @@ Das Projekt STAC Atlas zielt darauf ab, eine zentralisierte Plattform zur Verwal
 Die Plattform ermöglicht es Nutzern, Collections anbieterübergreifend zu suchen, zu filtern und zu vergleichen, ohne jeden einzelnen STAC-Katalog manuell durchsuchen zu müssen. Durch die Implementierung standardkonformer Schnittstellen (STAC API) wird sowohl die programmatische Nutzung durch Entwickler als auch die interaktive Nutzung über eine Web-Oberfläche ermöglicht. Dies steigert die Effizienz bei der Arbeit mit Geodaten erheblich und fördert die Wiederverwendbarkeit von Datenressourcen.
 
 Das Projekt besteht aus vier Hauptkomponenten, die nahtlos zusammenarbeiten:
-- **Crawler** – erfasst automatisch Daten aus verschiedenen STAC-Katalogen und hält diese aktuell
+- **Crawler** – erfasst automatisch Daten aus verschiedenen STAC-Katalogen und hält diese aktuell<!-- VI  JaWo -->
 - **Datenbank** – speichert Metadaten persistent und ermöglicht effiziente Abfragen
 - **STAC API** – ermöglicht standardisierten, programmatischen Zugriff auf die indexierten Collections <!-- VI ViKu -->
 - **UI** – bietet eine nutzerfreundliche Web-Oberfläche mit visueller Suche und interaktiver Kartenansicht
@@ -17,19 +17,21 @@ Das Projekt besteht aus vier Hauptkomponenten, die nahtlos zusammenarbeiten:
 Die Abnahmekriterien definieren die zwingend erforderlichen Funktionalitäten des Systems. Diese Anforderungen müssen vollständig erfüllt werden, damit das Projekt als erfolgreich gilt. Sie bilden den Kern der Systemfunktionalität und sind für den produktiven Einsatz unerlässlich.
 
 #### Crawler
-- Automatisches Crawlen und Indexieren von STAC Collections aus verschiedenen Quellen
-- Erfassung aller Collections im STAC Index
-- Rekursive Navigation durch STAC-Kataloge
-- Wöchentliches Re-Crawling zur Aktualisierung der Daten
-- Robustes Error-Handling mit Retry-Logic
+
+- Automatisches Crawlen und Indexieren von STAC Collections aus verschiedenen Quellen <!-- VI HuHi --> <!-- VI  JaWo -->
+- Erfassung aller Collections im STAC Index <!-- VI HuHi --> <!-- VI  JaWo -->
+- Rekursive Navigation durch STAC-Kataloge <!-- VI HuHi --> <!-- VI  JaWo -->
+- Wöchentliches Re-Crawling zur Aktualisierung der Daten <!-- NI HuHi --> <!-- NI  JaWo -->
+- Robustes Error-Handling mit Retry-Logic <!-- UVI-50 HuHi --> <!-- VI  JaWo -->
+
 
 #### Datenbank
-- Persistente Speicherung von STAC-Collection-Metadaten
+- Persistente Speicherung von STAC-Collection-Metadaten <!-- VI SöHo -->
 - Unterstützung strukturierter Suchabfragen (CQL2) <!-- VI RoGu -->
 - Volltextsuche über Titel, Beschreibung und Keywords <!-- UVI-60 RoGu -->
-- Räumliche Filterung (Bounding Box) mittels PostGIS
-- Zeitliche Filterung nach Start- und Endzeitpunkten
-- Effiziente Indizierung für schnelle Abfragen (< 100 ms)
+- Räumliche Filterung (Bounding Box) mittels PostGIS <!-- VI SöHo -->
+- Zeitliche Filterung nach Start- und Endzeitpunkten <!-- VI SöHo -->
+- Effiziente Indizierung für schnelle Abfragen (< 100 ms) <!-- VI SöHo -->
 
 #### STAC API
 - Konforme Implementierung der STAC API Specification <!-- UVI-80 RoGu -->
@@ -59,7 +61,7 @@ Die Abnahmekriterien definieren die zwingend erforderlichen Funktionalitäten de
   - Auswahlliste für Lizenzen
   - Textsuche mit Vorschlägen für Provider 
 - Responsive Design für verschiedene Bildschirmgrößen
-- Sprache (Deutsch oder Englisch))
+- Sprache (Deutsch oder Englisch)
 - Barrierefreiheit (farbenblindentauglich)
 - Anzeige der Collection-Metadaten
 
@@ -78,9 +80,10 @@ Die Wunschkriterien beschreiben optionale Funktionalitäten, die das System übe
 - Integration der Lösung in das bestehende STAC Index API <!-- CR: Ich glaube das ist nicht mehr aktuell RoGu -->
 
 #### Crawler
-- Konfigurierbare Crawling-Schedule
-- Blacklisting fehlerhafter Quellen
-- Erfassung zusätzlicher STAC Extensions
+
+- Konfigurierbare Crawling-Schedule <!-- NI HuHi --> <!--  UVI-20 (Grundlage besteht, aber noch nicht eingestellt) JaWo -->
+- Blacklisting fehlerhafter Quellen <!-- NI HuHi --> <!--  NI JaWo --> <!-- NI LeKr --> 
+- Erfassung zusätzlicher STAC Extensions <!-- VI HuHi --> <!-- VI  JaWo --> <!-- VI LeKr --> 
 
 #### UI
 - Polygon-basierte räumliche Suche (nicht nur Bounding Box)
@@ -104,7 +107,7 @@ Das System soll explizit **NICHT**:
 - Vollständige Historie aller Metadatenänderungen vorhalten
 - Real-time Synchronisation mit Quell-Katalogen garantieren
 
-## 2. Anwendungsbereiche und Zielgruppen <!-- Jakob -->
+## 2. Anwendungsbereiche und Zielgruppen<!-- Jakob -->
 
 Das System richtet sich an verschiedene Nutzergruppen mit unterschiedlichen Anforderungen und Anwendungsfällen:
 
@@ -149,9 +152,10 @@ Alle Komponenten werden in einer modernen, containerisierten Umgebung entwickelt
 [![](https://mermaid.ink/img/pako:eNptUsGO0zAQ_RVrTkVkS-K4JckBqWQLVCrQbVqQIBysZJoGErvYjlpo--_YYVOtBPJlZt6bN_OsOUMhS4QEdo08FnuuDFmuc0HIGyWFQVF-zWEIyehThyHZLp7l8M1xZquFhbPNLHUhGX2wUuPvmrwg89NBodYD8f615a2kNpXC7GFJnhOXvF1kj3i6nn1ezteWlCp-bFDdtAaF7ON2nc4zy5ifDCrBG9LPzWSnCtRk1GcLUeLJIyk3vJGV9siw26POU2Pk7u7V5d1ms8rIxVH-wdKHJb0hzp8ruu1_dqhq1Bdr68nyPbw9aLRfmMqmwcLUUvyXlUPhbJLRzvLkkTS1-OE2vAw2wYNK1SUkO95o9KBF1XKXw9lp5WD22GIOiQ3tE1fbcODii5QtJEZ1tkXJrtrfBLpDyQ3e17xSvL1VlbWKKpWdMJAEMWW9CiRnOEES0_HLCQ2jyPd9FkU08uAXJCwMxiGjIZsGccD8KZ1cPfjdz_XHUTil08mEsShgMY1DD7CsjVTv_55Yf2nXP1fHwN0?type=png)](https://mermaid.live/edit#pako:eNptUsGO0zAQ_RVrTkVkS-K4JckBqWQLVCrQbVqQIBysZJoGErvYjlpo--_YYVOtBPJlZt6bN_OsOUMhS4QEdo08FnuuDFmuc0HIGyWFQVF-zWEIyehThyHZLp7l8M1xZquFhbPNLHUhGX2wUuPvmrwg89NBodYD8f615a2kNpXC7GFJnhOXvF1kj3i6nn1ezteWlCp-bFDdtAaF7ON2nc4zy5ifDCrBG9LPzWSnCtRk1GcLUeLJIyk3vJGV9siw26POU2Pk7u7V5d1ms8rIxVH-wdKHJb0hzp8ruu1_dqhq1Bdr68nyPbw9aLRfmMqmwcLUUvyXlUPhbJLRzvLkkTS1-OE2vAw2wYNK1SUkO95o9KBF1XKXw9lp5WD22GIOiQ3tE1fbcODii5QtJEZ1tkXJrtrfBLpDyQ3e17xSvL1VlbWKKpWdMJAEMWW9CiRnOEES0_HLCQ2jyPd9FkU08uAXJCwMxiGjIZsGccD8KZ1cPfjdz_XHUTil08mEsShgMY1DD7CsjVTv_55Yf2nXP1fHwN0)
 
 ### 3.1 Crawler
-Der Crawler wird in JavaScript implementiert und ist zuständig für das automatische Auffinden und Einlesen von STAC Collections aus dem STAC Index sowie verlinkten Katalogen/APIs (6.1.1.1, 6.1.1.2). (6.2.4.2)
-Er schreibt die Daten in die Datenbank (6.1.1.7, 6.1.1.3) und führt regelmäßige, inkrementelle Aktualisierungen durch, um eine aktuelle Indexierung sicherzustellen (6.1.1.6). 
-Protokollierung (z. B. Zeitstempel/Status) stellt Nachvollziehbarkeit sicher (6.1.1.4, 6.1.1.12). Dokumentation zu Build/Deployment/Testing wird pro Komponente bereitgestellt (6.2.4.3).
+
+Der Crawler wird in JavaScript implementiert und ist zuständig für das automatische Auffinden und Einlesen von STAC Collections aus dem STAC Index sowie verlinkten Katalogen/APIs (6.1.1.1, 6.1.1.2). (6.2.4.2) <!-- VI HuHi --> <!-- VI LeKr --> 
+Er schreibt die Daten in die Datenbank (6.1.1.7, 6.1.1.3) und führt regelmäßige, inkrementelle Aktualisierungen durch, um eine aktuelle Indexierung sicherzustellen (6.1.1.6). <!--NVI-75 HuHi --> <!-- NVI LeKr --> 
+Protokollierung (z. B. Zeitstempel/Status) stellt Nachvollziehbarkeit sicher (6.1.1.4, 6.1.1.12). Dokumentation zu Build/Deployment/Testing wird pro Komponente bereitgestellt (6.2.4.3). <!--NVI-75 HuHi --> <!-- VI JaWo --> <!-- NVI LeKr --> 
 
 ### 3.2 Datenbankmanagementsystem
 PostgreSQL in Kombination mit PostGIS bildet die zentrale Datengrundlage.  
@@ -184,19 +188,19 @@ Im folgenden werden die Produktfunktionen nach den einzelnen Komponenten unterte
 
 Komponente | Funktion (Kurzbeschreibung) | Optionale Umsetzung | Akzeptanzkriterium | Prio | Lastenheft-Referenz |
 |---|---|---|---|---|---|
-| Crawler | Alle im STAC Index gelisteten statischen Kataloge und STAC-APIs nach Collections crawlen | – | Mind. 87 Quellen gecrawlt; Trefferquote ≥ 95 % | M | 6.1.1 1. |
-| Crawler | Collections in nahezu beliebiger Verschachtelungstiefe erfassen (nested catalogs) | – | Maximale Tiefe < 1024 | M | 6.1.1 2. |
-| Crawler | Metadaten extrahieren: id, title, description, spatial/temporal extent, keywords, provider, license, DOI, summaries(platform/constellation/gsd/processing:level) | – | ≥ 95 % Felder gefüllt bei Stichprobe n=50 | H | 6.1.1 3. |
-| Crawler | Quell-URL, Quell-Titel, „zuletzt gecrawlt“ speichern | – | Felder in DB vorhanden und befüllt | M | 6.1.1 4. |
-| Crawler | Alle stabilen STAC-Versionen unterstützen (alte Ressourcen werden automatisch auf 1.1 migriert) | – | Collections unterschiedl. Versionen werden gespeichert und ggf. migriert | M | 6.1.1 5. |
-| Crawler | Inkrementelle Updates und periodisches Re-Crawling | – | Änderungen können ohne vollständige Neuindexierung hinzugefügt werden | H | 6.1.1 6. |
-| Crawler | Vollständige STAC-Collection + extrahierte Suchfelder persistent ablegen | – | ≥ 95 % Felder identisch zwischen Quelle und Datenbank bei Stichprobe n=50 | H | 6.1.1 7. |
-| Crawler | Erweiterbares DB-Design für zusätzliche Felder vorschlagen (siehe 5. Produktdaten) | – | Schema-Entwurf dokumentiert & abgenommen | M | 6.1.1 8. |
-| Crawler | Rate-Limiting einhalten (Quellen nicht überlasten) | – | Keine 429-Antworten/Blockings in Testlauf über 12 h | M | 6.1.1 9. |
-| Crawler | Konfigurierbare Crawl-Zeitpläne/Frequenzen | % | CRON/Intervall vom Anwender frei konfigurierbar | L | 6.1.1 10. |
-| Crawler | Fehlerbehandlung + Retry; problematische Quellen überspringen | % | Backoff/Retry-Logik; Fehlerbericht vorhanden | M | 6.1.1 11. |
-| Crawler | Logging & Monitoring der Crawl-Aktivitäten | % | Dashboards/Metriken (Rate, Fehler, Status) | M | 6.1.1 12. |
-| Crawler | Version-agnostische STAC-Extensions erkennen und als Tags speichern (EO, SAR, Point Cloud) | ✔ | Extensions-Tags in DB & Queryables sichtbar | $ | 6.1.1 13. |
+| Crawler | Alle im STAC Index gelisteten statischen Kataloge und STAC-APIs nach Collections crawlen | – | Mind. 87 Quellen gecrawlt; Trefferquote ≥ 95 % | M | 6.1.1 1. | <!-- VI HuHi -->
+| Crawler | Collections in nahezu beliebiger Verschachtelungstiefe erfassen (nested catalogs) | – | Maximale Tiefe < 1024 | M | 6.1.1 2. | <!-- VI HuHi -->
+| Crawler | Metadaten extrahieren: id, title, description, spatial/temporal extent, keywords, provider, license, DOI, summaries(platform/constellation/gsd/processing:level) | – | ≥ 95 % Felder gefüllt bei Stichprobe n=50 | H | 6.1.1 3. | <!-- VI HuHi -->
+| Crawler | Quell-URL, Quell-Titel, „zuletzt gecrawlt“ speichern | – | Felder in DB vorhanden und befüllt | M | 6.1.1 4. | <!-- VI HuHi -->
+| Crawler | Alle stabilen STAC-Versionen unterstützen (alte Ressourcen werden automatisch auf 1.1 migriert) | – | Collections unterschiedl. Versionen werden gespeichert und ggf. migriert | M | 6.1.1 5. | <!-- VI HuHi -->
+| Crawler | Inkrementelle Updates und periodisches Re-Crawling | – | Änderungen können ohne vollständige Neuindexierung hinzugefügt werden | H | 6.1.1 6. | <!-- NI HuHi -->
+| Crawler | Vollständige STAC-Collection + extrahierte Suchfelder persistent ablegen | – | ≥ 95 % Felder identisch zwischen Quelle und Datenbank bei Stichprobe n=50 | H | 6.1.1 7. | <!-- VI HuHi -->
+| Crawler | Erweiterbares DB-Design für zusätzliche Felder vorschlagen (siehe 5. Produktdaten) | – | Schema-Entwurf dokumentiert & abgenommen | M | 6.1.1 8. | <!-- VI HuHi -->
+| Crawler | Rate-Limiting einhalten (Quellen nicht überlasten) | – | Keine 429-Antworten/Blockings in Testlauf über 12 h | M | 6.1.1 9. | <!-- NI HuHi -->
+| Crawler | Konfigurierbare Crawl-Zeitpläne/Frequenzen | % | CRON/Intervall vom Anwender frei konfigurierbar | L | 6.1.1 10. | <!-- NVI-90 HuHi -->
+| Crawler | Fehlerbehandlung + Retry; problematische Quellen überspringen | % | Backoff/Retry-Logik; Fehlerbericht vorhanden | M | 6.1.1 11. | <!-- NVI-90 HuHi -->
+| Crawler | Logging & Monitoring der Crawl-Aktivitäten | % | Dashboards/Metriken (Rate, Fehler, Status) | M | 6.1.1 12. | <!-- NVI-90 HuHi -->
+| Crawler | Version-agnostische STAC-Extensions erkennen und als Tags speichern (EO, SAR, Point Cloud) | ✔ | Extensions-Tags in DB & Queryables sichtbar | $ | 6.1.1 13. | <!-- VI HuHi -->
 | STAC-API | API gemäß relevanten Spezifikationen gültig (STAC API und Collection Search Extension) <!-- UVI-90 RoGu --> | – | GET `/` und `/conformance` enthält zutreffende URIs | H | 6.1.2 1. |
 | STAC-API | Erweiterung der bestehenden STAC Index API; bleibt selbst gültige STAC-API <!-- CR: Eigentlich haben wir die STAC Index API nicht erweitert... RoGu --> | – | Root/Collections gültig - Getestet durch `STAC Validator` und `STAC API Validator` und Jest-Tests für die Collection Search Extension | H | 6.1.2 2. |
 | STAC-API | Collection Search: Freitext `q`, Filter, Sortierung <!-- UVI-95 RoGu --> | – | Beispiel-Queries liefern erwartete Treffer | H | 6.1.2 3. |
@@ -220,7 +224,7 @@ Legende Spalte "Umsetzung"
 | -       | Diese Funtion ist vom Lastenheft verpflichtend vorgegeben und wird umgesetzt |
 | %       | Dieses Funktion ist vom Lastenheft optinal vorgegeben und wird umgesetzt    |
 | $       | Diese Funktion ist vom Lastenheft optional vorgegeben und es ist nicht geplant dieses umzusetzen|
-
+<!-- CR Crawler, fehlende Definition Stac Versionen migrieren/speichern, Wortwahl muss angepasst werden  JaWo -->
 ## 5. Produktdaten <!-- Humam & Sönke -->
 
 Die Datenbankkomponente bildet das zentrale Rückgrat der gesamten Datenverwaltung und dient zur strukturierten, effizienten und STAC-konformen Speicherung sämtlicher durch den Crawler erfassten (Meta-) Daten. Grundlage ist eine relationale PostgreSQL-Datenbank mit PostGIS-Erweiterung, um sowohl klassische als auch räumliche Abfragen performant verarbeiten zu können.  
@@ -231,11 +235,12 @@ Die Tabellen enthalten jeweils Primärschlüssel zur eindeutigen Identifikation 
 
 ---
 
-### Tabellenbereich „Catalogs“
+### Tabellenbereich „Catalogs“ <!-- VI SöHo -->
 
 Der Bereich **Catalogs** bildet die hierarchische Struktur der STAC-Kataloge ab. Jeder Katalog speichert seine Metadaten inklusive Versionierung, Typ, Beschreibung und zugehöriger Links. Über Zwischentabellen werden Erweiterungen (STAC Extensions) referenziert.  
 
-#### Tabelle: `catalog`
+#### Tabelle: `catalog` <!-- VI SöHo -->
+<!-- CR: Es wurde die Spalte search_vector als tsvector zur effizienteren Bestimmung und Verarbeitung der Vektordaten hinzugefügt-->
 
 | Spalte        | Beschreibung / Inhalt                   | Datentyp / Format     |
 |---------------|------------------------------------------|------------------------|
@@ -249,7 +254,8 @@ Der Bereich **Catalogs** bildet die hierarchische Struktur der STAC-Kataloge ab.
 
 Die Haupttabelle `catalog` bildet den zentralen Einstiegspunkt der Kataloghierarchie. Sie speichert allgemeine Metadaten und dient als Ankerpunkt für die zugehörigen Relationen. Diese Tabelle ist notwenidg um zu schauen, ob der crawler die aktueller Version des `catalogs` gespeichert hat, oder diesen `catalog` erneut crawlen muss. Somit kann der crawler bei einem erneuten crawl effektiver und schneller arbeiten.
 
-#### Tabelle: `catalog_links`
+#### Tabelle: `catalog_links` <!-- VI SöHo -->
+<!-- CR: Es wurde die Spalte source_url als text zur schnelleren Bestimmung des Ursprungs-catalogs hinzugefügt-->
 
 | Spalte       | Beschreibung / Inhalt                        | Datentyp / Format     |
 |---------------|----------------------------------------------|------------------------|
@@ -262,7 +268,7 @@ Die Haupttabelle `catalog` bildet den zentralen Einstiegspunkt der Kataloghierar
 
 Die Tabelle `catalog_links` beschreibt die Verknüpfungen zwischen einzelnen Katalogen oder externen Referenzen und implementiert damit die STAC-Link-Struktur.
 
-#### Tabelle: catalog:stac_extension
+#### Tabelle: catalog:stac_extension <!-- VI SöHo -->
 
 | Spalte              | Beschreibung / Inhalt                    | Datentyp / Format |
 |----------------------|------------------------------------------|-------------------|
@@ -271,13 +277,25 @@ Die Tabelle `catalog_links` beschreibt die Verknüpfungen zwischen einzelnen Kat
 
 Diese Relation beschreibt, welche STAC-Erweiterungen in einem bestimmten Katalog verwendet werden. Hier wird eine eigene Tabelle benötigt da hier eine (n:n)-Beziehung zwischen den beiden tabellen vorliegt.
 
+#### Tabelle: crawllog_catalog <!-- VI SöHo -->
+
+| Spalte       | Beschreibung / Inhalt                    | Datentyp / Format |
+|---------------|------------------------------------------|-------------------|
+| **id**        | Eindeutige ID des Crawlvorgangs          | integer (PK)      |
+| catalog_id    | Referenz auf `catalog.id`                | integer (FK)      |
+| last_crawled  | Zeitpunkt des letzten Crawls             | timestamp         | 
+
+Protokolliert die Zeitpunkte der letzten Crawling-Vorgänge für jeden Katalog. 
+
 ---
 
 ### Tabellenbereich „Collections“
 
 Der Bereich **Collections** bildet die Sammlungen von Collections innerhalb eines Katalogs ab. Jede Collection enthält spezifische Metadaten, räumliche Ausdehnungen, zeitliche Intervalle sowie referenzierte Provider, Assets und Summaries.  
 
-#### Tabelle: collection
+#### Tabelle: collection <!-- VI SöHo -->
+<!-- CR: Es wurde die Spalte stac_id als Integer zur einfacheren Suche und spezifischen Erkennung der verschiedenen stac collections zu gewährleisten -->
+<!-- CR: Es wurde die Spalte search_vector als tsvector zur effizienteren Bestimmung und Verarbeitung der Vektordaten hinzugefügt-->
 
 | Spalte                | Beschreibung / Inhalt                                    | Datentyp / Format  |
 |------------------------|----------------------------------------------------------|--------------------|
@@ -298,7 +316,8 @@ Der Bereich **Collections** bildet die Sammlungen von Collections innerhalb eine
 
 Die `collection`-Tabelle dient als zentrales Objekt für die Speicherung der Sammlungsinformationen. Neben den textuellen Attributen werden hier räumliche und zeitliche Dimensionen gespeichert, die für Filter- und Suchoperationen entscheidend sind.  
 
-#### Tabelle: collection_summaries
+#### Tabelle: collection_summaries <!-- VI SöHo -->
+<!-- CR: Es wurde die Spalte source_url als text zur schnelleren Bestimmung der Ursprung-collection hinzugefügt-->
 
 | Spalte        | Beschreibung / Inhalt                                 | Datentyp / Format |
 |----------------|-------------------------------------------------------|-------------------|
@@ -313,7 +332,7 @@ Die `collection`-Tabelle dient als zentrales Objekt für die Speicherung der Sam
 
 Diese Tabelle speichert statistische oder beschreibende Zusammenfassungen einzelner Collections. Über den Fremdschlüssel `collection_id` wird sichergestellt, dass alle Summary-Werte eindeutig zugeordnet werden können.  
 
-#### Tabelle: collection:assets
+#### Tabelle: collection:assets <!-- VI SöHo -->
 
 | Spalte                 | Beschreibung / Inhalt                 | Datentyp / Format |
 |-------------------------|---------------------------------------|-------------------|
@@ -323,7 +342,7 @@ Diese Tabelle speichert statistische oder beschreibende Zusammenfassungen einzel
 
 Dient der Verknüpfung von Collections mit ihren zugehörigen Assets, einschließlich der Angabe spezifischer Rollen. Dies ist nötig, da hier eine (n:n)-Beziehung vorliegt.
 
-#### Tabelle: collection:keywords
+#### Tabelle: collection:keywords <!-- VI SöHo -->
 
 | Spalte        | Beschreibung / Inhalt                | Datentyp / Format |
 |----------------|--------------------------------------|-------------------|
@@ -332,7 +351,7 @@ Dient der Verknüpfung von Collections mit ihren zugehörigen Assets, einschlie�
 
 Relationstabelle zur Mehrfachzuordnung von Keywords an Collections. Dadurch können Colletions gezielt über Schlagwörter gefiltert werden. Diese Tabelle wird benötigt, da hier eine (n:n)-Beziehung vorliegt.
 
-#### Tabelle: collection:stac_extension
+#### Tabelle: collection:stac_extension <!-- VI SöHo -->
 
 | Spalte              | Beschreibung / Inhalt                 | Datentyp / Format |
 |----------------------|---------------------------------------|-------------------|
@@ -351,49 +370,6 @@ Relationstabelle zur Mehrfachzuordnung von stac_extension an Collections. Dadurc
 
 Definiert die Zuordnung von Datenanbietern (Providern) zu einzelnen Collections. Über das Feld `collection_provider_roles` können die jeweiligen Rollen (z. B. „producer“, „licensor“) eindeutig beschrieben werden.
 
----
-
-### Allgemeine und Hilfstabellen
-
-Neben den spezifischen Tabellen für Catalogs und Collections existieren mehrere **nicht-spezifische Hilfstabellen**, die für eine einheitliche Referenzierung, Nachverfolgung und Filterung verwendet werden. Diese werden benötigt, da diese Tabellen mit den Tabellen `collections` und `catalogs` eine n:n-Beziehung haben und somit die datenbank unnötig viele Daten speichern würde wenn man diese Daten direkt in einer der beiden Tabellen referenzieren würde.
-
-#### Tabelle: providers
-
-| Spalte | Beschreibung / Inhalt                 | Datentyp / Format |
-|---------|---------------------------------------|-------------------|
-| **id**  | Eindeutige ID des Providers           | integer (PK)      |
-| provider| Name oder Organisation des Providers  | text              |
-
-Speichert die Informationen zu Datenanbietern, Organisationen oder Institutionen.  
-
-#### Tabelle: keywords
-
-| Spalte | Beschreibung / Inhalt          | Datentyp / Format |
-|---------|--------------------------------|-------------------|
-| **id**  | Eindeutige ID des Keywords     | integer (PK)      |
-| keyword | Bezeichnung des Schlagworts    | text              |
-
-Liste aller verwendeten Schlagwörter, die in unterschiedlichen Kontexten wiederverwendet werden können.  
-
-#### Tabelle: stac_extensions
-
-| Spalte | Beschreibung / Inhalt               | Datentyp / Format |
-|---------|-------------------------------------|-------------------|
-| **id**  | Eindeutige ID der Extension         | integer (PK)      |
-| stac_extension | Name oder URL der Erweiterung | text             |
-
-Verwaltet die in STAC definierten Erweiterungen, die sowohl von Catalogs als auch von Collections genutzt werden können.  
-
-#### Tabelle: crawllog_catalog
-
-| Spalte       | Beschreibung / Inhalt                    | Datentyp / Format |
-|---------------|------------------------------------------|-------------------|
-| **id**        | Eindeutige ID des Crawlvorgangs          | integer (PK)      |
-| catalog_id    | Referenz auf `catalog.id`                | integer (FK)      |
-| last_crawled  | Zeitpunkt des letzten Crawls             | timestamp         | 
-
-Protokolliert die Zeitpunkte der letzten Crawling-Vorgänge für jeden Katalog.  
-
 #### Tabelle: crawllog_collection
 
 | Spalte       | Beschreibung / Inhalt                    | Datentyp / Format |
@@ -406,6 +382,40 @@ Analog zur vorherigen Tabelle dient `crawllog_collection` der Nachverfolgung der
 
 ---
 
+### Allgemeine und Hilfstabellen <!-- VI SöHo -->
+<!-- CR: Es wurde eine weitere Tabelle für die assets der collections angelegt. Diese ist bereits implementiert und verfügbar, jedoch wurde diese in der bid vergessen-->
+
+Neben den spezifischen Tabellen für Catalogs und Collections existieren mehrere **nicht-spezifische Hilfstabellen**, die für eine einheitliche Referenzierung, Nachverfolgung und Filterung verwendet werden. Diese werden benötigt, da diese Tabellen mit den Tabellen `collections` und `catalogs` eine n:n-Beziehung haben und somit die datenbank unnötig viele Daten speichern würde wenn man diese Daten direkt in einer der beiden Tabellen referenzieren würde.
+
+#### Tabelle: providers <!-- VI SöHo -->
+
+| Spalte | Beschreibung / Inhalt                 | Datentyp / Format |
+|---------|---------------------------------------|-------------------|
+| **id**  | Eindeutige ID des Providers           | integer (PK)      |
+| provider| Name oder Organisation des Providers  | text              |
+
+Speichert die Informationen zu Datenanbietern, Organisationen oder Institutionen.  
+
+#### Tabelle: keywords <!-- VI SöHo -->
+
+| Spalte | Beschreibung / Inhalt          | Datentyp / Format |
+|---------|--------------------------------|-------------------|
+| **id**  | Eindeutige ID des Keywords     | integer (PK)      |
+| keyword | Bezeichnung des Schlagworts    | text              |
+
+Liste aller verwendeten Schlagwörter, die in unterschiedlichen Kontexten wiederverwendet werden können.  
+
+#### Tabelle: stac_extensions <!-- VI SöHo -->
+
+| Spalte | Beschreibung / Inhalt               | Datentyp / Format |
+|---------|-------------------------------------|-------------------|
+| **id**  | Eindeutige ID der Extension         | integer (PK)      |
+| stac_extension | Name oder URL der Erweiterung | text             |
+
+Verwaltet die in STAC definierten Erweiterungen, die sowohl von Catalogs als auch von Collections genutzt werden können.   
+
+---
+
 ### Zusammenfassung
 
 Mit dieser Datenbankstruktur wird eine **vollständig STAC-kompatible, referenzielle und hochperformante Datenspeicherung** gewährleistet.  
@@ -415,29 +425,31 @@ Indizes auf allen relevanten Attributen (IDs, Zeitstempel, Textfelder und Geomet
 ## 6. Leistungsanforderungen
 
 ### 6.1 Crawler <!-- Humam -->
-Die Crawler-Komponente soll eine hohe Effizienz, Stabilität und Skalierbar sein, um große Mengen an STAC-Katalogen und -APIs regelmäißg und zuverlässig zu erfassen.
+Die Crawler-Komponente soll eine hohe Effizienz, Stabilität und Skalierbar sein, um große Mengen an STAC-Katalogen und -APIs regelmäißg und zuverlässig zu erfassen.<!-- VI  JaWo --> <!-- VI LeKr --> 
 
 #### 6.1.1 Crawling Leistung
-Der Crawler soll in der Lage sein aus dem STAC-Index Quellen innerhalb einer Woche zu analysieren. In folge dessen soll auch die Aktualisierung aller bekannter und neuer Quellen maximal eine Woche betragen. Die einzelnen STAC-Collections sollen jeweils innerhalb von < 5 Sekunden abgerufen und verarbeitet werden. Zudem soll der Crawler alle vorgegebenen Rate-Limits einhalten, um die externen Dienste nicht zu überlasten (z.B. max. 20 Request/Minute pro Quelle).
+
+Der Crawler soll in der Lage sein aus dem STAC-Index Quellen innerhalb einer Woche zu analysieren. In folge dessen soll auch die Aktualisierung aller bekannter und neuer Quellen maximal eine Woche betragen. Die einzelnen STAC-Collections sollen jeweils innerhalb von < 5 Sekunden abgerufen und verarbeitet werden. Zudem soll der Crawler alle vorgegebenen Rate-Limits einhalten, um die externen Dienste nicht zu überlasten (z.B. max. 20 Request/Minute pro Quelle). <!-- NVI-70 (Rate Limiting) HuHi --> <!-- VI JaWo --><!-- CR: Beispiel Wert nicht wirklich treffend.  JaWo -->
 
 #### 6.1.2 Crawling Parallelität und Skalierbarkeit
-Die Implementierung soll asynchrones und paralleles Crawling unterstützten. Es wird nur ein einzelene Crawler-Instanz sein, um die Komplexität mit Datenbankkonflikten zu vermeiden. Es wird darauf geachtet so zu programmieren, um in Zukunft horizontale Skalierung mit mehren Crawlern möglich zu machen.
+Die Implementierung soll asynchrones und paralleles Crawling unterstützten. Es wird nur ein einzelene Crawler-Instanz sein, um die Komplexität mit Datenbankkonflikten zu vermeiden. Es wird darauf geachtet so zu programmieren, um in Zukunft horizontale Skalierung mit mehren Crawlern möglich zu machen. <!-- VI HuHi --> <!-- VI  JaWo --> <!-- VI LeKr --> 
 
 #### 6.1.3 Crawling Zuverlässigkeit unf Fehlertoleranz
-Der Crawler darf bei fehlerhaften oder inaktiven Quellen nicht vollständig abbrechen. Die Quellen, die dreimal hintereinander fehlschlagen, sollen als inaktiv bis zum Crawling Event behandelt werden. Fehler und Wiederholungen müssen protokolliert werden. Alle ursprünglich erreichbaren STAC collections und catalogs sollen in der Datenbank dann als inaktiv gekennzeichnet werden.
+Der Crawler darf bei fehlerhaften oder inaktiven Quellen nicht vollständig abbrechen. Die Quellen, die dreimal hintereinander fehlschlagen, sollen als inaktiv bis zum Crawling Event behandelt werden. Fehler und Wiederholungen müssen protokolliert werden. Alle ursprünglich erreichbaren STAC collections und catalogs sollen in der Datenbank dann als inaktiv gekennzeichnet werden. <!-- NVI-80 (Als Inaktiv markiert fehlt) HuHi --> <!--   NVI-70 JaWo --><!-- CR: Fehler und wiederholungen sollten nicht zu lang protokolliert werden, Gefahr von großen unnötigen Datenmengen.  JaWo -->
 
 #### 6.1.4 Ressourcenverbrauch
-Der Crawler darf im Normalbetrieb auf einer Standard-VM mit (2 vCPUs, 8GB RAM) betrieben werden. Dies ist der alleinstehende Verbrauch. Eine CPU-Auslastung von über 80% im Mittel einer Woche darf nicht überschritten werden. RAM Verbrauch ist maximal 4GB pro Crawler.
+Der Crawler darf im Normalbetrieb auf einer Standard-VM mit (2 vCPUs, 8GB RAM) betrieben werden. Dies ist der alleinstehende Verbrauch. Eine CPU-Auslastung von über 80% im Mittel einer Woche darf nicht überschritten werden. RAM Verbrauch ist maximal 4GB pro Crawler. <!-- VI HuHi -->
 
 #### 6.1.7 Wartbarkeit und Monitoring
-Die Crawling-Durchläufe sollen über Logging und Metriken wie der Anzahl gecrawlter Quellen, Anzahl gecrawlter Collections und Laufzeit überwacht werden. Die Metriken werden nur über eine Lokale Datei von einem System-Admin abrufbar sein.
+
+Die Crawling-Durchläufe sollen über Logging und Metriken wie der Anzahl gecrawlter Quellen, Anzahl gecrawlter Collections und Laufzeit überwacht werden. Die Metriken werden nur über eine Lokale Datei von einem System-Admin abrufbar sein. <!-- NVI-80 (Keine Lokale Datei, sollte aber noch gemacht werden) HuHi --> <!-- VI (nicht lokale Datei sondern Konsolen-Output)   JaWo -->
 
 #### 6.1.8 Abnahmekriterien
-- Der Crawler kann mindestens einen realen STAC Katalog vollständig traversieren.
-- Collections werden in PostgreSQL mit PostGIS persistiert.
-- Die Validierung erfolgt gegen das STAC JSON Schema und auftretende Fehler werden protokolliert.
-- Bei Fehlern sind Wiederholungsversuche implementiert und dauerhaft fehlerhafte Quellen können als inaktiv markiert werden.
-- Strukturierte Logs sind vorhanden.
+- Der Crawler kann mindestens einen realen STAC Katalog vollständig traversieren. <!-- VI HuHi --> <!-- VI  JaWo --> <!-- VI LeKr --> 
+- Collections werden in PostgreSQL mit PostGIS persistiert. <!-- VI HuHi --> <!-- VI LeKr --> 
+- Die Validierung erfolgt gegen das STAC JSON Schema und auftretende Fehler werden protokolliert. <!-- VI HuHi --> <!-- VI  JaWo --> <!-- VI LeKr --> 
+- Bei Fehlern sind Wiederholungsversuche implementiert und dauerhaft fehlerhafte Quellen können als inaktiv markiert werden. <!-- NVI-80 (Inaktiv Markieren fehlt) HuHi --> <!-- NI  JaWo -->  
+- Strukturierte Logs sind vorhanden. <!-- NI HuHi --> <!-- NI LeKr --> 
 
 ### 6.2 Datenbank <!-- Sönke -->
 
@@ -536,14 +548,14 @@ Die nachfolgenden Maßnahmen gewährleisten die Korrektheit, Wartbarkeit, Standa
 
 ### 7.1 Code-Qualität und Tests
   #### 7.1.1 Unit-Tests 
-   - Für alle zentralen Backend-Module (insbesondere STAC-API-Routen, CQL2-Parser, Datenbank-Abfrage-Logik und Crawler-Importfunktionen) werden Unit-Tests mit einem geeigneten Framework (jest) erstellt. <!-- VI RoGu -->
-   - Für das Frontend werden Unit-Tests mit einem geeigneten Framework (Jest) erstellt. <!-- VI ViKu -->
-   - Zielabdeckung: mindestens 80 % Branch- und Statement-Coverage. <!-- UVI-?? RoGu -->
-   - Tests werden automatisiert bei jedem Commit und Merge-Request in der GitHub-Pipeline ausgeführt. <!-- VI RoGu -->
+   - Für alle zentralen Backend-Module (insbesondere STAC-API-Routen, CQL2-Parser, Datenbank-Abfrage-Logik und Crawler-Importfunktionen) werden Unit-Tests mit einem geeigneten Framework (jest) erstellt. <!-- UVI-70 RoGu -->
+   - Für das Frontend werden Unit-Tests mit einem geeigneten Framework (Jest) erstellt.
+   - Zielabdeckung: mindestens 80 % Branch- und Statement-Coverage. <!-- UVI-50 RoGu -->
+   - Tests werden automatisiert bei jedem Commit und Merge-Request in der GitHub-Pipeline ausgeführt. <!-- UVI-50 RoGu -->
    - Fehlgeschlagene Unit-Tests blockieren den Merge in den Haupt-Branch, um jederzeit lauffähigen Code in geteilten Systemen zu ermöglichen. <!-- VI RoGu -->
 
   #### 7.1.2 Integrationstests
-   - Zusätzlich zu den Unit-Tests werden Integrationstests definiert, um das Zusammenspiel der Komponenten (STAC-API ↔ Crawler-DB ↔ Web UI) zu verifizieren.
+   - Zusätzlich zu den Unit-Tests werden Integrationstests definiert, um das Zusammenspiel der Komponenten (STAC-API ↔ Crawler-DB ↔ Web UI) zu verifizieren.<!-- NI  JaWo -->
    - Diese Tests prüfen:
      - Korrektes Schreiben von Collection-Metadaten durch den Crawler in die Datenbank. <!-- UVI-?? RoGu -->
      - Abrufbarkeit und Filterbarkeit dieser Daten über die STAC-API-Endpunkte (/collections, /search <!-- CR: /search ist falsch RoGu-->). <!-- VI RoGu -->
@@ -563,14 +575,14 @@ Die nachfolgenden Maßnahmen gewährleisten die Korrektheit, Wartbarkeit, Standa
 
 ### 7.3 STAC-Validator
 - Jede durch den Crawler importierte und in der Datenbank gespeicherte Collection wird mit dem offiziellen STAC Validator
-  geprüft.
+  geprüft.<!-- CR: durch Stac.js create()  JaWo -->
 - Validierung erfolgt:
-   - beim erstmaligen Import (Crawler-Phase),
-   - bei Änderungen oder Re-Crawls,
-   - zusätzlich regelmäßig in der CI-Pipeline anhand von Stichproben. 
-- Collections, die nicht vollständig dem aktuellen STAC-Standard entsprechen, werden automatisch strukturell angepasst oder konvertiert, bevor sie in den       Index übernommen werden. 
-- Kann eine automatische Anpassung nicht durchgeführt werden, wird die betreffende Collection als inkompatibel markiert, nicht in den Index               aufgenommen und in einem separaten Fehlerprotokoll dokumentiert.
-- Die Validierungsergebnisse, sowie alle Anpassungen werden im Crawler-Log und in den CI-Reports dokumentiert. 
+   - beim erstmaligen Import (Crawler-Phase), <!-- VI HuHi --> <!-- VI  JaWo -->
+   - bei Änderungen oder Re-Crawls, <!-- VI HuHi --> <!-- VI  JaWo -->
+   - zusätzlich regelmäßig in der CI-Pipeline anhand von Stichproben. <!-- NI (Haben keine CI-Pipeline) HuHi --> <!--  NI JaWo -->
+- Collections, die nicht vollständig dem aktuellen STAC-Standard entsprechen, werden automatisch strukturell angepasst oder konvertiert, bevor sie in den Index übernommen werden. <!-- VI HuHi -->
+- Kann eine automatische Anpassung nicht durchgeführt werden, wird die betreffende Collection als inkompatibel markiert, nicht in den Index aufgenommen und in einem separaten Fehlerprotokoll dokumentiert. <!-- NI HuHi --> <!-- NI  JaWo -->
+- Die Validierungsergebnisse, sowie alle Anpassungen werden im Crawler-Log und in den CI-Reports dokumentiert. <!-- NVI-50 HuHi --> <!-- NI  JaWo -->
 
 ### 7.4 STAC-API-Validator
 - Die implementierte STAC API wird mit dem offiziellen stac-api-validator
@@ -621,7 +633,7 @@ Die nachfolgenden Maßnahmen gewährleisten die Korrektheit, Wartbarkeit, Standa
 - Sanitization von Nutzereingaben <!-- VI RoGu -->
 - Gegen XSS abgesichert <!-- CR: Was das? RoGu -->
 - Keine Exposition sensibler Daten in Logs <!-- VI RoGu -->
-- Protokollierung der Crawl-Aktivitäten
+- Protokollierung der Crawl-Aktivitäten <!-- UVI-70  JaWo -->
 - Strukturierte Error-Logs mit konfigurierbaren Log-Levels <!-- UVI-70 RoGu -->
 
 ### 8.5 Benutzerfreundlichkeit
@@ -641,27 +653,28 @@ Die nachfolgenden Maßnahmen gewährleisten die Korrektheit, Wartbarkeit, Standa
 ## 9. Gliederung in Teilprodukte
 
 ### 9.1 Crawler-Komponente <!-- Lenn -->
-Der Crawler bekommt über die STAC Index API, alle STAC Kataloge und STAC APIs die gecrawled werden müssen. Dabei sollen alle Collections erfolgreich erfasst werden.
-Das Crawling erfolgt rekursiv, sodass Collections in nahezu beliebiger Tiefe (<1024 Ebenen) innerhalb verschachtelter Kataloge erkannt werden. Es werden ausschließlich Catalogs und Collections und keine Items erfasst. Die Crawling Vorgänge extrahieren die relevanten Metadaten jeder Collection (6.1.1.3), das vollständige JSON-Objekt jeder Kollektion und speichern sie zusammen mit der Quell-URL, dem Katalognamen und dem Zeitstempel des letzten Crawls. Zusätzlich wird auch ein Parameter, über die aktuelle Verfügbarkeit der Collection hinzugefügt.
 
-Es werden alle stabilen STAC-Versionen, durch Migration unterstützt. 
-Eine Crawling-Plan (Schedule) ermöglicht die zeitliche Steuerung einzelner Crawl-Vorgänge. Es soll eine wöchentliche Aktualisierungen des Indexes durchgeführt werden.
-Die Ergebnisse werden in einer PostgreSQL-Datenbank gespeichert.
+Der Crawler bekommt über die STAC Index API, alle STAC Kataloge und STAC APIs die gecrawled werden müssen. Dabei sollen alle Collections erfolgreich erfasst werden. <!-- VI HuHi -->
+Das Crawling erfolgt rekursiv, sodass Collections in nahezu beliebiger Tiefe (<1024 Ebenen) innerhalb verschachtelter Kataloge erkannt werden. Es werden ausschließlich Catalogs und Collections und keine Items erfasst. Die Crawling Vorgänge extrahieren die relevanten Metadaten jeder Collection (6.1.1.3), das vollständige JSON-Objekt jeder Kollektion und speichern sie zusammen mit der Quell-URL, dem Katalognamen und dem Zeitstempel des letzten Crawls. Zusätzlich wird auch ein Parameter, über die aktuelle Verfügbarkeit der Collection hinzugefügt. <!-- VI HuHi --> <!-- NVI-80, verfügbarkeit? JaWo --> <!-- NVI LeKr-80, es werden noch nicht alle Metadaten korrekt gespeichert --> 
 
-### 9.2 Datenbank-Komponente <!-- Sönke -->
-Die Datenbankkomponente stellt die zentrale Grundlage für die Speicherung, Verwaltung und Abfrage aller vom Crawler erfassten Metadaten dar. Sie dient der persistenten Ablage sämtlicher Inhalte, einschließlich der vollständigen STAC-JSON-Strukturen, und ermöglicht deren effiziente Weiterverarbeitung innerhalb der Gesamtarchitektur. Als Datenbanksystem wird **PostgreSQL** in Kombination mit der Erweiterung **PostGIS** eingesetzt, um sowohl relationale als auch geographische Abfragen performant unterstützen zu können.
+Es werden alle stabilen STAC-Versionen, durch Migration unterstützt. <!-- VI HuHi --> <!--  VI JaWo --> <!-- VI LeKr --> 
+Eine Crawling-Plan (Schedule) ermöglicht die zeitliche Steuerung einzelner Crawl-Vorgänge. Es soll eine wöchentliche Aktualisierungen des Indexes durchgeführt werden. <!-- NI HuHi --> <!-- NI  JaWo --> <!-- NI LeKr --> 
+Die Ergebnisse werden in einer PostgreSQL-Datenbank gespeichert. <!-- VI HuHi --> <!-- NVI LeKr-90, es werden noch nicht alle Metadaten korrekt gespeichert --> 
 
-Die Struktur der Datenbank ist in mehrere logisch voneinander getrennte Teiltabellen gegliedert. Neben der Haupttabelle, in der alle grundlegenden Informationen abgelegt werden, existieren Tabellen wie `collection`, `catalog`, sowie vielen anderen (vgl. 5. Produktdaten). Diese Unterteilung sorgt für eine klare Trennung der Metadatenbereiche und ermöglicht eine performante Abfrage durch gezielte Normalisierung. Über Primär- und Fremdschlüsselbeziehungen sind die Tabellen miteinander verknüpft, sodass alle relevanten Daten effizient referenziert werden können.
+### 9.2 Datenbank-Komponente <!-- Sönke --> 
+Die Datenbankkomponente stellt die zentrale Grundlage für die Speicherung, Verwaltung und Abfrage aller vom Crawler erfassten Metadaten dar. Sie dient der persistenten Ablage sämtlicher Inhalte, einschließlich der vollständigen STAC-JSON-Strukturen, und ermöglicht deren effiziente Weiterverarbeitung innerhalb der Gesamtarchitektur. Als Datenbanksystem wird **PostgreSQL** in Kombination mit der Erweiterung **PostGIS** eingesetzt, um sowohl relationale als auch geographische Abfragen performant unterstützen zu können. <!-- VI SöHo -->
+<!-- PR: der 2. Satz macht so wie er hier steht keinen Sinn (mehr). Das müsste umformuliert werden: jeweils die Haupttabellen catalog und collection und dazu dann Erweiterungen, die die effizenz der DB erhöhen -->
+Die Struktur der Datenbank ist in mehrere logisch voneinander getrennte Teiltabellen gegliedert. Neben der Haupttabelle, in der alle grundlegenden Informationen abgelegt werden, existieren Tabellen wie `collection`, `catalog`, sowie vielen anderen (vgl. 5. Produktdaten). Diese Unterteilung sorgt für eine klare Trennung der Metadatenbereiche und ermöglicht eine performante Abfrage durch gezielte Normalisierung. Über Primär- und Fremdschlüsselbeziehungen sind die Tabellen miteinander verknüpft, sodass alle relevanten Daten effizient referenziert werden können. <!-- VI SöHo -->
 
-Um eine schnelle und ressourcenschonende Datensuche zu gewährleisten, werden verschiedene Indizes eingerichtet. Neben klassischen **B-Tree-Indizes** für ID- und Zeitspalten kommen **GIN-** und **GiST-Indizes** zum Einsatz, um Text- und Geometrieabfragen zu optimieren. Dies betrifft insbesondere die Felder für Titel, Beschreibung, Keywords, zeitliche Angaben sowie die räumlichen Geometrien. Die Implementierung einer **Volltextsuche** auf Basis von **PostgreSQL-TSVector** ermöglicht zudem eine performante Freitextsuche über Titel, Beschreibungen und Schlagwörter, einschließlich Relevanzbewertung und optionaler Mehrsprachigkeit.
+Um eine schnelle und ressourcenschonende Datensuche zu gewährleisten, werden verschiedene Indizes eingerichtet. Neben klassischen **B-Tree-Indizes** für ID- und Zeitspalten kommen **GIN-** und **GiST-Indizes** zum Einsatz, um Text- und Geometrieabfragen zu optimieren. Dies betrifft insbesondere die Felder für Titel, Beschreibung, Keywords, zeitliche Angaben sowie die räumlichen Geometrien. Die Implementierung einer **Volltextsuche** auf Basis von **PostgreSQL-TSVector** ermöglicht zudem eine performante Freitextsuche über Titel, Beschreibungen und Schlagwörter, einschließlich Relevanzbewertung und optionaler Mehrsprachigkeit. <!-- VI SöHo -->
 
-Für die geographische Filterung wird die räumliche Ausdehnung eines Datensatzes als **PostGIS-Geometrieobjekt** gespeichert. Dadurch sind Abfragen nach Bounding Boxes, Überschneidungen, Entfernungen oder räumlichem Enthaltensein möglich. Zusätzlich werden Start- und Endzeitpunkte in separaten Spalten abgelegt, um zeitbasierte Filterungen zu unterstützen. Ein zusammengesetzter Index auf diesen Zeitfeldern gewährleistet eine effiziente Ausführung von Abfragen über Zeiträume hinweg.
+Für die geographische Filterung wird die räumliche Ausdehnung eines Datensatzes als **PostGIS-Geometrieobjekt** gespeichert. Dadurch sind Abfragen nach Bounding Boxes, Überschneidungen, Entfernungen oder räumlichem Enthaltensein möglich. Zusätzlich werden Start- und Endzeitpunkte in separaten Spalten abgelegt, um zeitbasierte Filterungen zu unterstützen. Ein zusammengesetzter Index auf diesen Zeitfeldern gewährleistet eine effiziente Ausführung von Abfragen über Zeiträume hinweg. <!-- VI SöHo -->
 
 Ein zentrales Merkmal der Datenbankkomponente ist die **Übersetzung von CQL2-Ausdrücken** in entsprechende SQL-WHERE-Bedingungen. Diese Funktionalität erlaubt es, standardisierte Filterausdrücke (z. B. aus STAC-konformen API-Abfragen) direkt in SQL-Statements umzusetzen, wodurch eine hohe Kompatibilität und Erweiterbarkeit erreicht wird.
 
-Zur Unterstützung inkrementeller Updates ist die Datenbank so ausgelegt, dass der Crawler neue oder geänderte Datensätze erkennen und gezielt aktualisieren kann, ohne dass ein vollständiger Neuimport erforderlich ist. Änderungen werden anhand eindeutiger Identifikatoren identifiziert, wodurch sowohl die Datenintegrität als auch die Verarbeitungsgeschwindigkeit verbessert werden.
+Zur Unterstützung inkrementeller Updates ist die Datenbank so ausgelegt, dass der Crawler neue oder geänderte Datensätze erkennen und gezielt aktualisieren kann, ohne dass ein vollständiger Neuimport erforderlich ist. Änderungen werden anhand eindeutiger Identifikatoren identifiziert, wodurch sowohl die Datenintegrität als auch die Verarbeitungsgeschwindigkeit verbessert werden.<!-- VI SöHo -->
 
-Gelöschte oder aktuell vom Crawler nicht mehr erreichbare Datensätze werden in der Datenbank **nicht physisch entfernt**, sondern erhalten das Attribut `active = false`. Auf diese Weise bleibt der historische Zustand der Datensätze erhalten, was eine revisionssichere Nachverfolgung und spätere Analyse ermöglicht. Dieses Vorgehen unterstützt zudem eine transparente Datenhaltung und erleichtert eventuelle Wiederherstellungen.
+Gelöschte oder aktuell vom Crawler nicht mehr erreichbare Datensätze werden in der Datenbank **nicht physisch entfernt**, sondern erhalten das Attribut `active = false`. Auf diese Weise bleibt der historische Zustand der Datensätze erhalten, was eine revisionssichere Nachverfolgung und spätere Analyse ermöglicht. Dieses Vorgehen unterstützt zudem eine transparente Datenhaltung und erleichtert eventuelle Wiederherstellungen. <!-- NI HuHi -->
 
 Insgesamt ermöglicht die Datenbankkomponente eine robuste, skalierbare und abfrageoptimierte Verwaltung der Metadaten. Durch den Einsatz von Indizes, Geometrieunterstützung und standardisierten Filtermechanismen (CQL2) bildet sie die Grundlage für eine performante Bereitstellung der Daten innerhalb der gesamten Systemarchitektur.
 
@@ -762,48 +775,48 @@ Bereitstellung einer intuitiven Suchoberfläche:
 Also auch sowas wie verwendete Technologie, Teilschritte (Meilensteine?) etc.. WBS wäre auch nett-->
 ### 10.1 Crawler
 
-Ziel des Crawler‑Moduls ist die automatische Erfassung, Validierung und Speicherung von STAC‑Collections aus verteilten Quellen in einer PostgreSQL‑Datenbank mit PostGIS‑Erweiterung. Der Crawler soll robust gegenüber transienten Fehlern sein (konfigurierbare Retries mit Backoff), Monitoring‑Metriken liefern und idempotente Persistenz gewährleisten, damit wiederholte Crawls keine Duplikate erzeugen.
+Ziel des Crawler‑Moduls ist die automatische Erfassung, Validierung und Speicherung von STAC‑Collections aus verteilten Quellen in einer PostgreSQL‑Datenbank mit PostGIS‑Erweiterung. Der Crawler soll robust gegenüber transienten Fehlern sein (konfigurierbare Retries mit Backoff), Monitoring‑Metriken liefern und idempotente Persistenz gewährleisten, damit wiederholte Crawls keine Duplikate erzeugen.<!--  VI JaWo --> <!-- VI LeKr --> 
 
 #### 10.1.1 Technologien
 
-Der Crawler wird als Node.js‑Anwendung konzipiert werden. Es wird JavaScript genutzt, um bessere Wartbarkeit und Weiterentwicklung innerhalb der Gruppe zu erreichen und die Probleme mit bestimmten Versionen von z.B. Python zu unterbinden.
-Für das STAC‑Handling kommen [stac-js](https://github.com/moregeo-it/stac-js) und [stac-migrate](https://github.com/stac-utils/stac-migrate) zum Migrieren älterer STAC‑Versionen zum Einsatz. Für HTTP‑Zugriffe eignen sich `axios`, da es Timeouts und Retries unterstützt. Alternativ kann `node‑fetch` verwendet werden. 
-Beim Crawling und Queueing sind für komplexe Szenarien, Frameworks wie `Crawlee (Apify)` oder vergleichbare Lösungen mit integrierter Queue/Retry‑Logik empfehlenswert, für leichtere Implementierungen bieten sich `p‑queue` oder `Bottleneck` zur Steuerung von Parallelität und Rate‑Limits an. 
-Zur zeitgesteuerten Ausführung kann lokal `node‑cron` genutzt werden. Die Validierung erfolgt via JSON‑Schema Validator (z. B. `ajv`) unter Verwendung der offiziellen STAC‑Schemas. 
-Die Anbindung an die Datenbank kann mit `node‑postgres (pg)` erfolgen. 
-Für Logging und Monitoring werden strukturierte Logs eingesetzt. 
-Zur Auslieferung und Reproduzierbarkeit der Laufzeitumgebung wird Docker genutzt.
+Der Crawler wird als Node.js‑Anwendung konzipiert werden. Es wird JavaScript genutzt, um bessere Wartbarkeit und Weiterentwicklung innerhalb der Gruppe zu erreichen und die Probleme mit bestimmten Versionen von z.B. Python zu unterbinden. <!-- VI HuHi -->
+Für das STAC‑Handling kommen [stac-js](https://github.com/moregeo-it/stac-js) und [stac-migrate](https://github.com/stac-utils/stac-migrate) zum Migrieren älterer STAC‑Versionen zum Einsatz. Für HTTP‑Zugriffe eignen sich `axios`, da es Timeouts und Retries unterstützt. Alternativ kann `node‑fetch` verwendet werden.  <!-- VI (wir nutzten axios um die STAC Index API zu fetchen) HuHi --> <!-- CR: wir nutzen kein Axios mehr.   JaWo --> <!-- VI LeKr --> 
+Beim Crawling und Queueing sind für komplexe Szenarien, Frameworks wie `Crawlee (Apify)` oder vergleichbare Lösungen mit integrierter Queue/Retry‑Logik empfehlenswert, für leichtere Implementierungen bieten sich `p‑queue` oder `Bottleneck` zur Steuerung von Parallelität und Rate‑Limits an.  <!-- VI HuHi --> <!-- CR: alles mit Crawlee  JaWo -->
+Zur zeitgesteuerten Ausführung kann lokal `node‑cron` genutzt werden. Die Validierung erfolgt via JSON‑Schema Validator (z. B. `ajv`) unter Verwendung der offiziellen STAC‑Schemas.  <!-- CR: Validierung nicht nötig, da STAC Funktion create() schon automatisch ein Valides STAC Objekt erstellt HuHi -->
+Die Anbindung an die Datenbank kann mit `node‑postgres (pg)` erfolgen.  <!-- VI HuHi --> <!-- VI LeKr --> 
+Für Logging und Monitoring werden strukturierte Logs eingesetzt.  <!-- VI HuHi --> <!-- NI  JaWo --> <!-- NI LeKr --> 
+Zur Auslieferung und Reproduzierbarkeit der Laufzeitumgebung wird Docker genutzt. <!-- VI HuHi --><!-- VI LeKr --> 
 
 #### 10.1.2 Architektur
 
 Die Architektur ist modular aufgebaut und besteht aus folgenden Komponenten: 
-Der Source Manager persistiert Quellendaten (URL, Typ, Crawl‑Intervall, Status, letzte Ausführung) und stellt eine Admin‑API zum Aktivieren/Deaktivieren sowie für manuelle Trigger bereit. 
-Der Scheduler plant die periodischen Crawls gemäß der konfigurierten Intervalle. 
-Die Crawler Engine lädt STAC‑Kataloge und STAC‑APIs asynchron, folgt relevanten Link‑Relationen (child, catalog, collection) und beachtet dabei Rate‑Limits, mögliche robots.txt‑Regeln sowie Parallelitätsgrenzen. 
-Der Metadata Extractor / Normalizer migriert STAC‑Versionen mit stac‑migrate, modelliert Objekte (z. B. mit stac‑js) und extrahiert die relevanten Felder. 
-Der Validator prüft die Objekte gegen die STAC JSON‑Schemas (z. B. mit `ajv)` und protokolliert Validierungsfehler samt Persistenz der Rohdaten zur Analyse. 
-Der Database Writer verwaltet Indizes und Transaktionen. Die Logger / Monitor‑Komponente erfasst Fehler, Durchsatz, Latenzen und stellt Health‑Checks bzw. Metriken bereit. 
-Optional existiert eine Admin UI / API zur Anzeige von Quellen, Fehlerlogs und für manuelle Resets.
+Der Source Manager persistiert Quellendaten (URL, Typ, Crawl‑Intervall, Status, letzte Ausführung) und stellt eine Admin‑API zum Aktivieren/Deaktivieren sowie für manuelle Trigger bereit. <!-- CR: Eine Admin API ist nicht erwünscht, besser über env einstellen HuHi -->
+Der Scheduler plant die periodischen Crawls gemäß der konfigurierten Intervalle. <!-- NI HuHi --> <!-- NI LeKr --> 
+Die Crawler Engine lädt STAC‑Kataloge und STAC‑APIs asynchron, folgt relevanten Link‑Relationen (child, catalog, collection) und beachtet dabei Rate‑Limits, mögliche robots.txt‑Regeln sowie Parallelitätsgrenzen. <!-- VI HuHi -->  <!-- NVI-80, keine Robots.txt wird beachtet soweit ich weiß.  JaWo --> <!-- VI LeKr --> 
+Der Metadata Extractor / Normalizer migriert STAC‑Versionen mit stac‑migrate, modelliert Objekte (z. B. mit stac‑js) und extrahiert die relevanten Felder. <!-- VI HuHi --> <!-- VI LeKr --> 
+Der Validator prüft die Objekte gegen die STAC JSON‑Schemas (z. B. mit `ajv)` und protokolliert Validierungsfehler samt Persistenz der Rohdaten zur Analyse. <!-- VI HuHi -->
+Der Database Writer verwaltet Indizes und Transaktionen. Die Logger / Monitor‑Komponente erfasst Fehler, Durchsatz, Latenzen und stellt Health‑Checks bzw. Metriken bereit. <!-- VI HuHi --> <!-- VI LeKr --> 
+Optional existiert eine Admin UI / API zur Anzeige von Quellen, Fehlerlogs und für manuelle Resets. <!-- NI HuHi -->
 
 #### 10.1.3 Ablauf
 
-1. Initialisierung: Beim Start liest der Crawler die aktiven Quellen aus der Datenbank und plant die Crawls entsprechend der konfigurierten Intervalle.
+1. Initialisierung: Beim Start liest der Crawler die aktiven Quellen aus der Datenbank und plant die Crawls entsprechend der konfigurierten Intervalle. <!-- NVI-80 HuHi -->
 
-2. Start eines Crawls (pro Quelle): Für jede Quelle wird deren Typ bestimmt (statischer STAC‑Catalog JSON, STAC API mit search/collections‑Endpunkten oder Verzeichnisstruktur) und die Start‑URL geladen — unter Verwendung von Timeouts und konfigurierten Retries.
+2. Start eines Crawls (pro Quelle): Für jede Quelle wird deren Typ bestimmt (statischer STAC‑Catalog JSON, STAC API mit search/collections‑Endpunkten oder Verzeichnisstruktur) und die Start‑URL geladen — unter Verwendung von Timeouts und konfigurierten Retries. <!-- VI HuHi -->
 
-3. Rekursives Crawling und Pagination: Die Engine folgt Link‑Rela‑Typen wie child, catalog und collection sowie paginiert bei STAC APIs; neue URLs/Tasks werden in die Queue aufgenommen und asynchron abgearbeitet, wobei Rate‑Limits und Parallelität berücksichtigt werden.
+3. Rekursives Crawling und Pagination: Die Engine folgt Link‑Rela‑Typen wie child, catalog und collection sowie paginiert bei STAC APIs; neue URLs/Tasks werden in die Queue aufgenommen und asynchron abgearbeitet, wobei Rate‑Limits und Parallelität berücksichtigt werden. <!-- NVI-80 (Rate Limiting fehlt) HuHi -->
 
-4. Migration: Gefundene STAC‑Objekte werden mit stac‑migrate in eine einheitliche STAC‑Version überführt und anschließend in ein internes Datenmodell für die Suche umgewandelt.
+4. Migration: Gefundene STAC‑Objekte werden mit stac‑migrate in eine einheitliche STAC‑Version überführt und anschließend in ein internes Datenmodell für die Suche umgewandelt. <!-- VI HuHi --> <!-- VI LeKr --> 
 
-5. Extraktion & Normalisierung: Aus den STAC‑Objekten werden Schlüsselattribute extrahiert (z. B. id, title, description, extent – bbox und temporal, providers, license, assets, HREFs). Die BBOX‑Angaben werden in eine PostGIS‑Geometrie konvertiert (z. B. Envelope/Polygon), zeitliche Angaben als TIMESTAMP abgelegt.
+5. Extraktion & Normalisierung: Aus den STAC‑Objekten werden Schlüsselattribute extrahiert (z. B. id, title, description, extent – bbox und temporal, providers, license, assets, HREFs). Die BBOX‑Angaben werden in eine PostGIS‑Geometrie konvertiert (z. B. Envelope/Polygon), zeitliche Angaben als TIMESTAMP abgelegt. <!-- VI HuHi --> <!-- VI LeKr --> 
 
-6. Validierung: Die Objekte werden gegen die STAC JSON‑Schemas validiert; bei Nicht‑Konformität werden die Fehler protokolliert und die Rohdaten je nach Policy entweder gespeichert, markiert oder ignoriert.
+6. Validierung: Die Objekte werden gegen die STAC JSON‑Schemas validiert; bei Nicht‑Konformität werden die Fehler protokolliert und die Rohdaten je nach Policy entweder gespeichert, markiert oder ignoriert. <!-- VI HuHi -->
 
-7. Persistenz: Validierte Collections werden idempotent in die collections‑Tabelle geschrieben (Upsert). Zusätzlich wird sources.last_crawled aktualisiert. Optional können Audit/History‑Einträge erzeugt werden oder Änderungen nur dann persistiert werden, wenn sich der Inhalt (z. B. hash(collection)) geändert hat.
+7. Persistenz: Validierte Collections werden idempotent in die collections‑Tabelle geschrieben (Upsert). Zusätzlich wird sources.last_crawled aktualisiert. Optional können Audit/History‑Einträge erzeugt werden oder Änderungen nur dann persistiert werden, wenn sich der Inhalt (z. B. hash(collection)) geändert hat. <!-- VI HuHi --> <!-- NVI-80 LeKr, funktioniert das speichern der collections jetzt richtig? --> 
 
-8. Fehlerbehandlung: Transiente Fehler werden mit einem exponentiellen Backoff mehrfach (z. B. bis zu 3 Versuche) neu versucht; bei dauerhaften Fehlern wird die Quelle markiert und ein Alert/Notification erzeugt. Es soll eine Dead‑Letter‑Queue für manuelle Analyse existieren.
+8. Fehlerbehandlung: Transiente Fehler werden mit einem exponentiellen Backoff mehrfach (z. B. bis zu 3 Versuche) neu versucht; bei dauerhaften Fehlern wird die Quelle markiert und ein Alert/Notification erzeugt. Es soll eine Dead‑Letter‑Queue für manuelle Analyse existieren. <!-- NVI (Wor noch nicht als Inaktive markiert) HuHi -->
 
-9. Monitoring: Der Crawler sammelt Metriken zu erfolgreich verarbeiteten Objekten, Fehlern, Laufzeiten und stellt einen Health‑Endpoint (/metrics) zur Verfügung, damit Monitoring‑Systeme (z. B. Prometheus/Grafana) diese Metriken abfragen können.
+9. Monitoring: Der Crawler sammelt Metriken zu erfolgreich verarbeiteten Objekten, Fehlern, Laufzeiten und stellt einen Health‑Endpoint (/metrics) zur Verfügung, damit Monitoring‑Systeme (z. B. Prometheus/Grafana) diese Metriken abfragen können. <!-- CR: Kein Health Endpoint HuHi --> <!-- NI  JaWo -->
 
 ### 10.2 Implementierungsdetails der Datenbankkomponente <!-- Sönke -->
 
@@ -814,21 +827,21 @@ Der Datenbankzugriff erfolgt asynchron und wird durch Connection-Pooling optimie
 Die Implementierung folgt einem klar strukturierten Vorgehen in mehreren Phasen, die jeweils definierte Meilensteine umfassen und eine schrittweise Integration in das Gesamtsystem ermöglichen.
 
 #### Verwendete Technologien
-- **NodeJS 20**  
-- **PostgreSQL** als relationales Datenbanksystem  
-- **PostGIS** für Geometrie- und Raumdaten  
-- **Prisma ORM** zur Datenmodellierung und Migration  
+- **NodeJS 20** <!-- CR: wird nicht benötigt in der DB Komponente, wird erst beim Abruf der API auf die Datenbank benötigt  -->
+- **PostgreSQL** als relationales Datenbanksystem  <!-- VI SöHo -->
+- **PostGIS** für Geometrie- und Raumdaten  <!-- VI SöHo -->
+- **Prisma ORM** zur Datenmodellierung und Migration  <!-- UVI-60 SöHo -->
 - **Express.js** als REST-Schnittstelle zur Integration mit dem Crawler  
-- **Jest** als Testumgebung
-- **Docker** zur Bereitstellung der Entwicklungs- und Testumgebung  
+- **Jest** als Testumgebung <!-- VI SöHo -->
+- **Docker** zur Bereitstellung der Entwicklungs- und Testumgebung  <!-- VI SöHo -->
 
 #### Phasen und Meilensteine
 
 1. **Analyse- und Entwurfsphase (M1)**  
-   In dieser Phase werden das Datenmodell und die Schnittstellenanforderungen definiert. Die STAC-konformen Metadatenstrukturen werden analysiert und in ein relationales Schema überführt. Hierzu wird ein erstes **Prisma-Datenmodell** erstellt, das alle Tabellen (z.B. `collection`, `catalog`, `keywords` usw.) sowie deren Beziehungen enthält.  
-   Ergebnis: Validiertes ER-Diagramm und initiales Datenmodell (`schema.prisma`).
+   In dieser Phase werden das Datenmodell und die Schnittstellenanforderungen definiert. Die STAC-konformen Metadatenstrukturen werden analysiert und in ein relationales Schema überführt. Hierzu wird ein erstes **Prisma-Datenmodell** erstellt, das alle Tabellen (z.B. `collection`, `catalog`, `keywords` usw.) sowie deren Beziehungen enthält. 
+   Ergebnis: Validiertes ER-Diagramm und initiales Datenmodell (`schema.prisma`). <!-- UVI-60 SöHo -->
 
-2. **Implementierungsphase (M2)**  
+2. **Implementierungsphase (M2)**  <!-- CR: das PRISMA datenmodell war nicht Grundlage der weiteren impementierung -->
    Aufbauend auf dem Datenmodell wird die Datenbank über Prisma-Migrationen aufgebaut. Dabei werden alle Tabellen und Fremdschlüsselbeziehungen erzeugt.  
    Parallel werden erste API-Endpunkte über **Express.js** implementiert, um einfache CRUD-Operationen zu testen.  
    Ergebnis: funktionierendes Datenbankschema mit Zugriff über ORM und API-Testendpunkte.
@@ -842,7 +855,7 @@ Die Implementierung folgt einem klar strukturierten Vorgehen in mehreren Phasen,
    Anschließend werden die Such- und Filtermechanismen implementiert. Dazu gehört die Integration einer **Volltextsuche** auf Basis von PostgreSQL-TSVector, die Anbindung von **PostGIS** für Bounding-Box- und Distanzabfragen sowie die Umsetzung einer Übersetzungsschicht für **CQL2-Filterausdrücke**.  
    Ergebnis: performante Such- und Filterfunktionen mit optimierten Indizes.
 
-5. **Deployment und Dokumentation (M5)**  
+5. **Deployment und Dokumentation (M5)**  <!-- UVI-80 SöHo -->
    Die produktive Bereitstellung erfolgt über **Docker Compose** <!-- , wobei separate Umgebungen für Entwicklung und Produktion eingerichtet werden.-->
    Das Prisma-Schema, die Migrationsdateien und die API-Routen werden versioniert und dokumentiert. Eine technische Dokumentation beschreibt die Struktur, Indexierung und Updateprozesse der Datenbank.  
    Ergebnis: einsatzbereite, dokumentierte Datenbankkomponente.
