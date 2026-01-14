@@ -23,6 +23,8 @@ export function parseCliArgs() {
             config.maxApis = parseInt(args[++i], 10);
         } else if (arg === '--timeout' || arg === '-t') {
             config.timeout = parseInt(args[++i], 10);
+        } else if (arg === '--max-depth' || arg === '-d') {
+            config.maxDepth = parseInt(args[++i], 10);
         } else if (arg === '--max-concurrency') {
             config.maxConcurrency = parseInt(args[++i], 10);
         } else if (arg === '--requests-per-minute' || arg === '--rpm') {
@@ -59,7 +61,9 @@ STAC Crawler Configuration Options:
   --requests-per-minute, --rpm   Maximum requests per minute (default: 60)
   --domain-delay <seconds>       Delay between requests to same domain (default: 1)
   --max-retries <number>         Maximum retries for failed requests (default: 3)
-  
+   
+  -d, --max-depth <number>       Maximum recursion depth for nested catalogs (default: 10, use 0 for unlimited)
+                                 Prevents memory issues from deeply nested catalog hierarchies
   -h, --help                     Show this help message
 
 Environment Variables:
@@ -71,11 +75,13 @@ Environment Variables:
   MAX_REQUESTS_PER_MINUTE  Same as --requests-per-minute
   SAME_DOMAIN_DELAY_SECS   Same as --domain-delay
   MAX_REQUEST_RETRIES      Same as --max-retries
+  MAX_DEPTH           Same as --max-depth (use 0 for unlimited)
 
 Examples:
   node index.js --mode catalogs --max-catalogs 20
   node index.js -m apis -a 10 -t 60000
   node index.js -m both -c 0 -a 0              # Unlimited mode (no debugging limits)
+  node index.js -m apis -d 5                   # Limit nesting depth to 5 levels
   CRAWL_MODE=both MAX_CATALOGS=50 node index.js
     `);
 }

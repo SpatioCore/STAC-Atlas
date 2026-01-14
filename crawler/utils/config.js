@@ -42,6 +42,7 @@ function getConfig() {
         maxCatalogs: 10,        // Maximum number of catalogs to crawl
         maxApis: 5,             // Maximum number of APIs to crawl
         timeout: 30000,         // Timeout in milliseconds (30 seconds)
+        maxDepth: 10            // Maximum recursion depth for nested catalogs (0 = unlimited)
         // Rate limiting options (Crawlee)
         maxConcurrency: 5,      // Maximum number of concurrent requests
         maxRequestsPerMinute: 60, // Maximum requests per minute
@@ -58,6 +59,8 @@ function getConfig() {
                  (process.env.MAX_APIS ? parseInt(process.env.MAX_APIS, 10) : defaults.maxApis),
         timeout: cliArgs.timeout !== undefined ? cliArgs.timeout : 
                  (process.env.TIMEOUT_MS ? parseInt(process.env.TIMEOUT_MS, 10) : defaults.timeout),
+        maxDepth: cliArgs.maxDepth !== undefined ? cliArgs.maxDepth :
+                  (process.env.MAX_DEPTH ? parseInt(process.env.MAX_DEPTH, 10) : defaults.maxDepth)
         // Rate limiting options
         maxConcurrency: cliArgs.maxConcurrency !== undefined ? cliArgs.maxConcurrency :
                         (process.env.MAX_CONCURRENCY ? parseInt(process.env.MAX_CONCURRENCY, 10) : defaults.maxConcurrency),
