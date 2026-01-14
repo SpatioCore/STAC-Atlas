@@ -813,7 +813,7 @@ Bereitstellung einer intuitiven Suchoberfläche:
   - Paginierung: Für große Treffermengen steht eine erweiterte Seitenansicht zur Verfügung.
 
 <!-- VUI-80 JuKr -->
-### 9.4.2 UX <!-- Simon -->
+### 9.4.2 UX <!--Simon - Performance muss noch getestet werden, Kompatibilität sollte jedoch gewährleistet sein durch Chrome
 
 - Performance:
   - Interaktion: Sichtbare Reaktion auf Standardinteraktionen (z. B. Klicks) innerhalb von 1 Sekunde.
