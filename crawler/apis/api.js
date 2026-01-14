@@ -3,7 +3,7 @@
  * @module apis/api
  */
 
-import { HttpCrawler } from 'crawlee';
+import { HttpCrawler, Configuration } from 'crawlee';
 import create from 'stac-js';
 import { normalizeCollection } from '../utils/normalization.js';
 import { handleCollections } from '../utils/handlers.js';
@@ -20,6 +20,9 @@ import { handleCollections } from '../utils/handlers.js';
  * @returns {Promise<Object>} Results object with collections array and statistics
  */
 async function crawlApis(urls, isApi, config = {}) {
+    // Use in-memory storage to avoid file lock race conditions under high concurrency
+    Configuration.getGlobalConfig().set('persistStorage', false);
+    
     if (!isApi || !Array.isArray(urls) || urls.length === 0) {
         return {
             collections: [],
@@ -56,6 +59,8 @@ async function crawlApis(urls, isApi, config = {}) {
 
     const crawler = new HttpCrawler({
         requestHandlerTimeoutSecs: timeoutSecs,
+        maxConcurrency: 20, // Limit concurrency to prevent lock file race conditions
+        maxRequestsPerMinute: 200, // Rate limit to avoid overwhelming targets
         
         // Rate limiting options
         maxConcurrency: config.maxConcurrency || 5,
@@ -196,14 +201,10 @@ async function handleApiRoot({ request, json, crawler, log, indent, results }) {
     
     if (typeof stacObj.getApiCollectionsLink === 'function') {
         const collectionsLink = stacObj.getApiCollectionsLink();
-        if (collectionsLink) {
-            const linkUrl = typeof collectionsLink.getAbsoluteUrl === 'function'
-                ? collectionsLink.getAbsoluteUrl()
-                : collectionsLink.href;
-            if (linkUrl) {
-                collectionsEndpoint = linkUrl;
-                log.info(`${indent}Found collections link via stac-js: ${collectionsEndpoint}`);
-            }
+        if (collectionsLink && collectionsLink.href) {
+            // Direkt die href verwenden - diese ist bereits absolut im JSON
+            collectionsEndpoint = collectionsLink.href;
+            log.info(`${indent}Found collections link via stac-js: ${collectionsEndpoint}`);
         }
     }
     
