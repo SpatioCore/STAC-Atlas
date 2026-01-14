@@ -17,8 +17,7 @@ services:
     volumes:
       - stac_data:/var/lib/postgresql/data
       - ./init:/docker-entrypoint-initdb.d
-    networks:
-      - stac-network
+    networks: [stac-network]
 
 volumes:
   stac_data:
@@ -26,3 +25,4 @@ volumes:
 networks:
   stac-network:
     name: stac-network
+    driver: bridge

@@ -14,6 +14,9 @@
  * @param {string} indent - Indentation for logging
  */
 export async function tryCollectionEndpoints(baseUrl, catalogId, depth, crawler, log, indent) {
+    // Trailing Slash remove, because it causes double slashes
+    const normalizedBaseUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
+    
     const collectionEndpoints = [
         '/collections',
         '/collections/',
@@ -21,7 +24,7 @@ export async function tryCollectionEndpoints(baseUrl, catalogId, depth, crawler,
     ];
 
     const requests = collectionEndpoints.map(endpoint => ({
-        url: `${baseUrl}${endpoint}`,
+        url: `${normalizedBaseUrl}${endpoint}`,
         label: 'COLLECTIONS',
         userData: {
             catalogUrl: baseUrl,
