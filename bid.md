@@ -9,7 +9,7 @@ Die Plattform ermöglicht es Nutzern, Collections anbieterübergreifend zu suche
 Das Projekt besteht aus vier Hauptkomponenten, die nahtlos zusammenarbeiten:
 - **Crawler** – erfasst automatisch Daten aus verschiedenen STAC-Katalogen und hält diese aktuell
 - **Datenbank** – speichert Metadaten persistent und ermöglicht effiziente Abfragen
-- **STAC API** – ermöglicht standardisierten, programmatischen Zugriff auf die indexierten Collections
+- **STAC API** – ermöglicht standardisierten, programmatischen Zugriff auf die indexierten Collections <!-- VI ViKu -->
 - **UI** – bietet eine nutzerfreundliche Web-Oberfläche mit visueller Suche und interaktiver Kartenansicht
 
 ### 1.1 Abnahmekriterien
@@ -450,7 +450,7 @@ Die Crawling-Durchläufe sollen über Logging und Metriken wie der Anzahl gecraw
 
 2. **Gleichzeitige Zugriffe (Concurrency)**  
    - Das System muss mindestens **50 gleichzeitige Leseanfragen** und **10 gleichzeitige Schreibanfragen** ohne merkliche Leistungseinbußen (< 10 % längere Antwortzeit) verarbeiten können.  
-   - Gleichzeitige API-Anfragen dürfen keine Deadlocks oder Timeout-Fehler erzeugen.
+   - Gleichzeitige API-Anfragen dürfen keine Deadlocks oder Timeout-Fehler erzeugen. 
 
 3. **Suchindex und Filterleistung**  
    - Die Datenbank muss einen Volltextindex bereitstellen, der Suchabfragen über Metadatenfelder (`title`, `description`, `keywords`, `providers`) innerhalb von **≤ 3 Sekunden** ermöglicht.  <!-- CR: providers ist aktuell kein Teil der Volltextsuche RoGu -->
@@ -493,6 +493,7 @@ Verarbeitung von mindestens 100 parallelen Anfragen, <!-- NI RoGu -->
 Antwortzeiten unter 5 s für einfache Abfragen und unter 1 min für komplexe Filterabfragen.
 
 Damit stellt die STAC API eine leistungsfähige, flexible und erweiterbare Grundlage für die standardisierte Suche innerhalb der indizierten STAC Collections dar.
+<!-- UVI 90 ViKu -->
 
 ## 6.4 UI <!-- Justin -->
 Die UI-Komponente dient als benutzerfreundliche Schnittstelle zur Suche, Filterung und Exploration von STAC-Collections über die bereitgestellte STAC API.  
@@ -536,7 +537,7 @@ Die nachfolgenden Maßnahmen gewährleisten die Korrektheit, Wartbarkeit, Standa
 ### 7.1 Code-Qualität und Tests
   #### 7.1.1 Unit-Tests 
    - Für alle zentralen Backend-Module (insbesondere STAC-API-Routen, CQL2-Parser, Datenbank-Abfrage-Logik und Crawler-Importfunktionen) werden Unit-Tests mit einem geeigneten Framework (jest) erstellt. <!-- VI RoGu -->
-   - Für das Frontend werden Unit-Tests mit einem geeigneten Framework (Jest) erstellt.
+   - Für das Frontend werden Unit-Tests mit einem geeigneten Framework (Jest) erstellt. <!-- VI ViKu -->
    - Zielabdeckung: mindestens 80 % Branch- und Statement-Coverage. <!-- UVI-?? RoGu -->
    - Tests werden automatisiert bei jedem Commit und Merge-Request in der GitHub-Pipeline ausgeführt. <!-- VI RoGu -->
    - Fehlgeschlagene Unit-Tests blockieren den Merge in den Haupt-Branch, um jederzeit lauffähigen Code in geteilten Systemen zu ermöglichen. <!-- VI RoGu -->
@@ -548,7 +549,7 @@ Die nachfolgenden Maßnahmen gewährleisten die Korrektheit, Wartbarkeit, Standa
      - Abrufbarkeit und Filterbarkeit dieser Daten über die STAC-API-Endpunkte (/collections, /search <!-- CR: /search ist falsch RoGu-->). <!-- VI RoGu -->
      - Validität der API-Antworten im STAC-Standardformat. <!-- VI RoGu -->
      - Pagination-, Sortier- und Filterfunktionen (CQL2). <!-- VI RoGu -->
-   - Die Integrationstests werden in einer getrennten Testumgebung ausgeführt, die der realen Systemarchitektur entspricht (wahlweise über ein separates Docker-Compose-Setup oder im Rahmen des regulären Setups).
+   - Die Integrationstests werden in einer getrennten Testumgebung ausgeführt, die der realen Systemarchitektur entspricht (wahlweise über ein separates Docker-Compose-Setup oder im Rahmen des regulären Setups). <!-- NI ViKu -->
   
 ### 7.2 Kontinuierliche Integration (CI)
 - Es wird eine GitHub Actions-Pipeline eingerichtet, die alle wesentlichen Qualitätssicherungs-Schritte automatisiert:
@@ -566,10 +567,10 @@ Die nachfolgenden Maßnahmen gewährleisten die Korrektheit, Wartbarkeit, Standa
 - Validierung erfolgt:
    - beim erstmaligen Import (Crawler-Phase),
    - bei Änderungen oder Re-Crawls,
-   - zusätzlich regelmäßig in der CI-Pipeline anhand von Stichproben.
-- Collections, die nicht vollständig dem aktuellen STAC-Standard entsprechen, werden automatisch strukturell angepasst oder konvertiert, bevor sie in den       Index übernommen werden.
+   - zusätzlich regelmäßig in der CI-Pipeline anhand von Stichproben. 
+- Collections, die nicht vollständig dem aktuellen STAC-Standard entsprechen, werden automatisch strukturell angepasst oder konvertiert, bevor sie in den       Index übernommen werden. 
 - Kann eine automatische Anpassung nicht durchgeführt werden, wird die betreffende Collection als inkompatibel markiert, nicht in den Index               aufgenommen und in einem separaten Fehlerprotokoll dokumentiert.
-- Die Validierungsergebnisse, sowie alle Anpassungen werden im Crawler-Log und in den CI-Reports dokumentiert.
+- Die Validierungsergebnisse, sowie alle Anpassungen werden im Crawler-Log und in den CI-Reports dokumentiert. 
 
 ### 7.4 STAC-API-Validator
 - Die implementierte STAC API wird mit dem offiziellen stac-api-validator
@@ -676,7 +677,7 @@ Sie verbindet das Datenbank-Backend, in dem die Metadaten der Collections gespei
 Über die API können Nutzende:
    - Alle verfügbaren Collections abrufen oder gezielt nach bestimmten Daten suchen <!-- VI RoGu -->
    - Filterungen und Sortierungen anhand von Schlüsselwörtern, räumlichen und zeitlichen Ausdehnungen oder weiteren Metadaten durchführen <!-- UVI-60 RoGu -->
-   - Details einzelner Collections abrufen, einschließlich Beschreibung, Lizenz, Provider und räumlicher Ausdehnung <!-- VI RoGu -->
+   - Details einzelner Collections abrufen, einschließlich Beschreibung, Lizenz, Provider und räumlicher Ausdehnung <!-- UVI 80 ViKu -->
    - die Ergebnisse als STAC-konformes JSON-Format abrufen, das auch von anderen STAC-fähigen Anwendungen weiterverarbeitet werden kann <!-- VI RoGu -->
 
 Damit bildet die API die zentrale Kommunikationsschnittstelle zwischen der Datenbank und der Web-UI
@@ -710,12 +711,14 @@ und ermöglicht einen einheitlichen, standardkonformen Zugriff auf alle gespeich
    - `provider` → Name oder Kürzel des Datenanbieters
    - `license` → Lizenzfilter 
    - `limit` → Anzahl der zurückgegebenen Ergebnisse pro Seite
-   - `sortby` → Sortierung 
+   - `sortby` → Sortierung
+  <!-- VI ViKu -->
 
 - Erweiterte Filterung über CQL2 (POST): <!-- CR: CQL2 auch in GET nicht POST, außerdem ist ein Vergleichsoperator falsch RoGu -->
    - Die API implementiert CQL2 Basic Filtering zur semantischen Abfrage von Eigenschaften:
    - Vergleichsoperatoren: `=`, `!=`, `<`, `<=`, `>`, `>=`
    - Logische Operatoren: `and`, `or`, `not`
+  <!-- VI ViKu -->
   
 #### 9.3.3 Sicherheit, Performance und Erweiterbarkeit
 Die STAC API-Komponente bildet das zentrale Zugriffssystem auf die indexierten STAC-Collections.
