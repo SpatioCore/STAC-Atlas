@@ -52,6 +52,7 @@ Die Abnahmekriterien definieren die zwingend erforderlichen Funktionalitäten de
 - Antwortzeiten: einfache Abfragen ≤ 1s, komplexe Abfragen ≤ 5s <!-- UVI-90 RoGu -->
 
 #### UI (Web-Interface)
+
 - Nutzerfreundliche Web-Oberfläche zur Suche und Filterung
 - Interaktive Kartenansicht zur räumlichen Suche
 - Filterung nach:
@@ -59,7 +60,7 @@ Die Abnahmekriterien definieren die zwingend erforderlichen Funktionalitäten de
   - Zeitraum
   - Thema / Keywords
   - Auswahlliste für Lizenzen
-  - Textsuche mit Vorschlägen für Provider 
+  - Textsuche mit Vorschlägen für Provider
 - Responsive Design für verschiedene Bildschirmgrößen
 - Sprache (Deutsch oder Englisch)
 - Barrierefreiheit (farbenblindentauglich)
@@ -86,10 +87,13 @@ Die Wunschkriterien beschreiben optionale Funktionalitäten, die das System übe
 - Erfassung zusätzlicher STAC Extensions <!-- VI HuHi --> <!-- VI  JaWo --> <!-- VI LeKr --> 
 
 #### UI
-- Polygon-basierte räumliche Suche (nicht nur Bounding Box)
-- Visueller CQL2 Query Builder ("from scratch")
-- Erweiterte Visualisierungen und Diagramme
-- Export-Funktionen für Suchergebnisse
+
+<!-- CR: Polygon Filterung, oder der Visuelle würde keine wirkliche sinnhafte Erweiterung sein, es wäre ein Nice-To-Have jedoch kein normaler Use-Case -->
+~~- Polygon-basierte räumliche Suche (nicht nur Bounding Box)~~
+~~- Visueller CQL2 Query Builder ("from scratch")~~
+<!-- CR: Diagramme sind nicht notwending -->
+- Erweiterte Visualisierungen und ~~Diagramme~~
+~~- Export-Funktionen für Suchergebnisse~~ <!-- ?? -->
 - Vergleich zwischen Collections verschiedener Anbieter
 
 ### 1.3 Abgrenzungskriterien
@@ -97,6 +101,7 @@ Die Wunschkriterien beschreiben optionale Funktionalitäten, die das System übe
 Die Abgrenzungskriterien definieren bewusst, welche Funktionalitäten nicht Teil des Projekts sind. Diese klare Abgrenzung verhindert Missverständnisse und Scope Creep während der Entwicklung. Sie hilft allen Beteiligten, realistische Erwartungen an das System zu haben und den Fokus auf die Kernfunktionalität zu wahren.
 
 Das System soll explizit **NICHT**:
+
 - Items von STAC Collections persistent speichern (nur Collections)
 - Als vollständiger STAC Catalog Ersatz dienen
 - Originale Geodaten (Raster-/Vektordaten) speichern oder verarbeiten
@@ -112,41 +117,50 @@ Das System soll explizit **NICHT**:
 Das System richtet sich an verschiedene Nutzergruppen mit unterschiedlichen Anforderungen und Anwendungsfällen:
 
 #### 2.1 Data Scientists and Researchers
+
 Wissenschaftler und Datenanalysten, die für ihre Forschungsprojekte passende Geodaten-Collections finden müssen.
 
 **User Stories:**
+
 - Als Data Scientist möchte ich nach Satellitenbildern eines bestimmten Zeitraums und Gebiets suchen, um Veränderungen in der Landnutzung zu analysieren.
 - Als Forscherin möchte ich verschiedene Sentinel-2 Collections unterschiedlicher Anbieter vergleichen <!-- CR: Fehlt ein "Vergleichsfeature"? RoGu -->, um die für meine Studie am besten geeignete Datenquelle zu identifizieren.
 - Als Klimaforscher möchte ich Collections nach spezifischen Attributen (z.B. Auflösung, Sensortyp) filtern, um geeignete Daten für meine Klimamodelle zu finden.
 - Als Researcher möchte ich über die API automatisiert nach Collections suchen, um sie in meine Analyse-Pipeline zu integrieren.
 
 #### 2.2 GIS Professionals
+
 GIS-Experten und Geoinformatiker, die regelmäßig mit Geodaten arbeiten und diese in ihren Projekten einsetzen.
 
 **User Stories:**
+
 - Als GIS-Analyst möchte ich auf einer Karte nach verfügbaren Collections in meinem Projektgebiet suchen, um schnell passende Datenquellen zu identifizieren.
 - Als Kartograf möchte ich Collections nach Lizenzen filtern, um nur solche Daten zu finden, die ich in meinen kommerziellen Projekten verwenden darf.
 - Als GIS-Consultant möchte ich die zeitliche Verfügbarkeit verschiedener Collections vergleichen, um meinen Kunden die beste Datenlösung empfehlen zu können.
 - Als Geoinformatiker möchte ich Collections nach Provider durchsuchen, um alle Datenquellen eines bestimmten Anbieters zu evaluieren.
 
 #### 2.3 Application Developers
+
 Softwareentwickler, die Anwendungen mit Geodaten-Funktionalitäten erstellen und STAC-Collections programmatisch nutzen möchten.
 
 **User Stories:**
+
 - Als Entwickler möchte ich über eine standardkonforme STAC API auf Collections zugreifen, um diese in meine Anwendung zu integrieren.
 - Als Backend-Entwickler möchte ich automatisiert Collections nach bestimmten Kriterien abfragen, um meinen Nutzern relevante Datensätze vorzuschlagen.
 - Als Software-Architekt möchte ich die API-Dokumentation einsehen, um die Integration in unsere bestehende Geodaten-Infrastruktur zu planen.
 
 #### 2.4 Data Providers
+
 Datenanbieter und -kuratoren, die ihre STAC-Kataloge bekannter machen und die Nutzung ihrer Daten fördern möchten.
 
 **User Stories:**
+
 - Als Datenanbieter möchte ich sicherstellen, dass meine Collections korrekt indexiert werden, um die Sichtbarkeit meiner Daten zu erhöhen.
 - Als Data Curator möchte ich verstehen, wie meine Collections im Vergleich zu anderen Anbietern gefunden werden, um die Metadaten-Qualität zu optimieren.
 - Als Open-Data-Anbieter möchte ich sehen, welche meiner Collections am häufigsten gesucht werden, um zukünftige Datenbereitstellung zu priorisieren.
 - Als Infrastrukturbetreiber möchte ich, dass mein STAC-Katalog automatisch gecrawlt wird, um ohne zusätzlichen Aufwand in der Plattform präsent zu sein.
 
 ## 3. Produkt-Umgebung
+
 Die Produktumgebung beschreibt die technischen Rahmenbedingungen für Entwicklung, Betrieb und Integration der drei Hauptkomponenten des Projekts – **Crawler**, **STAC API** und **Frontend**.  
 Alle Komponenten werden in einer modernen, containerisierten Umgebung entwickelt und bereitgestellt, um eine einheitliche und reproduzierbare Laufzeitumgebung sicherzustellen.
 [![](https://mermaid.ink/img/pako:eNptUsGO0zAQ_RVrTkVkS-K4JckBqWQLVCrQbVqQIBysZJoGErvYjlpo--_YYVOtBPJlZt6bN_OsOUMhS4QEdo08FnuuDFmuc0HIGyWFQVF-zWEIyehThyHZLp7l8M1xZquFhbPNLHUhGX2wUuPvmrwg89NBodYD8f615a2kNpXC7GFJnhOXvF1kj3i6nn1ezteWlCp-bFDdtAaF7ON2nc4zy5ifDCrBG9LPzWSnCtRk1GcLUeLJIyk3vJGV9siw26POU2Pk7u7V5d1ms8rIxVH-wdKHJb0hzp8ruu1_dqhq1Bdr68nyPbw9aLRfmMqmwcLUUvyXlUPhbJLRzvLkkTS1-OE2vAw2wYNK1SUkO95o9KBF1XKXw9lp5WD22GIOiQ3tE1fbcODii5QtJEZ1tkXJrtrfBLpDyQ3e17xSvL1VlbWKKpWdMJAEMWW9CiRnOEES0_HLCQ2jyPd9FkU08uAXJCwMxiGjIZsGccD8KZ1cPfjdz_XHUTil08mEsShgMY1DD7CsjVTv_55Yf2nXP1fHwN0?type=png)](https://mermaid.live/edit#pako:eNptUsGO0zAQ_RVrTkVkS-K4JckBqWQLVCrQbVqQIBysZJoGErvYjlpo--_YYVOtBPJlZt6bN_OsOUMhS4QEdo08FnuuDFmuc0HIGyWFQVF-zWEIyehThyHZLp7l8M1xZquFhbPNLHUhGX2wUuPvmrwg89NBodYD8f615a2kNpXC7GFJnhOXvF1kj3i6nn1ezteWlCp-bFDdtAaF7ON2nc4zy5ifDCrBG9LPzWSnCtRk1GcLUeLJIyk3vJGV9siw26POU2Pk7u7V5d1ms8rIxVH-wdKHJb0hzp8ruu1_dqhq1Bdr68nyPbw9aLRfmMqmwcLUUvyXlUPhbJLRzvLkkTS1-OE2vAw2wYNK1SUkO95o9KBF1XKXw9lp5WD22GIOiQ3tE1fbcODii5QtJEZ1tkXJrtrfBLpDyQ3e17xSvL1VlbWKKpWdMJAEMWW9CiRnOEES0_HLCQ2jyPd9FkU08uAXJCwMxiGjIZsGccD8KZ1cPfjdz_XHUTil08mEsShgMY1DD7CsjVTv_55Yf2nXP1fHwN0)
@@ -158,6 +172,7 @@ Er schreibt die Daten in die Datenbank (6.1.1.7, 6.1.1.3) und führt regelmäßi
 Protokollierung (z. B. Zeitstempel/Status) stellt Nachvollziehbarkeit sicher (6.1.1.4, 6.1.1.12). Dokumentation zu Build/Deployment/Testing wird pro Komponente bereitgestellt (6.2.4.3). <!--NVI-75 HuHi --> <!-- VI JaWo --> <!-- NVI LeKr --> 
 
 ### 3.2 Datenbankmanagementsystem
+
 PostgreSQL in Kombination mit PostGIS bildet die zentrale Datengrundlage.  
 Die Metadaten werden in normalisierten Teiltabellen gehalten; Primär- und Fremdschlüssel sorgen für Referenzen.  
 Für Performance werden B-Tree-Indizes (ID, Zeit), GIN/GiST (Text, Geometrien) und tsvector-Volltextindizes eingesetzt.  
@@ -173,8 +188,9 @@ Als Fallback bleibt alternativ pycql2; sollten sich gravierende Schwierigkeiten 
 Die API ist klar vom Crawler getrennt und fokussiert auf Abfrage und Filterung der gespeicherten Collections. <!-- VI JoKl -->
 
 ### 3.4 UI (Web-Frontend)
+
 Das Web-Frontend wird mit Vue.js (Version 3) entwickelt (6.1.3.2) und bietet eine benutzerfreundliche Oberfläche zur Suche, Filterung und Visualisierung der STAC Collections, inklusive Kartenansicht (6.1.3.1, 6.1.3.3, 6.1.3.4, 6.1.3.5, 6.1.3.7, 6.1.3.8, 6.1.3.9).  
-Die Kommunikation zwischen Frontend und Backend erfolgt ausschließlich über die STAC API. Zusätzlich stellt die UI Links zur Originalquelle (STAC Catalog / API) bereit und kann optional Verweise zur Item-Search einer Collection zeigen (6.1.3.6). 
+Die Kommunikation zwischen Frontend und Backend erfolgt ausschließlich über die STAC API. Zusätzlich stellt die UI Links zur Originalquelle (STAC Catalog / API) bereit und kann optional Verweise zur Item-Search einer Collection zeigen (6.1.3.6).
 Die UI und die zugehörigen Dokumentationen/Demos sollen so gestaltet sein, dass Schulungs- und Abnahmezwecke unterstützt werden (6.2.1.1, 6.2.1.2) und die Benutzererfahrung folgende Anforderungen erfüllt: intuitive/responsive UI, Accessibility, aussagekräftige Fehlerbehandlung und Sprachunterstützung (6.2.2.1, 6.2.2.2, 6.2.2.3, 6.2.2.4).
 
 ### 3.5 Containerisierung
@@ -208,17 +224,18 @@ Komponente | Funktion (Kurzbeschreibung) | Optionale Umsetzung | Akzeptanzkriter
 | STAC-API | Zusätzliche CQL2-Fähigkeiten (Advanced Comparison Operators (`LIKE/BETWEEN/IN`, `casei/accenti`, `Spatial/Temporal`, `Arrays`)) | % | Conformance-URIs ergänzt; Tests erfolgreich | M | 6.1.2 5. (optional) |
 | STAC-API | CQL2 als Standalone-Library bereitstellen <!-- CR: Unsere Implementierung nutzt nur existierende Bibliotheken. Keine relevante Neuerung, die als eigenständige Bibliothek verwendet werden sollte RoGu --> | $ | Lib mit Parser/Validation + README | L | 6.1.2 6. (optional) |
 | STAC-API | Integration der neuen Funktionen in bestehende STAC Index API <!-- CR: Eigentlich haben wir die STAC Index API nicht erweitert.  -->| $ | End-to-End-Tests (Crawler→API→UI) grün | M | 6.1.2 7. |
-| Web-UI | Intuitive Suchoberfläche für Collections | – | Usability-Test: Kernflows bestehen | H | 6.1.3 1. |
-| Web-UI | Implementierung in Vue (v3) zur Einbindung in STAC Index | – | Build integriert; Routing/State funktionsfähig | M | 6.1.3 2. |
-| Web-UI | Interaktive Auswahl von Bounding Box und Zeitintervall | – | BBox/Datetime erzeugen korrekte Parameter | H | 6.1.3 3. |
-| Web-UI | Composable Queryables in der UI → generiert CQL2-Ausdruck | – | UI-Builder erzeugt valide CQL2 (Server-OK) | H | 6.1.3 4. |
-| Web-UI | Kartenansicht mit Visualisierung räumlicher Extents | – | Extents werden auf interaktiver Karte dargestellt | M | 6.1.3 5. |
-| Web-UI | Links zur Originalquelle (Katalog/API) und optional zur Item Search | – | Links korrekt & erreichbar | M | 6.1.3 6. |
-| Web-UI | Inspection-Ansicht für Collections (Details) | – | Detailseite zeigt alle Kernfelder | M | 6.1.3 7. |
-| Web-UI | Items der Collections inspizieren können | % | Item-Liste/Detail aufrufbar | L | 6.1.3 8. (optional) |
-| Web-UI | Collections vergleichen (Mehrfachauswahl & Vergleich) | % | Vergleichsansicht mit minimum 2 Collections | L | 6.1.3 9. (optional) |
+| <!-- VI Simon --> Web-UI | Intuitive Suchoberfläche für Collections | – | Usability-Test: Kernflows bestehen | H | 6.1.3 1. |
+| <!-- VI Simon --> Web-UI | Implementierung in Vue (v3) zur Einbindung in STAC Index | – | Build integriert; Routing/State funktionsfähig | M | 6.1.3 2. |
+| <!-- VI Simon --> Web-UI | Interaktive Auswahl von Bounding Box und Zeitintervall | – | BBox/Datetime erzeugen korrekte Parameter | H | 6.1.3 3. |
+| <!-- ?? --> Web-UI | Composable Queryables in der UI → generiert CQL2-Ausdruck | – | UI-Builder erzeugt valide CQL2 (Server-OK) | H | 6.1.3 4. |
+| <!-- VI Simon --> Web-UI | Kartenansicht mit Visualisierung räumlicher Extents | – | Extents werden auf interaktiver Karte dargestellt | M | 6.1.3 5. |
+| <!-- VI Simon --> Web-UI | Links zur Originalquelle (Katalog/API) und optional zur Item Search | – | Links korrekt & erreichbar | M | 6.1.3 6. |
+| <!-- VI Simon --> Web-UI | Inspection-Ansicht für Collections (Details) | – | Detailseite zeigt alle Kernfelder | M | 6.1.3 7. |
+| <!-- UVI-50 JuKr -->Web-UI | Items der Collections inspizieren können | % | Item-Liste/Detail aufrufbar | L | 6.1.3 8. (optional) |
+| <!-- NI Simon --> Web-UI | Collections vergleichen (Mehrfachauswahl & Vergleich) | % | Vergleichsansicht mit minimum 2 Collections | L | 6.1.3 9. (optional) |
 
 Legende Spalte "Umsetzung"
+
 | Zeichen | Bedeutung |
 | ------- | --------- |
 | -       | Diese Funtion ist vom Lastenheft verpflichtend vorgegeben und wird umgesetzt |
@@ -495,6 +512,7 @@ Die Crawling-Durchläufe sollen über Logging und Metriken wie der Anzahl gecraw
 Die Datenbankkomponente muss somit nachweislich in der Lage sein, große Mengen an STAC-Kollektionen performant, skalierbar und zuverlässig zu speichern und zu durchsuchen. Die hier genannten Werte dienen als verbindliche, messbare Leistungsziele für die Implementierung, Abnahme und spätere Systemtests.
 
 ## 6.3 STAC API
+
 Die STAC API-Komponente bildet die zentrale Datenschnittstelle des Systems und ermöglicht einen standardkonformen Zugriff auf die in der Datenbank gespeicherten STAC collections und catalogs. Sie erfüllt vollständig die Anforderungen der SpatioTemporal Asset Catalog (STAC) API sowie der Collection Search Extension und bietet erweiterte Such- und Filterfunktionen.
 
 Über die Endpunkte /collections und /search <!-- CR: Search wird nicht verwendet RoGu --> können Nutzer Collections nach Attributen wie Titel, Lizenz, Schlüsselwörtern sowie räumlicher und zeitlicher Ausdehnung durchsuchen, filtern und sortieren. Dabei wird die CQL2-Filterung unterstützt, um standardkonforme und einheitliche Datensuche zu ermöglichen. Dabei stehen logische Operatoren (AND, OR, NOT) und Vergleichsoperatoren (=, <, >, IN) <!-- CR: Es gibt noch mehr Operatoren RoGu --> zur Verfügung; optional sind auch erweiterte Funktionen wie LIKE, BETWEEN oder INTERSECTS vorgesehen.
@@ -508,23 +526,28 @@ Damit stellt die STAC API eine leistungsfähige, flexible und erweiterbare Grund
 <!-- UVI 90 ViKu -->
 
 ## 6.4 UI <!-- Justin -->
+
 Die UI-Komponente dient als benutzerfreundliche Schnittstelle zur Suche, Filterung und Exploration von STAC-Collections über die bereitgestellte STAC API.  
 Sie visualisiert Metadaten und räumliche Extents der Collections und ermöglicht Nutzenden eine interaktive, responsive und barrierearme Bedienung.
 
+<!-- UVI-80 JuKr Suche Themenbereich -->
 ### 6.4.1 Funktionale Leistungsanforderungen
 
 - Das Design orientiert sich am bestehenden STAC Index sowie dessen Komponenten, um Konsistenz innerhalb des STAC-Ökosystems zu gewährleisten.  
 - Die Implementierung erfolgt mit Vue.js v3, unter Verwendung moderner Webstandards und komponentenbasierter Architektur.  
 - Die Anwendung muss Nutzenden ermöglichen:
-  - die Auswahl eines räumlichen Bereichs (Bounding Box, ggf. Polygon) über eine interaktive Karte,  
+<!-- CR: Polygon ist nicht nötig -->
+  - die Auswahl eines räumlichen Bereichs (Bounding Box~~, ggf. Polygon~~) über eine interaktive Karte,  
   - die Definition eines zeitlichen Intervalls,  
-  - die Suche nach Collections über Keywords, Provider, Lizenz oder Themenbereich,  
-  - die Kombination mehrerer Suchparameter zu komplexen CQL2-Filtern („Scratch-Modus“ zum Erstellen logischer Bedingungen).  
+  - die Suche nach Collections über Keywords, Provider, Lizenz oder Themenbereich,
+  <!-- CR: Normaler Filterbereich -->  
+  - die Kombination mehrerer Suchparameter zu komplexen CQL2-Filtern ~~(„Scratch-Modus“ zum Erstellen logischer Bedingungen)~~.
 - Die UI zeigt die räumliche Ausdehnung der Suchergebnisse auf einer interaktiven Karte an (MapLibre GL JS).  
 - Die Ergebnisse sollen in einer scrollbaren Liste/ Grid mit Titel, Beschreibung, Lizenz und Provider dargestellt werden.  
 - Für jede Collection werden lizenzkonforme Verweise auf die Originalquelle (STAC Catalog oder API) bereitgestellt.  
 - Die UI muss das Filtern, Anzeigen und Vergleichen mehrerer Collections ermöglichen.
 
+<!-- UVI-70 JuKr Performance kann erst wirklich passieren wenn Daten vollkommen fertig sind -->
 ### 6.4.2 Nichtfunktionale Leistungsanforderungen
 
 - Die Benutzeroberfläche ist responsiv und muss auf verschiedenen Endgeräten (Desktop, Tablet, Smartphone) funktionsfähig sein.  
@@ -543,13 +566,14 @@ Sie visualisiert Metadaten und räumliche Extents der Collections und ermöglich
 - **Asynchrones Laden**: Aufwändige Datenabfragen werden parallel und schrittweise geladen, um die Reaktionsfähigkeit der Oberfläche zu erhalten.  
 
 ## 7. Qualitätsanforderungen <!-- Vincent -->
+
 Zur Sicherstellung einer hohen Code-, System- und Datenqualität werden im Projekt *STAC-Atlas* folgende Qualitätsanforderungen definiert.
 Die nachfolgenden Maßnahmen gewährleisten die Korrektheit, Wartbarkeit, Standardkonformität und Zuverlässigkeit der entwickelten Software.
 
 ### 7.1 Code-Qualität und Tests
   #### 7.1.1 Unit-Tests 
    - Für alle zentralen Backend-Module (insbesondere STAC-API-Routen, CQL2-Parser, Datenbank-Abfrage-Logik und Crawler-Importfunktionen) werden Unit-Tests mit einem geeigneten Framework (jest) erstellt. <!-- UVI-70 RoGu -->
-   - Für das Frontend werden Unit-Tests mit einem geeigneten Framework (Jest) erstellt.
+   - Für das Frontend werden Unit-Tests mit einem geeigneten Framework (Jest) erstellt. <!-- CR: Frontend macht keine Unit-Tests -->
    - Zielabdeckung: mindestens 80 % Branch- und Statement-Coverage. <!-- UVI-50 RoGu -->
    - Tests werden automatisiert bei jedem Commit und Merge-Request in der GitHub-Pipeline ausgeführt. <!-- UVI-50 RoGu -->
    - Fehlgeschlagene Unit-Tests blockieren den Merge in den Haupt-Branch, um jederzeit lauffähigen Code in geteilten Systemen zu ermöglichen. <!-- VI RoGu -->
@@ -564,6 +588,7 @@ Die nachfolgenden Maßnahmen gewährleisten die Korrektheit, Wartbarkeit, Standa
    - Die Integrationstests werden in einer getrennten Testumgebung ausgeführt, die der realen Systemarchitektur entspricht (wahlweise über ein separates Docker-Compose-Setup oder im Rahmen des regulären Setups). <!-- NI ViKu -->
   
 ### 7.2 Kontinuierliche Integration (CI)
+
 - Es wird eine GitHub Actions-Pipeline eingerichtet, die alle wesentlichen Qualitätssicherungs-Schritte automatisiert:
    - Build – Installation aller Abhängigkeiten und Prüfung auf erfolgreiche Kompilierung. <!-- VI RoGu -->
    - Linting – Automatische Kontrolle der Codequalität (z. B. mit flake8 für Python und ESLint für JavaScript/Vue-Komponenten). <!-- UVI-90 RoGu -->
@@ -574,6 +599,7 @@ Die nachfolgenden Maßnahmen gewährleisten die Korrektheit, Wartbarkeit, Standa
 - Nur bei erfolgreicher Pipeline-Ausführung dürfen Änderungen in den stabilen Branch übernommen werden (Branch-Protection-Rule). <!-- VI RoGu -->
 
 ### 7.3 STAC-Validator
+
 - Jede durch den Crawler importierte und in der Datenbank gespeicherte Collection wird mit dem offiziellen STAC Validator
   geprüft.<!-- CR: durch Stac.js create()  JaWo -->
 - Validierung erfolgt:
@@ -585,6 +611,7 @@ Die nachfolgenden Maßnahmen gewährleisten die Korrektheit, Wartbarkeit, Standa
 - Die Validierungsergebnisse, sowie alle Anpassungen werden im Crawler-Log und in den CI-Reports dokumentiert. <!-- NVI-50 HuHi --> <!-- NI  JaWo -->
 
 ### 7.4 STAC-API-Validator
+
 - Die implementierte STAC API wird mit dem offiziellen stac-api-validator
   (bzw. OGC Conformance-Tests) überprüft. <!-- VI RoGu -->
 - Geprüfte Aspekte:
@@ -644,6 +671,7 @@ Die nachfolgenden Maßnahmen gewährleisten die Korrektheit, Wartbarkeit, Standa
 - Semantisches HTML und Tastaturnavigation
 
 ### 8.6 Projektabschluss
+
 - Live-Präsentation des finalen Produkts
 - Projektbericht (PDF) mit:
   - Bedienungsanleitung <!-- NI RoGu -->
@@ -679,11 +707,13 @@ Gelöschte oder aktuell vom Crawler nicht mehr erreichbare Datensätze werden in
 Insgesamt ermöglicht die Datenbankkomponente eine robuste, skalierbare und abfrageoptimierte Verwaltung der Metadaten. Durch den Einsatz von Indizes, Geometrieunterstützung und standardisierten Filtermechanismen (CQL2) bildet sie die Grundlage für eine performante Bereitstellung der Daten innerhalb der gesamten Systemarchitektur.
 
 ### 9.3 STAC API-Komponente <!-- Vincent -->
+
 Die STAC API-Komponente bildet das zentrale Bindeglied zwischen der Datenbank und der Web-UI.
   Sie implementiert die SpatioTemporal Asset Catalog (STAC) API Specification in der jeweils aktuellen stabilen Version
   sowie die Collection Search Extension, um eine standardisierte und effiziente Abfrage der gespeicherten STAC Collections zu ermöglichen. <!-- VI RoGu -->
   
 #### 9.3.1 Technische Grundlagen
+
 Die STAC API-Komponente stellt eine standardisierte Schnittstelle bereit, über die alle gespeicherten STAC-Collections abgefragt und gefiltert werden können.
 Sie verbindet das Datenbank-Backend, in dem die Metadaten der Collections gespeichert sind, mit der Web-Benutzeroberfläche und externen Anwendungen.
 
@@ -697,8 +727,9 @@ Damit bildet die API die zentrale Kommunikationsschnittstelle zwischen der Daten
 und ermöglicht einen einheitlichen, standardkonformen Zugriff auf alle gespeicherten STAC-Daten.
 
 #### 9.3.2 Endpunkte
+
 1. Bereitstellung von Collections
-   - `GET /collections` 
+   - `GET /collections`
      - Gibt eine Liste aller gespeicherten Collections aus der Datenbank zurück.
    - Die Antwort ist konform zum STAC API Standard und enthält Metadaten wie `id`, `title`, `description`, `extent`, `keywords`, `providers`, `license`, sowie relevante links.
    - Ergebnisse werden pagininiert und alphabetisch nach `title` sortiert (Standardverhalten). <!-- CR: Sortierung nach ID RoGu -->
@@ -711,6 +742,7 @@ und ermöglicht einen einheitlichen, standardkonformen Zugriff auf alle gespeich
    - `GET /collections/{id}` -> Liefert die vollständigen Metadaten einer einzelnen Collection <!-- VI RoGu -->
    
 3. Collection Search
+
 - `GET /collections`
   und
 - `POST /collections` <!-- CR: Endpunkt wird nicht implementiert RoGu -->
@@ -734,6 +766,7 @@ und ermöglicht einen einheitlichen, standardkonformen Zugriff auf alle gespeich
   <!-- VI ViKu -->
   
 #### 9.3.3 Sicherheit, Performance und Erweiterbarkeit
+
 Die STAC API-Komponente bildet das zentrale Zugriffssystem auf die indexierten STAC-Collections.
 Sie stellt eine standardisierte und sichere Schnittstelle bereit, über die Nutzende oder andere Systeme gezielt nach Sammlungen suchen, diese filtern und abrufen können. <!-- VI RoGu -->
 Die API verarbeitet Anfragen zuverlässig und unterstützt den Zugriff über alle implementierten Suchfunktionen (Freitext, räumliche und zeitliche Filter, CQL2). <!-- VI RoGu -->
@@ -741,16 +774,22 @@ Durch die modulare Architektur kann die API zukünftig um weitere STAC-Endpunkte
 Zudem erlaubt der Aufbau eine einfache Integration mit der Web-UI-Komponente und externen Anwendungen über REST-Schnittstellen. <!-- VI RoGu -->
 
 ### 9.4 UI-Komponente <!-- Simon -->
-Die UI-Komponente stellt die grafische Benutzeroberfläche (GUI) der Plattform dar. Sie dient als Schnittstelle für die interaktive Nutzung der indexierten STAC-Sammlungen. Die Kernaufgabe ist die Gewährleistung einer effizienten Suche, Filterung und Exploration der Sammlungen.
-Außerdem werden alle Crawl-Aktivitäten protokolliert, um Transparenz und Nachvollziehbarkeit zu gewährleisten.
 
+Die UI-Komponente stellt die grafische Benutzeroberfläche (GUI) der Plattform dar. Sie dient als Schnittstelle für die interaktive Nutzung der indexierten STAC-Sammlungen. Die Kernaufgabe ist die Gewährleistung einer effizienten Suche, Filterung und Exploration der Sammlungen.
+
+<!-- CR: Falsher Ort ?? JuKr -->
+~~Außerdem werden alle Crawl-Aktivitäten protokolliert, um Transparenz und Nachvollziehbarkeit zu gewährleisten.~~
+
+<!-- VI Simon -->
 Funktionen beinhalten die Übersetzung der Benutzereingaben (Filter) in CQL2-Suchanfragen und die visuelle Darstellung der Daten in einer Liste sowie auf einer Karte.  
 Die Umsetzung erfolgt in VueJS v3 und soll eine potenzielle zukünftige Integration in den bestehenden STAC-Index ermöglichen.
 
 Der Fokus liegt auf der Suche und Darstellung von Collections.
-
+<!-- UVI-90 JuKr -->
 ### 9.4.1 UI <!-- Simon -->
+
 Bereitstellung einer intuitiven Suchoberfläche:
+
 - Filter (Queryables): Nutzer können Filterkriterien definieren.
   - CQL2-Generierung: Die UI komponiert die Eingaben zu einem CQL2-Ausdruck und übermittelt diesen an den Server.
   - Karten-Filter: Filterung nach räumlichen Bereichen (Bounding Box) und Zeiträumen.
@@ -760,7 +799,9 @@ Bereitstellung einer intuitiven Suchoberfläche:
   - Quelle: Ein Link zum originalen STAC-Katalog (Quell-API) wird pro Sammlung bereitgestellt.
   - Paginierung: Für große Treffermengen steht eine erweiterte Seitenansicht zur Verfügung.
 
+<!-- UVI-80 Simon - Performance muss noch getestet werden, Kompatibilität sollte jedoch gewährleistet sein durch Chrome -->
 ### 9.4.2 UX <!-- Simon -->
+
 - Performance:
   - Interaktion: Sichtbare Reaktion auf Standardinteraktionen (z. B. Klicks) innerhalb von 1 Sekunde.
   - Suche: Abschluss typischer Suchanfragen innerhalb von 5 Sekunden (Ladezeit).
@@ -768,7 +809,6 @@ Bereitstellung einer intuitiven Suchoberfläche:
 - Browser-Kompatibilität: Funktional und getestet für 80 % der gängigen Browser.
 - Fehlerbehandlung: Klare, informative Fehlermeldungen.
 - Sprache: Alle Komponenten sind auf Englisch, alternativ auf Deutsch verfügbar.
-
 
 ## 10. Implementierungsdetails
 <!-- Hier bitte pro Gruppe eintragen, wie genau die Teilprodukte implementiert werden sollen.
@@ -860,8 +900,8 @@ Die Implementierung folgt einem klar strukturierten Vorgehen in mehreren Phasen,
    Das Prisma-Schema, die Migrationsdateien und die API-Routen werden versioniert und dokumentiert. Eine technische Dokumentation beschreibt die Struktur, Indexierung und Updateprozesse der Datenbank.  
    Ergebnis: einsatzbereite, dokumentierte Datenbankkomponente.
 
-
 ### 10.3 STAC API <!-- Robin -->
+
 | ID | Arbeitspaket | Ziel/Output | Schritte (Stichpunkte) | Reuse/Technologien |
 |----|--------------|-------------|-------------------------|--------------------|
 | AP-01 | Projekt-Skeleton & Infrastruktur | Lauffähiges API-Grundgerüst mit Konfiguration & Logging | Repo-Struktur (`/api`, `/docs`); Apache-2.0 LICENSE; ENV-Konfig (Port, DB-URL vom DB-Team); strukturierte Logs; einfache Health-Route `GET /` | Python+FastAPI *oder* Node+Fastify/Express; uvicorn/node pm2; dotenv | <!-- UVI-90 RoGu -->
@@ -878,46 +918,56 @@ Die Implementierung folgt einem klar strukturierten Vorgehen in mehreren Phasen,
 | AP-12 | Deployment & Cross-OS | Reproduzierbare Bereitstellung der API | Container/Dockerfile nur für API; Compose (optional) ohne DB-Build; Windows & Linux Smoke-Tests; ENV-Templates | Docker/Podman; Make/Taskfile; `.env.example` | <!-- UVI-30 RoGu -->
 | AP-13 | Integration & E2E Demo | Nachweis „Crawler → API → UI“ aus API-Sicht | DB- & UI-Team liefern Staging-Instanzen | curl/Postman Collections; minimaler Demo-Guide | <!-- UVI-20 RoGu -->
 
-
 ### 10.4 UI <!-- Justin -->
 
 #### 10.4.1
+
 Die Implementierung der UI-Komponente erfolgt auf Basis moderner Webtechnologien, die eine hohe Performance, Wartbarkeit und Erweiterbarkeit gewährleisten.  
 Die folgende Übersicht fasst die wesentlichen Werkzeuge und Frameworks zusammen und erläutert ihre jeweilige Auswahlbegründung:
 
-- **Framework:** Vue 3 (Composition API) 
+<!-- VI Simon -->
+- **Framework:** Vue 3 (Composition API)
 
+<!-- VI Simon -->
 - **Build-Tool:** Vite (Node.js 20)  
   Vite bietet sehr schnelle Entwicklungs- und Build-Zeiten durch modernes ESM-Bundling und Hot-Module-Replacement.  
   Dadurch kann die Benutzeroberfläche auch bei größeren Datenmengen performant entwickelt und getestet werden.
 
+<!-- VI Simon -->
 - **Programmiersprache:** JavaScript / TypeScript
 
+<!-- VI JuKr -->
 - **Zustandsverwaltung:** Pinia  
   Pinia dient als zentraler State-Store für Filter, Suchparameter und UI-Status.  
   Es ist die offizielle, moderne Alternative zu Vuex und bietet eine klar typisierbare API sowie einfache Integration in Composition-API-Komponenten.
 
+<!-- VI JuKr -->
 - **Routing:** Vue Router  
   Der Vue Router ermöglicht die Abbildung komplexer Navigations- und Filterzustände in der URL.  
   Dadurch können Suchergebnisse oder Filterparameter als Deep-Link geteilt und reproduzierbar gespeichert werden.
 
+<!-- VI Simon -->
 - **Kartenbibliothek:** MapLibre GL JS  
   MapLibre wurde aufgrund seiner hohen Performance bei der Darstellung großer Geometriedatensätze und der Unterstützung von Vektorkarten gewählt.  
   Im Gegensatz zu alternativen Bibliotheken wie Leaflet bietet MapLibre native Unterstützung für Layer-Styles, Clustering und interaktive Filterung, was den Anforderungen an die Visualisierung räumlicher Extents entspricht.
 
+<!-- VI Simon -->
 - **Styling:** Plain CSS mit strukturierter Aufteilung (`reset.css`, `vars.css`, `components/*.css`)  
   Auf den Einsatz eines UI-Frameworks (z. B. Tailwind oder Bootstrap) wird bewusst verzichtet, um volle Kontrolle über Design, Barrierefreiheit und Performance zu behalten.  
   Die Trennung in Reset-, Variablen- und Komponenten-Dateien ermöglicht eine klare Strukturierung und spätere Erweiterbarkeit (z. B. Theme-Unterstützung).
 
+<!-- VI Simon -->
 - **Design & Prototyping:** Figma  
   Figma wird zur Erstellung interaktiver Prototypen, Farbschemata und UI-Komponenten eingesetzt.  
   Dadurch kann das Design frühzeitig mit Nutzenden und im Team abgestimmt werden, bevor die Implementierung erfolgt.
 
+<!-- NI Simon -->
 - **Testing:** Jest (Unit-Tests), Playwright (End-to-End-Tests)  
   Jest wird für Komponententests auf Funktionsebene eingesetzt, um die Logik einzelner Module zu prüfen.  
   Playwright dient der automatisierten End-to-End-Validierung der Benutzerinteraktionen über verschiedene Browser hinweg.  
   Diese Kombination gewährleistet eine stabile, reproduzierbare und testbare Benutzeroberfläche.
 
+<!-- UVI-90 JuKr -->
 - **Qualitätssicherung:** ESLint + Prettier, Lighthouse Performance Audits  
   Durch statische Codeanalyse (ESLint), automatische Formatierung (Prettier) und regelmäßige Lighthouse-Audits wird eine gleichbleibend hohe Codequalität und Performance sichergestellt.
 
@@ -926,24 +976,30 @@ Die folgende Übersicht fasst die wesentlichen Werkzeuge und Frameworks zusammen
 Das Frontend folgt einer komponentenbasierten Architektur, um eine klare Trennung der Verantwortlichkeiten, Wiederverwendbarkeit und Wartbarkeit zu gewährleisten.  
 Zentrale Bestandteile sind:
 
+<!-- VI Simon -->
 - **Karten-Komponente:**  
   Stellt den zentralen Kartenbereich auf Basis von MapLibre GL JS dar.  
   Zeigt räumliche Extents der STAC-Collections an und ermöglicht Interaktion durch Zoom, Pan, Bounding-Box-Selektion und Hover-Informationen.
 
+<!-- VI Simon -->
 - **FilterPanel-Komponente:**  
   Sidebar zur Definition von Suchparametern wie Zeitintervall, Raumfilter, Schlüsselwörtern, Provider und Lizenz.  
   Die Filterparameter werden intern im Pinia-Store verwaltet und in CQL2-kompatible Suchanfragen übersetzt.
 
+<!-- VI Simon -->
 - **Ergebnisliste-Komponente:**  
   Scrollbare Listen-/ Gridansicht mit Kurzinfos zu gefundenen Collections (z. B. Titel, Beschreibung, Provider, Lizenz).  
   Bietet Aktionen zum Öffnen der Detailansicht oder zur Navigation in die Karte.
 
+<!-- VI Simon -->
 - **Modal/Seiten-Komponente:**  
   Popup- oder Seitenansicht zur Anzeige vollständiger Metadaten einer Collection, einschließlich DOI, Lizenz, zeitlicher und räumlicher Extent sowie verfügbarer Vorschaubilder.
 
+<!-- VI JuKr -->
 Die Kommunikation mit der STAC-API erfolgt asynchron über HTTPS-Requests.  
 Filterparameter werden in den Anfragen nach dem CQL2-Standard übergeben.
 
+<!-- VI JuKr -->
 #### 10.4.3 **WBS (Work Breakdown Structure)**  <!-- Justin -->
 
 1. **Workspace:** Aufbau der Projekt- und Ordnerstruktur  
@@ -952,14 +1008,17 @@ Filterparameter werden in den Anfragen nach dem CQL2-Standard übergeben.
 4. **Funktionalität (Zusammenarbeit mit API):** Anbindung der Komponenten an die STAC-API und Implementierung der Such- und Filterlogik  
 
 **Durchgängige Aufgaben:**  <!-- Justin -->
+
 - **Revisions:**  
   - Design-Optimierung und kontinuierliche Verbesserung der Benutzerfreundlichkeit  
   - Qualitätssicherung durch Testing und Code Reviews  
 
 ## 11. Zeitplan
+
 **Projektlaufzeit (Implementierung):** Start **12.11.2025** · **Pre-Release 17.12.2025** · **Projektabschluss 28.01.2026**  
 **Hinweis:** Kalenderwochen (KW) entsprechen ISO-Wochen, angegeben mit **Montag–Sonntag**.
 **Roadmap nach Kalenderwochen**
+
 | Zeitraum (Mo–So) | KW  | Phase/Meilenstein                     | Hauptaktivitäten                                                                | Artefakte/Outputs |
 |---|:--:|---|---|---|
 | **12.11.2025** (Mi) | 46 | **Kick-off Implementierung**          | Projektstart, Scope & Schnittstellen finalisieren, Tooling/Standards festlegen                      | Kick-off-Protokoll, To-Do-Übersicht |
@@ -981,20 +1040,25 @@ Filterparameter werden in den Anfragen nach dem CQL2-Standard übergeben.
 | **28.01.2026** (Mi) | 05 | **Projektabschluss**                  | Finales Tagging/Release, Abgabe, Präsentationsvorbereitung                                           | Release v1.0, Abgabepaket |
 
 ## 12. Zuständigkeiten
+
 ### 12.1 Crawler-Komponente
+
 - Humam (Teamleiter)
 - Jakob
 - Lenn
 
 ### 12.2 Datenbank
+
 - Sönke (Teamleiter)
 
 ### 12.3 STAC API-Komponente
+
 - Robin (Projektleiter, Teamleiter)
 - Jonas
 - George <!-- CR: George is not a part of the Project anymore RoGu -->
 - Vincent
 
 ### 12.4 UI
+
 - Justin (Teamleiter)
 - Simon
