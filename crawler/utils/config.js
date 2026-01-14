@@ -6,6 +6,25 @@
 import dotenv from 'dotenv';
 import { parseCliArgs } from './cli.js';
 
+/**
+ * Checks if a URL points to a static catalog file rather than an API endpoint
+ * @param {string} url - URL to check
+ * @returns {boolean} True if URL appears to be a static file
+ */
+export function isStaticCatalogUrl(url) {
+    if (!url || typeof url !== 'string') return false;
+    
+    // Check if URL ends with common static catalog file patterns
+    const staticPatterns = [
+        /\.json$/i,           // ends with .json
+        /\/collection\.json/i, // collection.json file
+        /\/catalog\.json/i,    // catalog.json file
+        /\/stac\.json/i        // stac.json file
+    ];
+    
+    return staticPatterns.some(pattern => pattern.test(url));
+}
+
 // Load environment variables from .env file
 dotenv.config();
 
@@ -24,6 +43,11 @@ function getConfig() {
         maxApis: 5,             // Maximum number of APIs to crawl
         timeout: 30000,         // Timeout in milliseconds (30 seconds)
         maxDepth: 10            // Maximum recursion depth for nested catalogs (0 = unlimited)
+        // Rate limiting options (Crawlee)
+        maxConcurrency: 5,      // Maximum number of concurrent requests
+        maxRequestsPerMinute: 60, // Maximum requests per minute
+        sameDomainDelaySecs: 1, // Delay between requests to the same domain
+        maxRequestRetries: 3    // Maximum number of retries for failed requests
     };
     
     // Build configuration with precedence: CLI > ENV > Defaults
@@ -37,6 +61,15 @@ function getConfig() {
                  (process.env.TIMEOUT_MS ? parseInt(process.env.TIMEOUT_MS, 10) : defaults.timeout),
         maxDepth: cliArgs.maxDepth !== undefined ? cliArgs.maxDepth :
                   (process.env.MAX_DEPTH ? parseInt(process.env.MAX_DEPTH, 10) : defaults.maxDepth)
+        // Rate limiting options
+        maxConcurrency: cliArgs.maxConcurrency !== undefined ? cliArgs.maxConcurrency :
+                        (process.env.MAX_CONCURRENCY ? parseInt(process.env.MAX_CONCURRENCY, 10) : defaults.maxConcurrency),
+        maxRequestsPerMinute: cliArgs.maxRequestsPerMinute !== undefined ? cliArgs.maxRequestsPerMinute :
+                              (process.env.MAX_REQUESTS_PER_MINUTE ? parseInt(process.env.MAX_REQUESTS_PER_MINUTE, 10) : defaults.maxRequestsPerMinute),
+        sameDomainDelaySecs: cliArgs.sameDomainDelaySecs !== undefined ? cliArgs.sameDomainDelaySecs :
+                             (process.env.SAME_DOMAIN_DELAY_SECS ? parseFloat(process.env.SAME_DOMAIN_DELAY_SECS) : defaults.sameDomainDelaySecs),
+        maxRequestRetries: cliArgs.maxRequestRetries !== undefined ? cliArgs.maxRequestRetries :
+                           (process.env.MAX_REQUEST_RETRIES ? parseInt(process.env.MAX_REQUEST_RETRIES, 10) : defaults.maxRequestRetries)
     };
     
     // Validate mode

@@ -29,6 +29,9 @@ async function checkAndFlushApi(results, log) {
 }
 
 /**
+ * Note: This crawler is for REAL APIs only. Static catalogs (*.json files)
+ * are now routed to the catalog crawler in index.js
+ * 
  * Crawls STAC APIs to retrieve collection information without fetching items.
  * 
  * @param {string[]} urls - Array of API URLs to crawl
@@ -84,6 +87,15 @@ async function crawlApis(urls, isApi, config = {}) {
         maxConcurrency: 20, // Limit concurrency to prevent lock file race conditions
         maxRequestsPerMinute: 200, // Rate limit to avoid overwhelming targets
         
+        // Rate limiting options
+        maxConcurrency: config.maxConcurrency || 5,
+        maxRequestsPerMinute: config.maxRequestsPerMinute || 60,
+        sameDomainDelaySecs: config.sameDomainDelaySecs || 1,
+        maxRequestRetries: config.maxRequestRetries || 3,
+        
+        // Accept additional MIME types (some STAC endpoints return JSON with incorrect Content-Type)
+        additionalMimeTypes: ['application/geo+json', 'text/plain', 'binary/octet-stream', 'application/octet-stream'],
+        
         async requestHandler({ request, json, crawler, log }) {
             results.stats.totalRequests++;
             const depth = request.userData?.depth || 0;
@@ -120,6 +132,9 @@ async function crawlApis(urls, isApi, config = {}) {
                 log.warning(`${indent}[TIMEOUT] ${apiId} at ${request.url}`);
             } else if (error.message.includes('ENOTFOUND') || error.message.includes('ECONNREFUSED')) {
                 log.warning(`${indent}[CONNECTION FAILED] ${apiId} at ${request.url}`);
+            } else if (error.statusCode === 429) {
+                const retryAfter = error.response?.headers?.['retry-after'] || 'unknown';
+                log.warning(`${indent}[RATE LIMITED] ${apiId} at ${request.url} - Retry-After: ${retryAfter}s`);
             } else if (error.code === 'ERR_NON_2XX_3XX_RESPONSE') {
                 log.warning(`${indent}[HTTP ERROR] ${apiId} at ${request.url} - Status: ${error.statusCode}`);
             } else {
@@ -236,38 +251,22 @@ async function handleApiRoot({ request, json, crawler, log, indent, results, max
         }
     }
     
-    // Fallback: try common STAC API endpoints
+    // Fallback: use standard /collections endpoint
     if (!collectionsEndpoint) {
         const baseUrl = request.url.endsWith('/') ? request.url.slice(0, -1) : request.url;
-        const endpoints = [
-            `${baseUrl}/collections`,
-            `${apiUrl.endsWith('/') ? apiUrl.slice(0, -1) : apiUrl}/collections`
-        ];
-        
-        for (const endpoint of endpoints) {
-            if (endpoint && endpoint !== collectionsEndpoint) {
-                log.info(`${indent}Trying collections endpoint: ${endpoint}`);
-                await crawler.addRequests([{
-                    url: endpoint,
-                    label: 'API_COLLECTIONS',
-                    userData: {
-                        apiId: apiId,
-                        apiUrl: apiUrl
-                    }
-                }]);
-            }
-        }
-    } else {
-        // Use the discovered collections endpoint
-        await crawler.addRequests([{
-            url: collectionsEndpoint,
-            label: 'API_COLLECTIONS',
-            userData: {
-                apiId: apiId,
-                apiUrl: apiUrl
-            }
-        }]);
+        collectionsEndpoint = `${baseUrl}/collections`;
+        log.debug(`${indent}No collections link found, using fallback: ${collectionsEndpoint}`);
     }
+    
+    // Enqueue single collections request
+    await crawler.addRequests([{
+        url: collectionsEndpoint,
+        label: 'API_COLLECTIONS',
+        userData: {
+            apiId: apiId,
+            apiUrl: apiUrl
+        }
+    }]);
     
     // Also check for child links (nested catalogs)
     if (typeof stacObj.getChildLinks === 'function') {
