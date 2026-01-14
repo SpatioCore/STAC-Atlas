@@ -22,7 +22,8 @@ function getConfig() {
         mode: 'both',           // 'catalogs', 'apis', or 'both'
         maxCatalogs: 10,        // Maximum number of catalogs to crawl
         maxApis: 5,             // Maximum number of APIs to crawl
-        timeout: 30000          // Timeout in milliseconds (30 seconds)
+        timeout: 30000,         // Timeout in milliseconds (30 seconds)
+        maxDepth: 10            // Maximum recursion depth for nested catalogs (0 = unlimited)
     };
     
     // Build configuration with precedence: CLI > ENV > Defaults
@@ -33,7 +34,9 @@ function getConfig() {
         maxApis: cliArgs.maxApis !== undefined ? cliArgs.maxApis : 
                  (process.env.MAX_APIS ? parseInt(process.env.MAX_APIS, 10) : defaults.maxApis),
         timeout: cliArgs.timeout !== undefined ? cliArgs.timeout : 
-                 (process.env.TIMEOUT_MS ? parseInt(process.env.TIMEOUT_MS, 10) : defaults.timeout)
+                 (process.env.TIMEOUT_MS ? parseInt(process.env.TIMEOUT_MS, 10) : defaults.timeout),
+        maxDepth: cliArgs.maxDepth !== undefined ? cliArgs.maxDepth :
+                  (process.env.MAX_DEPTH ? parseInt(process.env.MAX_DEPTH, 10) : defaults.maxDepth)
     };
     
     // Validate mode
