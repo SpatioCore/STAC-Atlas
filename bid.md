@@ -78,7 +78,7 @@ Die Wunschkriterien beschreiben optionale Funktionalitäten, die das System übe
 
 #### Allgemein
 - On-Demand Abruf von Items einer Collection (ohne persistente Speicherung) <!-- NI RoGu -->
-- Integration der Lösung in das bestehende STAC Index API <!-- CR: Ich glaube das ist nicht mehr aktuell RoGu -->
+- Integration der Lösung in das bestehende STAC Index API
 
 #### Crawler
 
@@ -88,12 +88,10 @@ Die Wunschkriterien beschreiben optionale Funktionalitäten, die das System übe
 
 #### UI
 
-<!-- CR: Polygon Filterung, oder der Visuelle würde keine wirkliche sinnhafte Erweiterung sein, es wäre ein Nice-To-Have jedoch kein normaler Use-Case -->
-~~- Polygon-basierte räumliche Suche (nicht nur Bounding Box)~~
-~~- Visueller CQL2 Query Builder ("from scratch")~~
-<!-- CR: Diagramme sind nicht notwending -->
-- Erweiterte Visualisierungen und ~~Diagramme~~
-~~- Export-Funktionen für Suchergebnisse~~ <!-- ?? -->
+- Polygon-basierte räumliche Suche (nicht nur Bounding Box)
+- Visueller CQL2 Query Builder ("from scratch")
+- Erweiterte Visualisierungen und Diagramme
+- Export-Funktionen für Suchergebnisse
 - Vergleich zwischen Collections verschiedener Anbieter
 
 ### 1.3 Abgrenzungskriterien
@@ -123,7 +121,7 @@ Wissenschaftler und Datenanalysten, die für ihre Forschungsprojekte passende Ge
 **User Stories:**
 
 - Als Data Scientist möchte ich nach Satellitenbildern eines bestimmten Zeitraums und Gebiets suchen, um Veränderungen in der Landnutzung zu analysieren.
-- Als Forscherin möchte ich verschiedene Sentinel-2 Collections unterschiedlicher Anbieter vergleichen <!-- CR: Fehlt ein "Vergleichsfeature"? RoGu -->, um die für meine Studie am besten geeignete Datenquelle zu identifizieren.
+- Als Forscherin möchte ich verschiedene Sentinel-2 Collections unterschiedlicher Anbieter vergleichen, um die für meine Studie am besten geeignete Datenquelle zu identifizieren.
 - Als Klimaforscher möchte ich Collections nach spezifischen Attributen (z.B. Auflösung, Sensortyp) filtern, um geeignete Daten für meine Klimamodelle zu finden.
 - Als Researcher möchte ich über die API automatisiert nach Collections suchen, um sie in meine Analyse-Pipeline zu integrieren.
 
@@ -184,7 +182,7 @@ Inkrementelle Updates und Soft-Deletes (active = false) sichern Integrität und 
 Das Backend stellt eine API bereit, die vollständig mit der STAC API-Spezifikation kompatibel ist und standardisierte Zugriffe auf die gespeicherten STAC Collections ermöglicht, unter anderem die Endpunkte `/` (Landing), `/conformance`, `/collections`, `/collections/{id}` und `/queryables` <!-- CR: /collections-queryables --> (global und/oder pro Collection) <!-- CR: Kp, was damit gemeint ist -> Streichen RoGu --> (6.1.2.1, 6.1.2.2, 6.1.2.3). 
 Die API wird primär in JavaScript / Node.js (22) mit Express umgesetzt (6.2.4.2). <!-- VI JoKl -->
 Für die Übersetzung und Auswertung von CQL2-Abfragen wird cql2-rs (Rust) zu WebAssembly kompiliert und in-process im Node-Prozess eingebunden (geringe Latenz, einfache Containerisierung) (6.1.2.4, 6.1.2.5, 6.1.2.6).  <!-- VI RG -->
-Als Fallback bleibt alternativ pycql2; sollten sich gravierende Schwierigkeiten mit cql2-rs ergeben, kann optional ein Python-Backend (z. B. FastAPI) implementiert werden, das die Anfrageverarbeitung und CQL2-Übersetzung übernimmt (6.1.2.7).  <!-- CR: Könnte man streichen, oder? RoGu -->
+Als Fallback bleibt alternativ pycql2; sollten sich gravierende Schwierigkeiten mit cql2-rs ergeben, kann optional ein Python-Backend (z. B. FastAPI) implementiert werden, das die Anfrageverarbeitung und CQL2-Übersetzung übernimmt (6.1.2.7).
 Die API ist klar vom Crawler getrennt und fokussiert auf Abfrage und Filterung der gespeicherten Collections. <!-- VI JoKl -->
 
 ### 3.4 UI (Web-Frontend)
@@ -208,7 +206,7 @@ Komponente | Funktion (Kurzbeschreibung) | Optionale Umsetzung | Akzeptanzkriter
 | Crawler | Collections in nahezu beliebiger Verschachtelungstiefe erfassen (nested catalogs) | – | Maximale Tiefe < 1024 | M | 6.1.1 2. | <!-- VI HuHi -->
 | Crawler | Metadaten extrahieren: id, title, description, spatial/temporal extent, keywords, provider, license, DOI, summaries(platform/constellation/gsd/processing:level) | – | ≥ 95 % Felder gefüllt bei Stichprobe n=50 | H | 6.1.1 3. | <!-- VI HuHi -->
 | Crawler | Quell-URL, Quell-Titel, „zuletzt gecrawlt“ speichern | – | Felder in DB vorhanden und befüllt | M | 6.1.1 4. | <!-- VI HuHi -->
-| Crawler | Alle stabilen STAC-Versionen unterstützen (alte Ressourcen werden automatisch auf 1.1 migriert) | – | Collections unterschiedl. Versionen werden gespeichert und ggf. migriert | M | 6.1.1 5. | <!-- VI HuHi -->
+| Crawler | Alle stabilen STAC-Versionen unterstützen (alte Ressourcen werden automatisch auf 1.1 migriert) | – | Collections unterschiedl. Versionen werden gespeichert und ggf. migriert | M | 6.1.1 5. | <!-- CR: Crawler, fehlende Definition Stac Versionen migrieren/speichern, Wortwahl muss angepasst werden  JaWo -->
 | Crawler | Inkrementelle Updates und periodisches Re-Crawling | – | Änderungen können ohne vollständige Neuindexierung hinzugefügt werden | H | 6.1.1 6. | <!-- NI HuHi -->
 | Crawler | Vollständige STAC-Collection + extrahierte Suchfelder persistent ablegen | – | ≥ 95 % Felder identisch zwischen Quelle und Datenbank bei Stichprobe n=50 | H | 6.1.1 7. | <!-- VI HuHi -->
 | Crawler | Erweiterbares DB-Design für zusätzliche Felder vorschlagen (siehe 5. Produktdaten) | – | Schema-Entwurf dokumentiert & abgenommen | M | 6.1.1 8. | <!-- VI HuHi -->
@@ -218,7 +216,7 @@ Komponente | Funktion (Kurzbeschreibung) | Optionale Umsetzung | Akzeptanzkriter
 | Crawler | Logging & Monitoring der Crawl-Aktivitäten | % | Dashboards/Metriken (Rate, Fehler, Status) | M | 6.1.1 12. | <!-- NVI-90 HuHi -->
 | Crawler | Version-agnostische STAC-Extensions erkennen und als Tags speichern (EO, SAR, Point Cloud) | ✔ | Extensions-Tags in DB & Queryables sichtbar | $ | 6.1.1 13. | <!-- VI HuHi -->
 | STAC-API | API gemäß relevanten Spezifikationen gültig (STAC API und Collection Search Extension) <!-- UVI-90 RoGu --> | – | GET `/` und `/conformance` enthält zutreffende URIs | H | 6.1.2 1. |
-| STAC-API | Erweiterung der bestehenden STAC Index API; bleibt selbst gültige STAC-API <!-- CR: Eigentlich haben wir die STAC Index API nicht erweitert... RoGu --> | – | Root/Collections gültig - Getestet durch `STAC Validator` und `STAC API Validator` und Jest-Tests für die Collection Search Extension | H | 6.1.2 2. |
+| STAC-API | Erweiterung der bestehenden STAC Index API; bleibt selbst gültige STAC-API | – | Root/Collections gültig - Getestet durch `STAC Validator` und `STAC API Validator` und Jest-Tests für die Collection Search Extension | H | 6.1.2 2. |
 | STAC-API | Collection Search: Freitext `q`, Filter, Sortierung <!-- UVI-95 RoGu --> | – | Beispiel-Queries liefern erwartete Treffer | H | 6.1.2 3. |
 | STAC-API | CQL2-Filtering (Basic CQL2 (`AND`, `OR`, `NOT`, `=`, `<>`, `<`, `<=`, `>`, `>=`, `IS NULL`)) für Collection-Eigenschaften <!-- VI RoGu --> | – | Gültige Filter → 200 Antworten; ungültige → 400 Antworten mit Fehlerbeschreibung | H | 6.1.2 4. |
 | STAC-API | Zusätzliche CQL2-Fähigkeiten (Advanced Comparison Operators (`LIKE/BETWEEN/IN`, `casei/accenti`, `Spatial/Temporal`, `Arrays`)) | % | Conformance-URIs ergänzt; Tests erfolgreich | M | 6.1.2 5. (optional) |
@@ -241,7 +239,7 @@ Legende Spalte "Umsetzung"
 | -       | Diese Funtion ist vom Lastenheft verpflichtend vorgegeben und wird umgesetzt |
 | %       | Dieses Funktion ist vom Lastenheft optinal vorgegeben und wird umgesetzt    |
 | $       | Diese Funktion ist vom Lastenheft optional vorgegeben und es ist nicht geplant dieses umzusetzen|
-<!-- CR Crawler, fehlende Definition Stac Versionen migrieren/speichern, Wortwahl muss angepasst werden  JaWo -->
+
 ## 5. Produktdaten <!-- Humam & Sönke -->
 
 Die Datenbankkomponente bildet das zentrale Rückgrat der gesamten Datenverwaltung und dient zur strukturierten, effizienten und STAC-konformen Speicherung sämtlicher durch den Crawler erfassten (Meta-) Daten. Grundlage ist eine relationale PostgreSQL-Datenbank mit PostGIS-Erweiterung, um sowohl klassische als auch räumliche Abfragen performant verarbeiten zu können.  
@@ -658,7 +656,7 @@ Die nachfolgenden Maßnahmen gewährleisten die Korrektheit, Wartbarkeit, Standa
 - Sichere Datenbankverbindungen <!-- VI RoGu -->
 - Eingabevalidierung (SQL-Injection-Schutz) <!-- VI RoGu -->
 - Sanitization von Nutzereingaben <!-- VI RoGu -->
-- Gegen XSS abgesichert <!-- CR: Was das? RoGu -->
+- Gegen XSS abgesichert <!-- UVI-10 RoGu -->
 - Keine Exposition sensibler Daten in Logs <!-- VI RoGu -->
 - Protokollierung der Crawl-Aktivitäten <!-- UVI-70  JaWo -->
 - Strukturierte Error-Logs mit konfigurierbaren Log-Levels <!-- UVI-70 RoGu -->
@@ -820,8 +818,8 @@ Ziel des Crawler‑Moduls ist die automatische Erfassung, Validierung und Speich
 #### 10.1.1 Technologien
 
 Der Crawler wird als Node.js‑Anwendung konzipiert werden. Es wird JavaScript genutzt, um bessere Wartbarkeit und Weiterentwicklung innerhalb der Gruppe zu erreichen und die Probleme mit bestimmten Versionen von z.B. Python zu unterbinden. <!-- VI HuHi -->
-Für das STAC‑Handling kommen [stac-js](https://github.com/moregeo-it/stac-js) und [stac-migrate](https://github.com/stac-utils/stac-migrate) zum Migrieren älterer STAC‑Versionen zum Einsatz. Für HTTP‑Zugriffe eignen sich `axios`, da es Timeouts und Retries unterstützt. Alternativ kann `node‑fetch` verwendet werden.  <!-- VI (wir nutzten axios um die STAC Index API zu fetchen) HuHi --> <!-- CR: wir nutzen kein Axios mehr.   JaWo --> <!-- VI LeKr --> 
-Beim Crawling und Queueing sind für komplexe Szenarien, Frameworks wie `Crawlee (Apify)` oder vergleichbare Lösungen mit integrierter Queue/Retry‑Logik empfehlenswert, für leichtere Implementierungen bieten sich `p‑queue` oder `Bottleneck` zur Steuerung von Parallelität und Rate‑Limits an.  <!-- VI HuHi --> <!-- CR: alles mit Crawlee  JaWo -->
+Für das STAC‑Handling kommen [stac-js](https://github.com/moregeo-it/stac-js) und [stac-migrate](https://github.com/stac-utils/stac-migrate) zum Migrieren älterer STAC‑Versionen zum Einsatz. Für HTTP‑Zugriffe eignen sich `axios`, da es Timeouts und Retries unterstützt. Alternativ kann `node‑fetch` verwendet werden.  <!-- VI (wir nutzten axios um die STAC Index API zu fetchen) HuHi --><!-- VI LeKr --> 
+Beim Crawling und Queueing sind für komplexe Szenarien, Frameworks wie `Crawlee (Apify)` oder vergleichbare Lösungen mit integrierter Queue/Retry‑Logik empfehlenswert, für leichtere Implementierungen bieten sich `p‑queue` oder `Bottleneck` zur Steuerung von Parallelität und Rate‑Limits an.  <!-- VI HuHi -->
 Zur zeitgesteuerten Ausführung kann lokal `node‑cron` genutzt werden. Die Validierung erfolgt via JSON‑Schema Validator (z. B. `ajv`) unter Verwendung der offiziellen STAC‑Schemas.  <!-- CR: Validierung nicht nötig, da STAC Funktion create() schon automatisch ein Valides STAC Objekt erstellt HuHi -->
 Die Anbindung an die Datenbank kann mit `node‑postgres (pg)` erfolgen.  <!-- VI HuHi --> <!-- VI LeKr --> 
 Für Logging und Monitoring werden strukturierte Logs eingesetzt.  <!-- VI HuHi --> <!-- NI  JaWo --> <!-- NI LeKr --> 
@@ -905,7 +903,7 @@ Die Implementierung folgt einem klar strukturierten Vorgehen in mehreren Phasen,
 | ID | Arbeitspaket | Ziel/Output | Schritte (Stichpunkte) | Reuse/Technologien |
 |----|--------------|-------------|-------------------------|--------------------|
 | AP-01 | Projekt-Skeleton & Infrastruktur | Lauffähiges API-Grundgerüst mit Konfiguration & Logging | Repo-Struktur (`/api`, `/docs`); Apache-2.0 LICENSE; ENV-Konfig (Port, DB-URL vom DB-Team); strukturierte Logs; einfache Health-Route `GET /` | Python+FastAPI *oder* Node+Fastify/Express; uvicorn/node pm2; dotenv | <!-- UVI-90 RoGu -->
-| AP-02 | Daten-Vertrag & Queryables (API-Seite) | Konsistentes Feld-Set & ` /queryables` für die UI | Such-/Filterfelder festlegen (id, title, description, extent, keywords, providers.name, license, doi, `summaries.platform/constellation/gsd/processing:level`); Datentypen (CQL2-kompatibel) definieren; `GET /queryables` (global/optional pro Collection); Dokumentation für UI | STAC Collections/Queryables Best Practices; CQL2 Typen | <!-- CR: collections-queryables und Filterfelder anpassen RoGu -->
+| AP-02 | Daten-Vertrag & Queryables (API-Seite) | Konsistentes Feld-Set & ` /queryables` für die UI | Such-/Filterfelder festlegen (id, title, description, extent, keywords, providers.name, license, doi, `summaries.platform/constellation/gsd/processing:level`); Datentypen (CQL2-kompatibel) definieren; `GET /queryables` (global/optional pro Collection); Dokumentation für UI | STAC Collections/Queryables Best Practices; CQL2 Typen | <!-- CR: collections-queryables und Filterfelder anpassen und diese Global/lokal raus RoGu -->
 | AP-03 | STAC-Core Endpunkte | STAC-konforme Basisrouten bereitstellen | `GET /` (Landing + Links), `GET /conformance` (Core+Collections vorerst), `GET /collections`, `GET /collections/{id}`; Link-Relationen & Service-Doku referenzieren | OpenAPI/Swagger-UI; STAC API Core/Collections | <!-- UVI-90 RoGu -->
 | AP-04 | Collection Search – Routen & Parameter | Collection-Search-Schnittstelle mit `q`, `filter`, `sort`, Paging | Route definieren (Parametrisierung von `/collections`); Request-Validierung; Paging-Links | STAC Collection Search Extension; API Framework Middleware | <!-- VI RoGu -->
 | AP-05 | CQL2 Basic – Parsing & Validierung | Gültige CQL2-Basic-Filter erkennen & valide/klare Fehlermeldungen liefern | Bestehende Parser/Validator-Lib einbinden; Request-Modelle (JSON/Text); Fehlermeldungen standardisieren | *cql2-rs* oder *pycql2* | <!-- VI RoGu -->
