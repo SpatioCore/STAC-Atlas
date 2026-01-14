@@ -163,10 +163,10 @@ Inkrementelle Updates und Soft-Deletes (active = false) sichern Integrität und 
 
 ### 3.3 STAC API-konforme Schnittstelle
 Das Backend stellt eine API bereit, die vollständig mit der STAC API-Spezifikation kompatibel ist und standardisierte Zugriffe auf die gespeicherten STAC Collections ermöglicht, unter anderem die Endpunkte `/` (Landing), `/conformance`, `/collections`, `/collections/{id}` und `/queryables` <!-- CR: /collections-queryables --> (global und/oder pro Collection) <!-- CR: Kp, was damit gemeint ist -> Streichen RoGu --> (6.1.2.1, 6.1.2.2, 6.1.2.3). 
-Die API wird primär in JavaScript / Node.js (22) mit Express umgesetzt (6.2.4.2).  
-Für die Übersetzung und Auswertung von CQL2-Abfragen wird cql2-rs (Rust) zu WebAssembly kompiliert und in-process im Node-Prozess eingebunden (geringe Latenz, einfache Containerisierung) (6.1.2.4, 6.1.2.5, 6.1.2.6).  
+Die API wird primär in JavaScript / Node.js (22) mit Express umgesetzt (6.2.4.2). <!-- VI JoKl -->
+Für die Übersetzung und Auswertung von CQL2-Abfragen wird cql2-rs (Rust) zu WebAssembly kompiliert und in-process im Node-Prozess eingebunden (geringe Latenz, einfache Containerisierung) (6.1.2.4, 6.1.2.5, 6.1.2.6).  <!-- VI RG -->
 Als Fallback bleibt alternativ pycql2; sollten sich gravierende Schwierigkeiten mit cql2-rs ergeben, kann optional ein Python-Backend (z. B. FastAPI) implementiert werden, das die Anfrageverarbeitung und CQL2-Übersetzung übernimmt (6.1.2.7).  <!-- CR: Könnte man streichen, oder? RoGu -->
-Die API ist klar vom Crawler getrennt und fokussiert auf Abfrage und Filterung der gespeicherten Collections.
+Die API ist klar vom Crawler getrennt und fokussiert auf Abfrage und Filterung der gespeicherten Collections. <!-- VI JoKl -->
 
 ### 3.4 UI (Web-Frontend)
 Das Web-Frontend wird mit Vue.js (Version 3) entwickelt (6.1.3.2) und bietet eine benutzerfreundliche Oberfläche zur Suche, Filterung und Visualisierung der STAC Collections, inklusive Kartenansicht (6.1.3.1, 6.1.3.3, 6.1.3.4, 6.1.3.5, 6.1.3.7, 6.1.3.8, 6.1.3.9).  
