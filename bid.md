@@ -25,29 +25,29 @@ Die Abnahmekriterien definieren die zwingend erforderlichen Funktionalitäten de
 
 #### Datenbank
 - Persistente Speicherung von STAC-Collection-Metadaten
-- Unterstützung strukturierter Suchabfragen (CQL2)
-- Volltextsuche über Titel, Beschreibung und Keywords
+- Unterstützung strukturierter Suchabfragen (CQL2) <!-- VI RoGu -->
+- Volltextsuche über Titel, Beschreibung und Keywords <!-- UVI-60 RoGu -->
 - Räumliche Filterung (Bounding Box) mittels PostGIS
 - Zeitliche Filterung nach Start- und Endzeitpunkten
 - Effiziente Indizierung für schnelle Abfragen (< 100 ms)
 
 #### STAC API
-- Konforme Implementierung der STAC API Specification
-- Implementierung der Collection Search Extension
-- Abruf einzelner Collections (GET /collections/{id})
+- Konforme Implementierung der STAC API Specification <!-- UVI-80 RoGu -->
+- Implementierung der Collection Search Extension <!-- UVI-95 RoGu -->
+- Abruf einzelner Collections (GET /collections/{id}) <!-- VI RoGu -->
 - Erweiterte Suchfunktion (GET /colllections) mit Filterung nach:
-  - id
-  - Titel
-  - Beschreibung
-  - Räumlicher Ausdehnung
-  - Zeitlicher Ausdehnung
-  - Schlüsselwörtern
-  - Provider
-  - Lizenz
-  - DOIs
-- CQL2-Filterung für komplexe Abfragen
-- Parallele Verarbeitung von mindestens 100 Anfragen
-- Antwortzeiten: einfache Abfragen ≤ 1s, komplexe Abfragen ≤ 5s
+  - id <!-- VI RoGu -->
+  - Titel <!-- VI RoGu -->
+  - Beschreibung <!-- VI RoGu -->
+  - Räumlicher Ausdehnung <!-- UVI-90 RoGu -->
+  - Zeitlicher Ausdehnung <!-- VI RoGu -->
+  - Schlüsselwörtern <!-- NI RoGu -->
+  - Provider <!-- VI RoGu -->
+  - Lizenz <!-- VI RoGu -->
+  - DOIs <!-- CR: DOIs werden afaik nicht direkt in DB gespeichert. Eine Suche wäre nicht sinnvoll, da wir dann aufs Full-JSONB Objekt zurückgreifen müssen RoGu -->
+- CQL2-Filterung für komplexe Abfragen <!-- VI RoGu -->
+- Parallele Verarbeitung von mindestens 100 Anfragen <!-- UVI-90 RoGu -->
+- Antwortzeiten: einfache Abfragen ≤ 1s, komplexe Abfragen ≤ 5s <!-- UVI-90 RoGu -->
 
 #### UI (Web-Interface)
 - Nutzerfreundliche Web-Oberfläche zur Suche und Filterung
@@ -64,18 +64,18 @@ Die Abnahmekriterien definieren die zwingend erforderlichen Funktionalitäten de
 - Anzeige der Collection-Metadaten
 
 #### Allgemein
-- Containerisierung aller Komponenten mit Docker
-- System startbar per Einzeiler: `docker-compose up --build`
-- Open Source unter Apache 2.0 Lizenz
-- Standardkonforme Datenmodellierung nach STAC Specification
+- Containerisierung aller Komponenten mit Docker <!-- UVI-60 RoGu -->
+- System startbar per Einzeiler: `docker-compose up --build` <!-- NI RoGu -->
+- Open Source unter Apache 2.0 Lizenz <!-- VI RoGu -->
+- Standardkonforme Datenmodellierung nach STAC Specification <!-- VI RoGu -->
 
 ### 1.2 Wunschkriterien
 
 Die Wunschkriterien beschreiben optionale Funktionalitäten, die das System über die Grundanforderungen hinaus erweitern würden. Diese Features sind nicht zwingend erforderlich, würden aber den Nutzen und die Attraktivität der Plattform erheblich steigern. Ihre Implementierung erfolgt in Abhängigkeit von verfügbaren Ressourcen und Zeit.
 
 #### Allgemein
-- On-Demand Abruf von Items einer Collection (ohne persistente Speicherung)
-- Integration der Lösung in das bestehende STAC Index API
+- On-Demand Abruf von Items einer Collection (ohne persistente Speicherung) <!-- NI RoGu -->
+- Integration der Lösung in das bestehende STAC Index API <!-- CR: Ich glaube das ist nicht mehr aktuell RoGu -->
 
 #### Crawler
 - Konfigurierbare Crawling-Schedule
@@ -113,7 +113,7 @@ Wissenschaftler und Datenanalysten, die für ihre Forschungsprojekte passende Ge
 
 **User Stories:**
 - Als Data Scientist möchte ich nach Satellitenbildern eines bestimmten Zeitraums und Gebiets suchen, um Veränderungen in der Landnutzung zu analysieren.
-- Als Forscherin möchte ich verschiedene Sentinel-2 Collections unterschiedlicher Anbieter vergleichen, um die für meine Studie am besten geeignete Datenquelle zu identifizieren.
+- Als Forscherin möchte ich verschiedene Sentinel-2 Collections unterschiedlicher Anbieter vergleichen <!-- CR: Fehlt ein "Vergleichsfeature"? RoGu -->, um die für meine Studie am besten geeignete Datenquelle zu identifizieren.
 - Als Klimaforscher möchte ich Collections nach spezifischen Attributen (z.B. Auflösung, Sensortyp) filtern, um geeignete Daten für meine Klimamodelle zu finden.
 - Als Researcher möchte ich über die API automatisiert nach Collections suchen, um sie in meine Analyse-Pipeline zu integrieren.
 
@@ -158,15 +158,15 @@ PostgreSQL in Kombination mit PostGIS bildet die zentrale Datengrundlage.
 Die Metadaten werden in normalisierten Teiltabellen gehalten; Primär- und Fremdschlüssel sorgen für Referenzen.  
 Für Performance werden B-Tree-Indizes (ID, Zeit), GIN/GiST (Text, Geometrien) und tsvector-Volltextindizes eingesetzt.  
 Räumliche Daten werden als PostGIS-Geometrieobjekte gespeichert.  
-CQL2-Filter werden serverseitig in SQL-WHERE-Klauseln übersetzt.  
+CQL2-Filter werden serverseitig in SQL-WHERE-Klauseln übersetzt. <!-- CR: Das ist auf Seite der API implementiert RoGu -->
 Inkrementelle Updates und Soft-Deletes (active = false) sichern Integrität und Revisionsfähigkeit.
 
 ### 3.3 STAC API-konforme Schnittstelle
-Das Backend stellt eine API bereit, die vollständig mit der STAC API-Spezifikation kompatibel ist und standardisierte Zugriffe auf die gespeicherten STAC Collections ermöglicht, unter anderem die Endpunkte `/` (Landing), `/conformance`, `/collections`, `/collections/{id}` und `/queryables` (global und/oder pro Collection) (6.1.2.1, 6.1.2.2, 6.1.2.3). 
-Die API wird primär in JavaScript / Node.js (22) mit Express umgesetzt (6.2.4.2).  
-Für die Übersetzung und Auswertung von CQL2-Abfragen wird cql2-rs (Rust) zu WebAssembly kompiliert und in-process im Node-Prozess eingebunden (geringe Latenz, einfache Containerisierung) (6.1.2.4, 6.1.2.5, 6.1.2.6).  
-Als Fallback bleibt alternativ pycql2; sollten sich gravierende Schwierigkeiten mit cql2-rs ergeben, kann optional ein Python-Backend (z. B. FastAPI) implementiert werden, das die Anfrageverarbeitung und CQL2-Übersetzung übernimmt (6.1.2.7).  
-Die API ist klar vom Crawler getrennt und fokussiert auf Abfrage und Filterung der gespeicherten Collections. <!-- UIV 80 ViKu -->
+Das Backend stellt eine API bereit, die vollständig mit der STAC API-Spezifikation kompatibel ist und standardisierte Zugriffe auf die gespeicherten STAC Collections ermöglicht, unter anderem die Endpunkte `/` (Landing), `/conformance`, `/collections`, `/collections/{id}` und `/queryables` <!-- CR: /collections-queryables --> (global und/oder pro Collection) <!-- CR: Kp, was damit gemeint ist -> Streichen RoGu --> (6.1.2.1, 6.1.2.2, 6.1.2.3). 
+Die API wird primär in JavaScript / Node.js (22) mit Express umgesetzt (6.2.4.2). <!-- VI JoKl -->
+Für die Übersetzung und Auswertung von CQL2-Abfragen wird cql2-rs (Rust) zu WebAssembly kompiliert und in-process im Node-Prozess eingebunden (geringe Latenz, einfache Containerisierung) (6.1.2.4, 6.1.2.5, 6.1.2.6).  <!-- VI RG -->
+Als Fallback bleibt alternativ pycql2; sollten sich gravierende Schwierigkeiten mit cql2-rs ergeben, kann optional ein Python-Backend (z. B. FastAPI) implementiert werden, das die Anfrageverarbeitung und CQL2-Übersetzung übernimmt (6.1.2.7).  <!-- CR: Könnte man streichen, oder? RoGu -->
+Die API ist klar vom Crawler getrennt und fokussiert auf Abfrage und Filterung der gespeicherten Collections. <!-- VI JoKl -->
 
 ### 3.4 UI (Web-Frontend)
 Das Web-Frontend wird mit Vue.js (Version 3) entwickelt (6.1.3.2) und bietet eine benutzerfreundliche Oberfläche zur Suche, Filterung und Visualisierung der STAC Collections, inklusive Kartenansicht (6.1.3.1, 6.1.3.3, 6.1.3.4, 6.1.3.5, 6.1.3.7, 6.1.3.8, 6.1.3.9).  
@@ -174,8 +174,8 @@ Die Kommunikation zwischen Frontend und Backend erfolgt ausschließlich über di
 Die UI und die zugehörigen Dokumentationen/Demos sollen so gestaltet sein, dass Schulungs- und Abnahmezwecke unterstützt werden (6.2.1.1, 6.2.1.2) und die Benutzererfahrung folgende Anforderungen erfüllt: intuitive/responsive UI, Accessibility, aussagekräftige Fehlerbehandlung und Sprachunterstützung (6.2.2.1, 6.2.2.2, 6.2.2.3, 6.2.2.4).
 
 ### 3.5 Containerisierung
-Alle Komponenten (Crawler, Datenbank, STAC-API, UI) werden einzeln mittels Docker containerisiert und als Komplett-Paket miteinander verknüpft, zum Beispiel via Docker Compose, um sowohl die getrennte Verwendung einzelner Komponenten als auch den Betrieb des vollständigen Systems zu ermöglichen.  
-Das Gesamtsystem ist mit einem Einzeiler startbar und plattformunabhängig lauffähig.  
+Alle Komponenten (Crawler, Datenbank, STAC-API, UI) werden einzeln mittels Docker containerisiert <!-- UVI-60 RoGu --> und als Komplett-Paket miteinander verknüpft <!-- NI RoGu -->, zum Beispiel via Docker Compose, um sowohl die getrennte Verwendung einzelner Komponenten als auch den Betrieb des vollständigen Systems zu ermöglichen.  
+Das Gesamtsystem ist mit einem Einzeiler startbar und plattformunabhängig lauffähig. <!-- NI RoGu -->
 Docker gewährleistet eine konsistente Laufzeitumgebung und erleichtert die Integration zwischen den Komponenten.
 
 ## 4. Produktfunktionen <!-- Robin -->
@@ -197,13 +197,13 @@ Komponente | Funktion (Kurzbeschreibung) | Optionale Umsetzung | Akzeptanzkriter
 | Crawler | Fehlerbehandlung + Retry; problematische Quellen überspringen | % | Backoff/Retry-Logik; Fehlerbericht vorhanden | M | 6.1.1 11. |
 | Crawler | Logging & Monitoring der Crawl-Aktivitäten | % | Dashboards/Metriken (Rate, Fehler, Status) | M | 6.1.1 12. |
 | Crawler | Version-agnostische STAC-Extensions erkennen und als Tags speichern (EO, SAR, Point Cloud) | ✔ | Extensions-Tags in DB & Queryables sichtbar | $ | 6.1.1 13. |
-| STAC-API | API gemäß relevanten Spezifikationen gültig (STAC API und Collection Search Extension) | – | GET `/` und `/conformance` enthält zutreffende URIs | H | 6.1.2 1. | <!-- VI ViKu -->
-| STAC-API | Erweiterung der bestehenden STAC Index API; bleibt selbst gültige STAC-API | – | Root/Collections gültig - Getestet durch `STAC Validator` und `STAC API Validator` und Jest-Tests für die Collection Search Extension | H | 6.1.2 2. | <!-- VI ViKu -->
-| STAC-API | Collection Search: Freitext `q`, Filter, Sortierung | – | Beispiel-Queries liefern erwartete Treffer | H | 6.1.2 3. | <!-- VI ViKu -->
-| STAC-API | CQL2-Filtering (Basic CQL2 (`AND`, `OR`, `NOT`, `=`, `<>`, `<`, `<=`, `>`, `>=`, `IS NULL`)) für Collection-Eigenschaften | – | Gültige Filter → 200 Antworten; ungültige → 400 Antworten mit Fehlerbeschreibung | H | 6.1.2 4. | <!-- VI ViKu -->
-| STAC-API | Zusätzliche CQL2-Fähigkeiten (Advanced Comparison Operators (`LIKE/BETWEEN/IN`, `casei/accenti`, `Spatial/Temporal`, `Arrays`)) | % | Conformance-URIs ergänzt; Tests erfolgreich | M | 6.1.2 5. (optional) | <!-- VI ViKu -->
-| STAC-API | CQL2 als Standalone-Library bereitstellen | $ | Lib mit Parser/Validation + README | L | 6.1.2 6. (optional) |
-| STAC-API | Integration der neuen Funktionen in bestehende STAC Index API | $ | End-to-End-Tests (Crawler→API→UI) grün | M | 6.1.2 7. | <!-- VI ViKu -->
+| STAC-API | API gemäß relevanten Spezifikationen gültig (STAC API und Collection Search Extension) <!-- UVI-90 RoGu --> | – | GET `/` und `/conformance` enthält zutreffende URIs | H | 6.1.2 1. |
+| STAC-API | Erweiterung der bestehenden STAC Index API; bleibt selbst gültige STAC-API <!-- CR: Eigentlich haben wir die STAC Index API nicht erweitert... RoGu --> | – | Root/Collections gültig - Getestet durch `STAC Validator` und `STAC API Validator` und Jest-Tests für die Collection Search Extension | H | 6.1.2 2. |
+| STAC-API | Collection Search: Freitext `q`, Filter, Sortierung <!-- UVI-95 RoGu --> | – | Beispiel-Queries liefern erwartete Treffer | H | 6.1.2 3. |
+| STAC-API | CQL2-Filtering (Basic CQL2 (`AND`, `OR`, `NOT`, `=`, `<>`, `<`, `<=`, `>`, `>=`, `IS NULL`)) für Collection-Eigenschaften <!-- VI RoGu --> | – | Gültige Filter → 200 Antworten; ungültige → 400 Antworten mit Fehlerbeschreibung | H | 6.1.2 4. |
+| STAC-API | Zusätzliche CQL2-Fähigkeiten (Advanced Comparison Operators (`LIKE/BETWEEN/IN`, `casei/accenti`, `Spatial/Temporal`, `Arrays`)) | % | Conformance-URIs ergänzt; Tests erfolgreich | M | 6.1.2 5. (optional) |
+| STAC-API | CQL2 als Standalone-Library bereitstellen <!-- CR: Unsere Implementierung nutzt nur existierende Bibliotheken. Keine relevante Neuerung, die als eigenständige Bibliothek verwendet werden sollte RoGu --> | $ | Lib mit Parser/Validation + README | L | 6.1.2 6. (optional) |
+| STAC-API | Integration der neuen Funktionen in bestehende STAC Index API <!-- CR: Eigentlich haben wir die STAC Index API nicht erweitert.  -->| $ | End-to-End-Tests (Crawler→API→UI) grün | M | 6.1.2 7. |
 | Web-UI | Intuitive Suchoberfläche für Collections | – | Usability-Test: Kernflows bestehen | H | 6.1.3 1. |
 | Web-UI | Implementierung in Vue (v3) zur Einbindung in STAC Index | – | Build integriert; Routing/State funktionsfähig | M | 6.1.3 2. |
 | Web-UI | Interaktive Auswahl von Bounding Box und Zeitintervall | – | BBox/Datetime erzeugen korrekte Parameter | H | 6.1.3 3. |
@@ -453,8 +453,8 @@ Die Crawling-Durchläufe sollen über Logging und Metriken wie der Anzahl gecraw
    - Gleichzeitige API-Anfragen dürfen keine Deadlocks oder Timeout-Fehler erzeugen. 
 
 3. **Suchindex und Filterleistung**  
-   - Die Datenbank muss einen Volltextindex bereitstellen, der Suchabfragen über Metadatenfelder (`title`, `description`, `keywords`, `providers`) innerhalb von **≤ 3 Sekunden** ermöglicht.  
-   - CQL2-Filter (Basic) müssen vollständig innerhalb von **≤ 5 Sekunden** evaluiert werden können.  
+   - Die Datenbank muss einen Volltextindex bereitstellen, der Suchabfragen über Metadatenfelder (`title`, `description`, `keywords`, `providers`) innerhalb von **≤ 3 Sekunden** ermöglicht.  <!-- CR: providers ist aktuell kein Teil der Volltextsuche RoGu -->
+   - CQL2-Filter (Basic) müssen vollständig innerhalb von **≤ 5 Sekunden** evaluiert werden können. <!-- CR: CQL2 ist Part der API RoGu -->
 
 ---
 
@@ -485,11 +485,11 @@ Die Datenbankkomponente muss somit nachweislich in der Lage sein, große Mengen 
 ## 6.3 STAC API
 Die STAC API-Komponente bildet die zentrale Datenschnittstelle des Systems und ermöglicht einen standardkonformen Zugriff auf die in der Datenbank gespeicherten STAC collections und catalogs. Sie erfüllt vollständig die Anforderungen der SpatioTemporal Asset Catalog (STAC) API sowie der Collection Search Extension und bietet erweiterte Such- und Filterfunktionen.
 
-Über die Endpunkte /collections und /search können Nutzer Collections nach Attributen wie Titel, Lizenz, Schlüsselwörtern sowie räumlicher und zeitlicher Ausdehnung durchsuchen, filtern und sortieren. Dabei wird die CQL2-Filterung unterstützt, um standardkonforme und einheitliche Datensuche zu ermöglichen. Dabei stehen logische Operatoren (AND, OR, NOT) und Vergleichsoperatoren (=, <, >, IN) zur Verfügung; optional sind auch erweiterte Funktionen wie LIKE, BETWEEN oder INTERSECTS vorgesehen.
+Über die Endpunkte /collections und /search <!-- CR: Search wird nicht verwendet RoGu --> können Nutzer Collections nach Attributen wie Titel, Lizenz, Schlüsselwörtern sowie räumlicher und zeitlicher Ausdehnung durchsuchen, filtern und sortieren. Dabei wird die CQL2-Filterung unterstützt, um standardkonforme und einheitliche Datensuche zu ermöglichen. Dabei stehen logische Operatoren (AND, OR, NOT) und Vergleichsoperatoren (=, <, >, IN) <!-- CR: Es gibt noch mehr Operatoren RoGu --> zur Verfügung; optional sind auch erweiterte Funktionen wie LIKE, BETWEEN oder INTERSECTS vorgesehen.
 
 Die API bietet eine hohe Performance:
 Zugriff auf indizierte Daten mit Antwortzeiten unter 1 s,
-Verarbeitung von mindestens 100 parallelen Anfragen,
+Verarbeitung von mindestens 100 parallelen Anfragen, <!-- NI RoGu -->
 Antwortzeiten unter 5 s für einfache Abfragen und unter 1 min für komplexe Filterabfragen.
 
 Damit stellt die STAC API eine leistungsfähige, flexible und erweiterbare Grundlage für die standardisierte Suche innerhalb der indizierten STAC Collections dar.
@@ -536,31 +536,30 @@ Die nachfolgenden Maßnahmen gewährleisten die Korrektheit, Wartbarkeit, Standa
 
 ### 7.1 Code-Qualität und Tests
   #### 7.1.1 Unit-Tests 
-   - Für alle zentralen Backend-Module (insbesondere STAC-API-Routen, CQL2-Parser, Datenbank-Abfrage-Logik und Crawler-Importfunktionen) werden Unit-Tests mit einem geeigneten Framework (jest) erstellt. <!-- VI ViKu -->
+   - Für alle zentralen Backend-Module (insbesondere STAC-API-Routen, CQL2-Parser, Datenbank-Abfrage-Logik und Crawler-Importfunktionen) werden Unit-Tests mit einem geeigneten Framework (jest) erstellt. <!-- VI RoGu -->
    - Für das Frontend werden Unit-Tests mit einem geeigneten Framework (Jest) erstellt. <!-- VI ViKu -->
-   - Zielabdeckung: mindestens 80 % Branch- und Statement-Coverage. <!-- UVI 70 ViKu -->
-   - Tests werden automatisiert bei jedem Commit und Merge-Request in der GitHub-Pipeline ausgeführt. <!-- VI ViKu -->
-   - Fehlgeschlagene Unit-Tests blockieren den Merge in den Haupt-Branch, um jederzeit lauffähigen Code in geteilten Systemen zu ermöglichen. <!-- VI ViKu -->
+   - Zielabdeckung: mindestens 80 % Branch- und Statement-Coverage. <!-- UVI-?? RoGu -->
+   - Tests werden automatisiert bei jedem Commit und Merge-Request in der GitHub-Pipeline ausgeführt. <!-- VI RoGu -->
+   - Fehlgeschlagene Unit-Tests blockieren den Merge in den Haupt-Branch, um jederzeit lauffähigen Code in geteilten Systemen zu ermöglichen. <!-- VI RoGu -->
 
   #### 7.1.2 Integrationstests
    - Zusätzlich zu den Unit-Tests werden Integrationstests definiert, um das Zusammenspiel der Komponenten (STAC-API ↔ Crawler-DB ↔ Web UI) zu verifizieren.
    - Diese Tests prüfen:
-     - Korrektes Schreiben von Collection-Metadaten durch den Crawler in die Datenbank.
-     - Abrufbarkeit und Filterbarkeit dieser Daten über die STAC-API-Endpunkte (/collections, /search).
-     - Validität der API-Antworten im STAC-Standardformat. <!-- VI ViKu -->
-     - Pagination-, Sortier- und Filterfunktionen (CQL2). <!-- VI ViKu -->
+     - Korrektes Schreiben von Collection-Metadaten durch den Crawler in die Datenbank. <!-- UVI-?? RoGu -->
+     - Abrufbarkeit und Filterbarkeit dieser Daten über die STAC-API-Endpunkte (/collections, /search <!-- CR: /search ist falsch RoGu-->). <!-- VI RoGu -->
+     - Validität der API-Antworten im STAC-Standardformat. <!-- VI RoGu -->
+     - Pagination-, Sortier- und Filterfunktionen (CQL2). <!-- VI RoGu -->
    - Die Integrationstests werden in einer getrennten Testumgebung ausgeführt, die der realen Systemarchitektur entspricht (wahlweise über ein separates Docker-Compose-Setup oder im Rahmen des regulären Setups). <!-- NI ViKu -->
   
 ### 7.2 Kontinuierliche Integration (CI)
 - Es wird eine GitHub Actions-Pipeline eingerichtet, die alle wesentlichen Qualitätssicherungs-Schritte automatisiert:
-   - Build – Installation aller Abhängigkeiten und Prüfung auf erfolgreiche Kompilierung. <!-- VI ViKu -->
-   - Linting – Automatische Kontrolle der Codequalität (z. B. mit flake8 für Python und ESLint für JavaScript/Vue-Komponenten). <!-- VI ViKu -->
-   - Test – Ausführung sämtlicher Unit-Tests und Komponententests (jest und pytest) sowie Integrationstests über die GitHub Actions-Pipeline. <!-- VI ViKu -->
-   - Validation – Ausführung der STAC- und API-Validatoren (s. Abschnitte 7.3 und 7.4). <!-- VI ViKu -->
-   - Coverage-Report – automatische Generierung und Veröffentlichung in den Pipeline-Logs. <!-- NI ViKu -->
-- Die CI-Pipeline wird bei jedem Push und Pull-Request gegen den head-Branch jeder Komponente ausgeführt. <!-- VI ViKu -->
-- Nur bei erfolgreicher Pipeline-Ausführung dürfen Änderungen in den stabilen Branch übernommen werden (Branch-Protection-Rule). <!-- VI ViKu -->
-  
+   - Build – Installation aller Abhängigkeiten und Prüfung auf erfolgreiche Kompilierung. <!-- VI RoGu -->
+   - Linting – Automatische Kontrolle der Codequalität (z. B. mit flake8 für Python und ESLint für JavaScript/Vue-Komponenten). <!-- UVI-90 RoGu -->
+   - Test – Ausführung sämtlicher Unit-Tests und Komponententests (jest und pytest) sowie Integrationstests über die GitHub Actions-Pipeline. <!-- VI RoGu -->
+   - Validation – Ausführung der STAC- und API-Validatoren (s. Abschnitte 7.3 und 7.4). <!-- UVI-50 RoGu -->
+   - Coverage-Report – automatische Generierung und Veröffentlichung in den Pipeline-Logs. <!-- VI RoGu -->
+- Die CI-Pipeline wird bei jedem Push und Pull-Request gegen den head-Branch jeder Komponente ausgeführt. <!-- CR: Wird im gepushten Branch ausgeführt -> Rausnehmen RoGu -->
+- Nur bei erfolgreicher Pipeline-Ausführung dürfen Änderungen in den stabilen Branch übernommen werden (Branch-Protection-Rule). <!-- VI RoGu -->
 
 ### 7.3 STAC-Validator
 - Jede durch den Crawler importierte und in der Datenbank gespeicherte Collection wird mit dem offiziellen STAC Validator
@@ -575,60 +574,59 @@ Die nachfolgenden Maßnahmen gewährleisten die Korrektheit, Wartbarkeit, Standa
 
 ### 7.4 STAC-API-Validator
 - Die implementierte STAC API wird mit dem offiziellen stac-api-validator
-  (bzw. OGC Conformance-Tests) überprüft. 
+  (bzw. OGC Conformance-Tests) überprüft. <!-- VI RoGu -->
 - Geprüfte Aspekte:
-   - Gültigkeit der API-Antworten nach STAC API-Spezifikation (v1.x). 
-   - Unterstützung der Collection Search Extension und der CQL2-Query Language (Basic). 
-   - Korrekte Implementierung der Endpoints (`/`, `/conformance`, `/collections`, `/collections/{id}`). 
--Die Collection Search Extension wird zusätzlich durch eigene Integrationstests validiert, da der offizielle Validator derzeit keine automatisierte Prüfung dieser Erweiterung unterstützt. 
+   - Gültigkeit der API-Antworten nach STAC API-Spezifikation (v1.x). <!-- VI RoGu -->
+   - Unterstützung der Collection Search Extension und der CQL2-Query Language (Basic). <!-- CR: Das wird nicht geprüft RoGu -->
+   - Korrekte Implementierung der Endpoints (`/`, `/conformance`, `/collections`, `/collections/{id}`). <!-- VI RoGu -->
+-Die Collection Search Extension wird zusätzlich durch eigene Integrationstests validiert, da der offizielle Validator derzeit keine automatisierte Prüfung dieser Erweiterung unterstützt. <!-- UVI-10 RoGu -->
 - Der Validator wird:
-   - nach jedem erfolgreichen Build in der CI-Pipeline ausgeführt, 
-   - manuell vor der Endabgabe für einen vollständigen Compliance-Report verwendet. 
-- Ziel: 100 % bestehende STAC-Validator-Tests, sowie erfolgreiche interne Validierung der Collection Search Extension.
-<!-- UVI 70 ViKu -->
+   - nach jedem erfolgreichen Build in der CI-Pipeline ausgeführt, <!-- VI RoGu -->
+   - manuell vor der Endabgabe für einen vollständigen Compliance-Report verwendet. <!-- VI RoGu -->
+- Ziel: 100 % bestehende STAC-Validator-Tests, sowie erfolgreiche interne Validierung der Collection Search Extension. <!-- VI RoGu -->
 
 ### 7.5 Dokumentations- und Wartungsqualität
-- Alle Module werden mit aussagekräftigen Kommentaren dokumentiert, entsprechend der jeweils verwendeten Programmiersprache (z. B. PyDoc für Python-Module oder JSDoc für JavaScript/Vue-Komponenten). <!-- UVI 90 ViKu -->
+- Alle Module werden mit aussagekräftigen Kommentaren dokumentiert, entsprechend der jeweils verwendeten Programmiersprache (z. B. PyDoc für Python-Module oder JSDoc für JavaScript/Vue-Komponenten). <!-- UVI-80 RoGu -->
 
 ## 8. Sonstige nichtfunktionale Anforderungen <!-- Jakob -->
 
 ### 8.1 Dokumentation und Code-Qualität
-- Code-Dokumentation mit JSDoc (JavaScript/TypeScript) <!-- VI ViKu -->
-- Repository-Dokumentation (README, Setup-Anleitungen) <!-- VI ViKu -->
-- API-Dokumentation via OpenAPI/Swagger <!-- UVI-80 ViKu -->
-- Bedienungsanleitung für Endnutzer <!-- VI ViKu -->
-- Linter: ESLint (JavaScript/TypeScript) <!-- VI ViKu -->
-- Code-Formatierung: Prettier (JavaScript/TypeScript) 
-- Modulare Architektur <!-- VI ViKu -->
+- Code-Dokumentation mit JSDoc (JavaScript/TypeScript) <!-- UVI-80 RoGu -->
+- Repository-Dokumentation (README, Setup-Anleitungen) <!-- UVI-80 RoGu -->
+- API-Dokumentation via OpenAPI/Swagger <!-- UVI-60 RoGu -->
+- Bedienungsanleitung für Endnutzer <!-- NI RoGu -->
+- Linter: ESLint (JavaScript/TypeScript) <!-- UVI-80 RoGu -->
+- Code-Formatierung: Prettier (JavaScript/TypeScript) <!-- NI RoGu -->
+- Modulare Architektur <!-- VI RoGu -->
 
 ### 8.2 Projektmanagement und Entwicklungsprozess
-- Traditionelles Projektmanagement über GitHub-Projekte (Kunde erhält Zugriff) <!-- VI ViKu -->
-- Versionskontrolle mit Git <!-- VI ViKu -->
-- GitHub-Pipeline für CI/CD <!-- VI ViKu -->
-- Jeder Code wird vor einem Push reviewed (Vier-Augen-Prinzip) <!-- VI ViKu -->
-- Open Source unter Apache 2.0 Lizenz <!-- VI ViKu -->
-- Lizenzkonforme Verweise auf genutzte Software <!-- VI ViKu -->
+- Traditionelles Projektmanagement über GitHub-Projekte (Kunde erhält Zugriff) <!-- VI RoGu -->
+- Versionskontrolle mit Git <!-- VI RoGu -->
+- GitHub-Pipeline für CI/CD <!-- VI RoGu -->
+- Jeder Code wird vor einem Push reviewed (Vier-Augen-Prinzip) <!-- VI RoGu -->
+- Open Source unter Apache 2.0 Lizenz <!-- VI RoGu -->
+- Lizenzkonforme Verweise auf genutzte Software <!-- VI RoGu -->
 
 ### 8.3 Deployment und Wartbarkeit
-- Jede Komponente als eigenständiger Docker-Container <!-- VI ViKu -->
-- System startbar per Einzeiler: `docker-compose up --build` 
-- Konfigurierbarkeit über Umgebungsvariablen <!-- VI ViKu -->
-- Klare Trennung der Komponenten (Crawler, Datenbank, API, UI) <!-- VI ViKu -->
-- Definierte Schnittstellen zwischen Komponenten <!-- VI ViKu -->
-- API-Versionierung und Erweiterbarkeit <!-- VI ViKu -->
+- Jede Komponente als eigenständiger Docker-Container <!-- UVI-60 RoGu -->
+- System startbar per Einzeiler: `docker-compose up --build` <!-- NI RoGu -->
+- Konfigurierbarkeit über Umgebungsvariablen <!-- UVI-50 RoGu -->
+- Klare Trennung der Komponenten (Crawler, Datenbank, API, UI) <!-- VI RoGu -->
+- Definierte Schnittstellen zwischen Komponenten <!-- VI RoGu -->
+- API-Versionierung und Erweiterbarkeit <!-- VI RoGu -->
 
 ### 8.4 Sicherheit und Logging
-- Sichere Datenbankverbindungen
-- Eingabevalidierung (SQL-Injection-Schutz)
-- Sanitization von Nutzereingaben
-- Gegen XSS abgesichert
-- Keine Exposition sensibler Daten in Logs
+- Sichere Datenbankverbindungen <!-- VI RoGu -->
+- Eingabevalidierung (SQL-Injection-Schutz) <!-- VI RoGu -->
+- Sanitization von Nutzereingaben <!-- VI RoGu -->
+- Gegen XSS abgesichert <!-- CR: Was das? RoGu -->
+- Keine Exposition sensibler Daten in Logs <!-- VI RoGu -->
 - Protokollierung der Crawl-Aktivitäten
-- Strukturierte Error-Logs mit konfigurierbaren Log-Levels
+- Strukturierte Error-Logs mit konfigurierbaren Log-Levels <!-- UVI-70 RoGu -->
 
 ### 8.5 Benutzerfreundlichkeit
-- API in Englisch 
-- Frontend in Englisch und Deutsch mit Sprachumschaltung 
+- API in Englisch <!-- VI RoGu -->
+- Frontend in Englisch und Deutsch mit Sprachumschaltung
 - Browser-Kompatibilität (80% User-Abdeckung)
 - Farbenblindentauglich (kontrastreiche Farbschemata)
 - Semantisches HTML und Tastaturnavigation
@@ -636,9 +634,9 @@ Die nachfolgenden Maßnahmen gewährleisten die Korrektheit, Wartbarkeit, Standa
 ### 8.6 Projektabschluss
 - Live-Präsentation des finalen Produkts
 - Projektbericht (PDF) mit:
-  - Bedienungsanleitung
-  - Beschreibung der Anwendungsfälle und Lösungen
-  - Zusammenspiel der Komponenten (Crawler, API, UI)
+  - Bedienungsanleitung <!-- NI RoGu -->
+  - Beschreibung der Anwendungsfälle und Lösungen <!-- UVI-50 RoGu -->
+  - Zusammenspiel der Komponenten (Crawler, API, UI) <!-- NI RoGu -->
 
 ## 9. Gliederung in Teilprodukte
 
@@ -670,17 +668,17 @@ Insgesamt ermöglicht die Datenbankkomponente eine robuste, skalierbare und abfr
 ### 9.3 STAC API-Komponente <!-- Vincent -->
 Die STAC API-Komponente bildet das zentrale Bindeglied zwischen der Datenbank und der Web-UI.
   Sie implementiert die SpatioTemporal Asset Catalog (STAC) API Specification in der jeweils aktuellen stabilen Version
-  sowie die Collection Search Extension, um eine standardisierte und effiziente Abfrage der gespeicherten STAC Collections zu ermöglichen.
+  sowie die Collection Search Extension, um eine standardisierte und effiziente Abfrage der gespeicherten STAC Collections zu ermöglichen. <!-- VI RoGu -->
   
 #### 9.3.1 Technische Grundlagen
 Die STAC API-Komponente stellt eine standardisierte Schnittstelle bereit, über die alle gespeicherten STAC-Collections abgefragt und gefiltert werden können.
 Sie verbindet das Datenbank-Backend, in dem die Metadaten der Collections gespeichert sind, mit der Web-Benutzeroberfläche und externen Anwendungen.
 
 Über die API können Nutzende:
-   - Alle verfügbaren Collections abrufen oder gezielt nach bestimmten Daten suchen <!-- VI ViKu -->
-   - Filterungen und Sortierungen anhand von Schlüsselwörtern, räumlichen und zeitlichen Ausdehnungen oder weiteren Metadaten durchführen <!-- VI ViKu -->
+   - Alle verfügbaren Collections abrufen oder gezielt nach bestimmten Daten suchen <!-- VI RoGu -->
+   - Filterungen und Sortierungen anhand von Schlüsselwörtern, räumlichen und zeitlichen Ausdehnungen oder weiteren Metadaten durchführen <!-- UVI-60 RoGu -->
    - Details einzelner Collections abrufen, einschließlich Beschreibung, Lizenz, Provider und räumlicher Ausdehnung <!-- UVI 80 ViKu -->
-   - die Ergebnisse als STAC-konformes JSON-Format abrufen, das auch von anderen STAC-fähigen Anwendungen weiterverarbeitet werden kann <!-- VI ViKu -->
+   - die Ergebnisse als STAC-konformes JSON-Format abrufen, das auch von anderen STAC-fähigen Anwendungen weiterverarbeitet werden kann <!-- VI RoGu -->
 
 Damit bildet die API die zentrale Kommunikationsschnittstelle zwischen der Datenbank und der Web-UI
 und ermöglicht einen einheitlichen, standardkonformen Zugriff auf alle gespeicherten STAC-Daten.
@@ -688,26 +686,25 @@ und ermöglicht einen einheitlichen, standardkonformen Zugriff auf alle gespeich
 #### 9.3.2 Endpunkte
 1. Bereitstellung von Collections
    - `GET /collections` 
-     - Gibt eine Liste aller gespeicherten Collections aus der Datenbank zurück. <!-- VI ViKu -->
-   - Die Antwort ist konform zum STAC API Standard und enthält Metadaten wie `id`, `title`, `description`, `extent`, `keywords`, `providers`, `license`, sowie relevante links. <!-- UVI 80 ViKu -->
-   - Ergebnisse werden pagininiert und alphabetisch nach `title` sortiert (Standardverhalten).
-<!-- CR: Default-Sortierung erfolgt nach id bzw. Rank und nicht strikt alphabetisch nach title ViKu -->
+     - Gibt eine Liste aller gespeicherten Collections aus der Datenbank zurück.
+   - Die Antwort ist konform zum STAC API Standard und enthält Metadaten wie `id`, `title`, `description`, `extent`, `keywords`, `providers`, `license`, sowie relevante links.
+   - Ergebnisse werden pagininiert und alphabetisch nach `title` sortiert (Standardverhalten). <!-- CR: Sortierung nach ID RoGu -->
 
 2. Abruf einer bestimmten Collection
    - `GET /collections/{id}`
-     - Liefert die vollständigen Metadaten einer einzelnen Collection, einschließlich des gesamten STAC-konformen JSON-Objekts.<!-- VI ViKu -->
-   - Wird eine unbekannte ID angefragt, gibt die API eine strukturierte Fehlermeldung gemäß STAC-Spezifikation zurück (`404 Not Found`, JSON mit `code`, `description`, `id`). <!-- UVI 90 ViKu -->
-   - Die Antwort enthält auch links zur zugehörigen Quelle (Original-STAC-API oder Katalog). <!-- VI ViKu -->
-   - `GET /collections/{id}` -> Liefert die vollständigen Metadaten einer einzelnen Collection <!-- VI ViKu -->
+     - Liefert die vollständigen Metadaten einer einzelnen Collection, einschließlich des gesamten STAC-konformen JSON-Objekts.
+   - Wird eine unbekannte ID angefragt, gibt die API eine strukturierte Fehlermeldung gemäß STAC-Spezifikation zurück (`404 Not Found`, JSON mit `code`, `description`, `id`).
+   - Die Antwort enthält auch links zur zugehörigen Quelle (Original-STAC-API oder Katalog). <!-- NI RoGu -->
+   - `GET /collections/{id}` -> Liefert die vollständigen Metadaten einer einzelnen Collection <!-- VI RoGu -->
    
 3. Collection Search
 - `GET /collections`
   und
-- `POST /collections`
+- `POST /collections` <!-- CR: Endpunkt wird nicht implementiert RoGu -->
 - Ermöglicht die gezielte Filterung und Suche nach Collections innerhalb des Index.
-- Unterstützt wird sowohl die einfache Query-Parameter-Variante (GET) als auch komplexe CQL2-Abfragen (POST). <!-- VI ViKu -->
+- Unterstützt wird sowohl die einfache Query-Parameter-Variante (GET) als auch komplexe CQL2-Abfragen (POST). <!-- CR: Kein POST RoGu -->
 
-- Unterstützte Filterparameter (GET):
+- Unterstützte Filterparameter (GET): <!-- VI RoGu -->
    - `q` → Freitextsuche über Titel, Beschreibung und Schlüsselwörter
    - `bbox` → Räumliche Einschränkung (Bounding Box, `[minX, minY, maxX, maxY])`
    - `datetime` → Zeitintervall (ISO8601-Format, z. B. 2019-01-01/2021-12-31)
@@ -717,7 +714,7 @@ und ermöglicht einen einheitlichen, standardkonformen Zugriff auf alle gespeich
    - `sortby` → Sortierung
   <!-- VI ViKu -->
 
-- Erweiterte Filterung über CQL2 (POST):
+- Erweiterte Filterung über CQL2 (POST): <!-- CR: CQL2 auch in GET nicht POST, außerdem ist ein Vergleichsoperator falsch RoGu -->
    - Die API implementiert CQL2 Basic Filtering zur semantischen Abfrage von Eigenschaften:
    - Vergleichsoperatoren: `=`, `!=`, `<`, `<=`, `>`, `>=`
    - Logische Operatoren: `and`, `or`, `not`
@@ -725,10 +722,10 @@ und ermöglicht einen einheitlichen, standardkonformen Zugriff auf alle gespeich
   
 #### 9.3.3 Sicherheit, Performance und Erweiterbarkeit
 Die STAC API-Komponente bildet das zentrale Zugriffssystem auf die indexierten STAC-Collections.
-Sie stellt eine standardisierte und sichere Schnittstelle bereit, über die Nutzende oder andere Systeme gezielt nach Sammlungen suchen, diese filtern und abrufen können.
-Die API verarbeitet Anfragen zuverlässig und unterstützt den Zugriff über alle implementierten Suchfunktionen (Freitext, räumliche und zeitliche Filter, CQL2).
-Durch die modulare Architektur kann die API zukünftig um weitere STAC-Endpunkte, wie etwa „Items“ oder „Item Search“, erweitert werden.
-Zudem erlaubt der Aufbau eine einfache Integration mit der Web-UI-Komponente und externen Anwendungen über REST-Schnittstellen.
+Sie stellt eine standardisierte und sichere Schnittstelle bereit, über die Nutzende oder andere Systeme gezielt nach Sammlungen suchen, diese filtern und abrufen können. <!-- VI RoGu -->
+Die API verarbeitet Anfragen zuverlässig und unterstützt den Zugriff über alle implementierten Suchfunktionen (Freitext, räumliche und zeitliche Filter, CQL2). <!-- VI RoGu -->
+Durch die modulare Architektur kann die API zukünftig um weitere STAC-Endpunkte, wie etwa „Items“ oder „Item Search“, erweitert werden. <!-- VI RoGu -->
+Zudem erlaubt der Aufbau eine einfache Integration mit der Web-UI-Komponente und externen Anwendungen über REST-Schnittstellen. <!-- VI RoGu -->
 
 ### 9.4 UI-Komponente <!-- Simon -->
 Die UI-Komponente stellt die grafische Benutzeroberfläche (GUI) der Plattform dar. Sie dient als Schnittstelle für die interaktive Nutzung der indexierten STAC-Sammlungen. Die Kernaufgabe ist die Gewährleistung einer effizienten Suche, Filterung und Exploration der Sammlungen.
@@ -854,19 +851,19 @@ Die Implementierung folgt einem klar strukturierten Vorgehen in mehreren Phasen,
 ### 10.3 STAC API <!-- Robin -->
 | ID | Arbeitspaket | Ziel/Output | Schritte (Stichpunkte) | Reuse/Technologien |
 |----|--------------|-------------|-------------------------|--------------------|
-| AP-01 | Projekt-Skeleton & Infrastruktur | Lauffähiges API-Grundgerüst mit Konfiguration & Logging | Repo-Struktur (`/api`, `/docs`); Apache-2.0 LICENSE; ENV-Konfig (Port, DB-URL vom DB-Team); strukturierte Logs; einfache Health-Route `GET /` | Python+FastAPI *oder* Node+Fastify/Express; uvicorn/node pm2; dotenv | <!-- VI ViKu -->
-| AP-02 | Daten-Vertrag & Queryables (API-Seite) | Konsistentes Feld-Set & ` /queryables` für die UI | Such-/Filterfelder festlegen (id, title, description, extent, keywords, providers.name, license, doi, `summaries.platform/constellation/gsd/processing:level`); Datentypen (CQL2-kompatibel) definieren; `GET /queryables` (global/optional pro Collection); Dokumentation für UI | STAC Collections/Queryables Best Practices; CQL2 Typen |<!-- UVI-80 ViKu-->
-| AP-03 | STAC-Core Endpunkte | STAC-konforme Basisrouten bereitstellen | `GET /` (Landing + Links), `GET /conformance` (Core+Collections vorerst), `GET /collections`, `GET /collections/{id}`; Link-Relationen & Service-Doku referenzieren | OpenAPI/Swagger-UI; STAC API Core/Collections | <!-- VI ViKu -->
-| AP-04 | Collection Search – Routen & Parameter | Collection-Search-Schnittstelle mit `q`, `filter`, `sort`, Paging | Route definieren (Parametrisierung von `/collections`); Request-Validierung; Paging-Links | STAC Collection Search Extension; API Framework Middleware |<!-- VI ViKu -->
-| AP-05 | CQL2 Basic – Parsing & Validierung | Gültige CQL2-Basic-Filter erkennen & valide/klare Fehlermeldungen liefern | Bestehende Parser/Validator-Lib einbinden; Request-Modelle (JSON/Text); Fehlermeldungen standardisieren | *cql2-rs* oder *pycql2* | <!-- VI ViKu -->
-| AP-06 | CQL2-Ausführung – AST → SQL | CQL2-AST in effiziente SQL-Where-Klauseln übersetzen | Visitor/Mapper je Knotentyp (Vergleich, Logik, `IS NULL`, optional `LIKE/IN/BETWEEN`); Parametrisiertes SQL; Schutz vor teuren Scans (Zeit/Seite begrenzen) | — | <!-- VI ViKu -->
-| AP-07 | Freitext `q` & Sortierung | Relevanzbasierte Freitextsuche + stabile Sortierung | Felder für `q` bestimmen (title, description, keywords, providers); Whitelist für `sortby`; Validierung bei nicht unterstützten Feldern → 400 | API-seitige Param-Validierung | <!-- VI ViKu -->
-| AP-08 | Conformance & OpenAPI | Vollständige Konformitätsangaben & saubere API-Doku | `/conformance` um Collection Search + Filter (Basic CQL2) erweitern (später optional Advanced); OpenAPI/Service-Desc verlinken; Beispiele dokumentieren | STAC Conformance-URIs; OpenAPI Generator/Swagger-UI | <!-- VI ViKu -->
-| AP-09 | Fehlerbehandlung & Antwortformate | Konsistente HTTP-Fehler & STAC-kompatible Antworten | Einheitliche Fehlerstruktur (400/404/422/500) | RFC7807 | <!-- VI ViKu -->
-| AP-10 | Performance & Parallelität (API-Ebene) | Anforderungen an Latenz/Parallelität API-seitig erfüllen | Server-Worker/Threading konfigurieren; DB-Poolgrößen (Client-Seite) abstimmen; Limits/Timeouts setzen; typische Queries als Synthetic-Checks | uvicorn/gunicorn-Workers oder Node Cluster; Locust/k6 für Synthetic | <!-- NI ViKu -->
-| AP-11 | Security & Betrieb (API-Ebene) | Sichere Standardkonfiguration & Betriebsfähigkeit | CORS/Headers; Request-Größenlimits; Rate-Limiting/Burst-Schutz; strukturierte Logs & Basis-Metriken; einfache Traces | fastapi-middlewares/helmet/express-rate-limit; OpenTelemetry (leichtgewichtig) | <!-- NI ViKu -->
-| AP-12 | Deployment & Cross-OS | Reproduzierbare Bereitstellung der API | Container/Dockerfile nur für API; Compose (optional) ohne DB-Build; Windows & Linux Smoke-Tests; ENV-Templates | Docker/Podman; Make/Taskfile; `.env.example` | <!-- NI ViKu -->
-| AP-13 | Integration & E2E Demo | Nachweis „Crawler → API → UI“ aus API-Sicht | DB- & UI-Team liefern Staging-Instanzen | curl/Postman Collections; minimaler Demo-Guide | <!-- NI ViKu -->
+| AP-01 | Projekt-Skeleton & Infrastruktur | Lauffähiges API-Grundgerüst mit Konfiguration & Logging | Repo-Struktur (`/api`, `/docs`); Apache-2.0 LICENSE; ENV-Konfig (Port, DB-URL vom DB-Team); strukturierte Logs; einfache Health-Route `GET /` | Python+FastAPI *oder* Node+Fastify/Express; uvicorn/node pm2; dotenv | <!-- UVI-90 RoGu -->
+| AP-02 | Daten-Vertrag & Queryables (API-Seite) | Konsistentes Feld-Set & ` /queryables` für die UI | Such-/Filterfelder festlegen (id, title, description, extent, keywords, providers.name, license, doi, `summaries.platform/constellation/gsd/processing:level`); Datentypen (CQL2-kompatibel) definieren; `GET /queryables` (global/optional pro Collection); Dokumentation für UI | STAC Collections/Queryables Best Practices; CQL2 Typen | <!-- CR: collections-queryables und Filterfelder anpassen RoGu -->
+| AP-03 | STAC-Core Endpunkte | STAC-konforme Basisrouten bereitstellen | `GET /` (Landing + Links), `GET /conformance` (Core+Collections vorerst), `GET /collections`, `GET /collections/{id}`; Link-Relationen & Service-Doku referenzieren | OpenAPI/Swagger-UI; STAC API Core/Collections | <!-- UVI-90 RoGu -->
+| AP-04 | Collection Search – Routen & Parameter | Collection-Search-Schnittstelle mit `q`, `filter`, `sort`, Paging | Route definieren (Parametrisierung von `/collections`); Request-Validierung; Paging-Links | STAC Collection Search Extension; API Framework Middleware | <!-- VI RoGu -->
+| AP-05 | CQL2 Basic – Parsing & Validierung | Gültige CQL2-Basic-Filter erkennen & valide/klare Fehlermeldungen liefern | Bestehende Parser/Validator-Lib einbinden; Request-Modelle (JSON/Text); Fehlermeldungen standardisieren | *cql2-rs* oder *pycql2* | <!-- VI RoGu -->
+| AP-06 | CQL2-Ausführung – AST → SQL | CQL2-AST in effiziente SQL-Where-Klauseln übersetzen | Visitor/Mapper je Knotentyp (Vergleich, Logik, `IS NULL`, optional `LIKE/IN/BETWEEN`); Parametrisiertes SQL; Schutz vor teuren Scans (Zeit/Seite begrenzen) | — | <!-- VI RoGu -->
+| AP-07 | Freitext `q` & Sortierung | Relevanzbasierte Freitextsuche + stabile Sortierung | Felder für `q` bestimmen (title, description, keywords, providers); Whitelist für `sortby`; Validierung bei nicht unterstützten Feldern → 400 | API-seitige Param-Validierung | <!-- CR: kein providers in Volltextsuche RoGu -->
+| AP-08 | Conformance & OpenAPI | Vollständige Konformitätsangaben & saubere API-Doku | `/conformance` um Collection Search + Filter (Basic CQL2) erweitern (später optional Advanced); OpenAPI/Service-Desc verlinken; Beispiele dokumentieren | STAC Conformance-URIs; OpenAPI Generator/Swagger-UI | <!-- UVI-70 RoGu -->
+| AP-09 | Fehlerbehandlung & Antwortformate | Konsistente HTTP-Fehler & STAC-kompatible Antworten | Einheitliche Fehlerstruktur (400/404/422/500) | RFC7807 | <!-- VI RoGu -->
+| AP-10 | Performance & Parallelität (API-Ebene) | Anforderungen an Latenz/Parallelität API-seitig erfüllen | Server-Worker/Threading konfigurieren; DB-Poolgrößen (Client-Seite) abstimmen; Limits/Timeouts setzen; typische Queries als Synthetic-Checks | uvicorn/gunicorn-Workers oder Node Cluster; Locust/k6 für Synthetic | <!-- UVI-50 RoGu -->
+| AP-11 | Security & Betrieb (API-Ebene) | Sichere Standardkonfiguration & Betriebsfähigkeit | CORS/Headers; Request-Größenlimits; Rate-Limiting/Burst-Schutz; strukturierte Logs & Basis-Metriken; einfache Traces | fastapi-middlewares/helmet/express-rate-limit; OpenTelemetry (leichtgewichtig) | <!-- UVI-50 RoGu -->
+| AP-12 | Deployment & Cross-OS | Reproduzierbare Bereitstellung der API | Container/Dockerfile nur für API; Compose (optional) ohne DB-Build; Windows & Linux Smoke-Tests; ENV-Templates | Docker/Podman; Make/Taskfile; `.env.example` | <!-- UVI-30 RoGu -->
+| AP-13 | Integration & E2E Demo | Nachweis „Crawler → API → UI“ aus API-Sicht | DB- & UI-Team liefern Staging-Instanzen | curl/Postman Collections; minimaler Demo-Guide | <!-- UVI-20 RoGu -->
 
 
 ### 10.4 UI <!-- Justin -->
@@ -982,7 +979,7 @@ Filterparameter werden in den Anfragen nach dem CQL2-Standard übergeben.
 ### 12.3 STAC API-Komponente
 - Robin (Projektleiter, Teamleiter)
 - Jonas
-- George
+- George <!-- CR: George is not a part of the Project anymore RoGu -->
 - Vincent
 
 ### 12.4 UI
