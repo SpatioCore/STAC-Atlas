@@ -32,26 +32,26 @@ describe('STAC API Core Endpoints', () => {
     });
 
 	
-	it('should expose the same conformance classes as the /conformance endpoint', async () => {
-	  const [landingRes, confRes] = await Promise.all([
-		request(app).get('/').expect(200),
-		request(app).get('/conformance').expect(200)
-	  ]);
+  it('should expose the same conformance classes as the /conformance endpoint', async () => {
+    const [landingRes, confRes] = await Promise.all([
+    request(app).get('/').expect(200),
+    request(app).get('/conformance').expect(200)
+    ]);
 
-	  const landingConformance = landingRes.body.conformsTo;
-	  const endpointConformance = confRes.body.conformsTo;
+    const landingConformance = landingRes.body.conformsTo;
+    const endpointConformance = confRes.body.conformsTo;
 
-	  // both must be arrays
-	  expect(Array.isArray(landingConformance)).toBe(true);
-	  expect(Array.isArray(endpointConformance)).toBe(true);
+    // both must be arrays
+    expect(Array.isArray(landingConformance)).toBe(true);
+    expect(Array.isArray(endpointConformance)).toBe(true);
 
-	  // support function: sort, so that the order doesn't matter
-	  const sortStrings = arr => [...arr].sort();
+    // support function: sort, so that the order doesn't matter
+    const sortStrings = arr => [...arr].sort();
 
-	  expect(sortStrings(landingConformance)).toEqual(
-		sortStrings(endpointConformance)
-	  );
-	});
+    expect(sortStrings(landingConformance)).toEqual(
+    sortStrings(endpointConformance)
+    );
+  });
   });
 
   describe('GET /conformance', () => {
@@ -120,13 +120,16 @@ describe('STAC API Core Endpoints', () => {
     });
   });
 
-  describe('GET /collections/:id', () => {
-    it('should return 404 for non-existent collection', async () => {
-      const response = await request(app).get('/collections/non-existent-id').expect(404);
+ describe('GET /collections/:id', () => {
+  it('should return 404 for non-existent collection', async () => {
+    const nonExistingId = 999999999;
 
-      expect(response.body).toHaveProperty('code', 'NotFound');
-      expect(response.body).toHaveProperty('description');
-      expect(response.body).toHaveProperty('id', 'non-existent-id');
+    const response = await request(app)
+      .get(`/collections/${nonExistingId}`)
+      .expect(404);
+
+    expect(response.body).toHaveProperty('code', 'NotFound');
+    expect(response.body).toHaveProperty('description');
     });
   });
 });

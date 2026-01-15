@@ -22,15 +22,19 @@
   "license": "Apache-2.0",
   "dependencies": {
     "cors": "^2.8.5",
+    "cql2-wasm": "^0.4.2",
     "debug": "~2.6.9",
     "dotenv": "^17.2.3",
-    "express": "~4.16.1",
-    "morgan": "~1.9.1",
+    "express": "^4.22.1",
+    "morgan": "^1.10.1",
     "pg": "^8.16.3",
     "swagger-ui-express": "^5.0.1",
     "yamljs": "^0.3.0"
   },
   "devDependencies": {
+    "@babel/core": "^7.28.5",
+    "@babel/preset-env": "^7.28.5",
+    "babel-jest": "^30.2.0",
     "eslint": "^8.57.1",
     "jest": "^29.7.0",
     "nodemon": "^3.1.11",
