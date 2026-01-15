@@ -69,6 +69,14 @@ async function insertOrUpdateCatalog(catalog) {
     const description = catalog.description || null;
     const stacVersion = catalog.stac_version || catalog.stacVersion || null;
     
+    // Extract source URL from links (prefer 'self', fallback to 'root')
+    let sourceUrl = null;
+    if (catalog.links && Array.isArray(catalog.links)) {
+      const selfLink = catalog.links.find(link => link.rel === 'self');
+      const rootLink = catalog.links.find(link => link.rel === 'root');
+      sourceUrl = selfLink?.href || rootLink?.href || null;
+    }
+    
     // Check if catalog with this title already exists
     const existingCatalog = await client.query(
       'SELECT id FROM catalog WHERE title = $1',
@@ -83,27 +91,30 @@ async function insertOrUpdateCatalog(catalog) {
         `UPDATE catalog SET 
           stac_version = $1, 
           type = $2, 
-          description = $3, 
+          description = $3,
+          source_url = $4,
           updated_at = now() 
-         WHERE id = $4`,
+         WHERE id = $5`,
         [
           stacVersion,
           catalog.type || 'Catalog',
           description,
+          sourceUrl,
           catalogId
         ]
       );
     } else {
       // Insert new catalog
       const catalogResult = await client.query(
-        `INSERT INTO catalog (stac_version, type, title, description, updated_at)
-         VALUES ($1, $2, $3, $4, now())
+        `INSERT INTO catalog (stac_version, type, title, description, source_url, updated_at)
+         VALUES ($1, $2, $3, $4, $5, now())
          RETURNING id`,
         [
           stacVersion,
           catalog.type || 'Catalog',
           catalogTitle,
-          description
+          description,
+          sourceUrl
         ]
       );
       catalogId = catalogResult.rows[0].id;
@@ -187,6 +198,15 @@ async function insertOrUpdateCollection(collection) {
 
     // Insert or update collection
     const collectionTitle = collection.title || collection.id || 'Unnamed Collection';
+    const stacId = collection.id || null;
+    
+    // Extract source URL from links (prefer 'self', fallback to 'root')
+    let sourceUrl = null;
+    if (collection.links && Array.isArray(collection.links)) {
+      const selfLink = collection.links.find(link => link.rel === 'self');
+      const rootLink = collection.links.find(link => link.rel === 'root');
+      sourceUrl = selfLink?.href || rootLink?.href || null;
+    }
     
     // Check if collection with this title already exists
     const existingCollection = await client.query(
@@ -200,19 +220,22 @@ async function insertOrUpdateCollection(collection) {
       collectionId = existingCollection.rows[0].id;
       await client.query(
         `UPDATE collection SET 
-          stac_version = $1,
-          type = $2,
-          description = $3,
-          license = $4,
-          spatial_extent = ST_GeomFromEWKT($5),
-          temporal_extent_start = $6,
-          temporal_extent_end = $7,
-          is_api = $8,
-          is_active = $9,
-          full_json = $10,
+          stac_id = $1,
+          stac_version = $2,
+          type = $3,
+          description = $4,
+          license = $5,
+          spatial_extent = ST_GeomFromEWKT($6),
+          temporal_extent_start = $7,
+          temporal_extent_end = $8,
+          is_api = $9,
+          is_active = $10,
+          full_json = $11,
+          source_url = $12,
           updated_at = now()
-         WHERE id = $11`,
+         WHERE id = $13`,
         [
+          stacId,
           collection.stac_version || null,
           collection.type || 'Collection',
           collection.description || null,
@@ -223,6 +246,7 @@ async function insertOrUpdateCollection(collection) {
           false, // is_api - will be determined by crawler
           true, // is_active
           JSON.stringify(collection),
+          sourceUrl,
           collectionId
         ]
       );
@@ -230,13 +254,14 @@ async function insertOrUpdateCollection(collection) {
       // Insert new collection
       const collectionResult = await client.query(
         `INSERT INTO collection (
-          stac_version, type, title, description, license,
+          stac_id, stac_version, type, title, description, license,
           spatial_extent, temporal_extent_start, temporal_extent_end,
-          is_api, is_active, full_json, updated_at
+          is_api, is_active, full_json, source_url, updated_at
         )
-        VALUES ($1, $2, $3, $4, $5, ST_GeomFromEWKT($6), $7, $8, $9, $10, $11, now())
+        VALUES ($1, $2, $3, $4, $5, $6, ST_GeomFromEWKT($7), $8, $9, $10, $11, $12, $13, now())
         RETURNING id`,
         [
+          stacId,
           collection.stac_version || null,
           collection.type || 'Collection',
           collectionTitle,
@@ -247,7 +272,8 @@ async function insertOrUpdateCollection(collection) {
           temporalEnd,
           false, // is_api - will be determined by crawler
           true, // is_active
-          JSON.stringify(collection)
+          JSON.stringify(collection),
+          sourceUrl
         ]
       );
       collectionId = collectionResult.rows[0].id;
