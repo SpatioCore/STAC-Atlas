@@ -51,31 +51,43 @@ describe('GET /collections/:id - Single collection retrieval', () => {
     expect(selfLink.href).toContain(`/collections/${existingId}`);
   });
 
-  test('should return 404 for non-existing collection id', async () => {
-  const res = await request(app)
-    .get('/collections/not-a-number')
-    .expect(404);
+  test('should return 400 for invalid characters in id', async () => {
+    const res = await request(app)
+      .get('/collections/invalid id with spaces')
+      .expect(400);
 
-  expect(res.body).toHaveProperty('code', 'NotFound');
-  expect(res.body).toHaveProperty('id', 'not-a-number');
-});
+    expect(res.body).toHaveProperty('code', 'InvalidParameter');
+    expect(res.body).toHaveProperty('detail');
+    expect(res.body.detail).toMatch(/invalid characters/i);
+    expect(res.body).toHaveProperty('parameter', 'id');
+  });
 
-  test('should return 404 for non-existing negative id', async () => {
-  const res = await request(app)
-    .get('/collections/-1')
-    .expect(404);
+  test('should return 400 for id exceeding length limit', async () => {
+    const longId = 'a'.repeat(257); // 257 characters, exceeds 256 limit
 
-  expect(res.body.code).toBe('NotFound');
-});
-  test('should return 400 for an empty string', async () => {
-  const res = await request(app)
-    .get('/collections/')
-    .expect(400);
+    const res = await request(app)
+      .get(`/collections/${longId}`)
+      .expect(400);
 
-  expect(res.body).toHaveProperty('code', 'InvalidParameter');
-});
-  
-  test('should return 404 for a non-existing numeric id', async () => {
+    expect(res.body).toHaveProperty('code', 'InvalidParameter');
+    expect(res.body.detail).toMatch(/too long/i);
+    expect(res.body).toHaveProperty('parameter', 'id');
+  });
+
+  test('should accept valid STAC-style collection ids', async () => {
+    // These should pass validation but return 404 since they don't exist
+    const validIds = ['GeosoftwareII', 'my.collection_01', 'abc123'];
+
+    for (const id of validIds) {
+      const res = await request(app)
+        .get(`/collections/${id}`)
+        .expect(404);
+
+      expect(res.body).toHaveProperty('code', 'NotFound');
+    }
+  });
+
+  test('should return 404 for non-existing numeric id', async () => {
     // use a very large id that is unlikely to exist
     const nonExistingId = 999999999;
 

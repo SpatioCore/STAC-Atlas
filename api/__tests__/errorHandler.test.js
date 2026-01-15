@@ -77,14 +77,6 @@ describe('Error Handler Integration Tests', () => {
       expect(response.body.code).toBe('InvalidParameterValue');
     });
 
-    test('InvalidParameter for malformed parameters', async () => {
-      const response = await request(app)
-        .get('/collections/not-a-number')
-        .expect(400);
-
-      expect(response.body.code).toBe('InvalidParameter');
-    });
-
     test('NotFound for missing resources', async () => {
       const response = await request(app)
         .get('/collections/999999999')
