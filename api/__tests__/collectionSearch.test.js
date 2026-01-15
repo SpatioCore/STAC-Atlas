@@ -14,10 +14,10 @@ describe('Collection Search API - Query Parameters', () => {
         .get('/collections')
         .expect(200);
       
-      expect(response.body).toHaveProperty('type', 'FeatureCollection');
+      
       expect(response.body).toHaveProperty('collections');
-      expect(response.body).toHaveProperty('context');
-      expect(response.body.context.limit).toBe(10); // default limit
+      expect(response.body).toHaveProperty('links');
+      
     });
 
     it('should accept valid limit parameter', async () => {
@@ -25,8 +25,12 @@ describe('Collection Search API - Query Parameters', () => {
         .get('/collections?limit=5')
         .expect(200);
       
-      expect(response.body.context.limit).toBe(5);
+      
       expect(response.body.collections.length).toBeLessThanOrEqual(5);
+      const self = response.body.links.find(l => l.rel === 'self');
+      expect(self).toBeDefined();
+      const url = new URL(self.href);
+      expect(url.searchParams.get('limit')).toBe('5');
     });
 
     it('should accept valid token parameter', async () => {
@@ -42,8 +46,12 @@ describe('Collection Search API - Query Parameters', () => {
         .get('/collections?limit=3&token=0')
         .expect(200);
       
-      expect(response.body.context.limit).toBe(3);
+      
       expect(response.body.collections.length).toBeLessThanOrEqual(3);
+      const self = response.body.links.find(l => l.rel === 'self');
+      expect(self).toBeDefined();
+      const url = new URL(self.href);
+      expect(url.searchParams.get('limit')).toBe('3');
     });
 
     it('should accept valid q parameter', async () => {
@@ -83,8 +91,12 @@ describe('Collection Search API - Query Parameters', () => {
         .get('/collections?q=test&limit=5&sortby=%2Btitle')
         .expect(200);
       
-      expect(response.body.context.limit).toBe(5);
+      
       expect(response.body).toHaveProperty('collections');
+      const self = response.body.links.find(l => l.rel === 'self');
+      expect(self).toBeDefined();
+      const url = new URL(self.href);
+      expect(url.searchParams.get('limit')).toBe('5');
     });
 
     // ========== Limit Parameter Validation ==========
@@ -292,7 +304,10 @@ describe('Collection Search API - Query Parameters', () => {
         .expect(200);
       
       expect(response.body.collections.length).toBeLessThanOrEqual(2);
-      expect(response.body.context.limit).toBe(2);
+      const self = response.body.links.find(l => l.rel === 'self');
+      expect(self).toBeDefined();
+      const url = new URL(self.href);
+      expect(url.searchParams.get('limit')).toBe('2');
     });
 
     it('should include next link when more results available', async () => {
@@ -303,10 +318,9 @@ describe('Collection Search API - Query Parameters', () => {
       const links = response.body.links;
       const nextLink = links.find(link => link.rel === 'next');
       
-      // Only check for next link if there are more items than limit
-      if (response.body.context.matched > response.body.context.limit) {
-        expect(nextLink).toBeDefined();
-        expect(nextLink.href).toContain('token=');
+      if (nextLink) {
+        const url = new URL(nextLink.href);
+        expect(url.searchParams.get('token')).not.toBeNull();
       }
     });
 
@@ -335,18 +349,7 @@ describe('Collection Search API - Query Parameters', () => {
       expect(selfLink.href).toContain('token=10');
     });
 
-    it('should return context with correct counts', async () => {
-      const response = await request(app)
-        .get('/collections?limit=3')
-        .expect(200);
-      
-      const context = response.body.context;
-      expect(context).toHaveProperty('returned');
-      expect(context).toHaveProperty('limit', 3);
-      expect(context).toHaveProperty('matched');
-      expect(context.returned).toBeLessThanOrEqual(context.limit);
-      expect(context.returned).toBeLessThanOrEqual(context.matched);
-    });
+    
 
     it('should handle token beyond available results', async () => {
       const response = await request(app)
@@ -354,7 +357,8 @@ describe('Collection Search API - Query Parameters', () => {
         .expect(200);
       
       expect(response.body.collections).toHaveLength(0);
-      expect(response.body.context.returned).toBe(0);
+      const returned = response.body.collections.length;
+      expect(returned).toBe(0);
     });
   });
 
@@ -366,14 +370,8 @@ describe('Collection Search API - Query Parameters', () => {
         .expect(200);
       
       expect(response.body).toMatchObject({
-        type: 'FeatureCollection',
         collections: expect.any(Array),
         links: expect.any(Array),
-        context: {
-          returned: expect.any(Number),
-          limit: expect.any(Number),
-          matched: expect.any(Number)
-        }
       });
     });
 

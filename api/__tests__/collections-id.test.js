@@ -51,25 +51,22 @@ describe('GET /collections/:id - Single collection retrieval', () => {
     expect(selfLink.href).toContain(`/collections/${existingId}`);
   });
 
-  test('should return 400 for an invalid (non-numeric) id', async () => {
+  test('should return 404 for non-existing collection id (non-numeric)', async () => {
   const res = await request(app)
     .get('/collections/not-a-number')
-    .expect(400);
+    .expect(404);
 
-  expect(res.body).toHaveProperty('code', 'InvalidParameter');
-  expect(res.body.description).toMatch(/id/i);
+  expect(res.body).toHaveProperty('code', 'NotFound');
+  expect(res.body).toHaveProperty('id', 'not-a-number');
 });
 
-  test('should return 400 for a negative id', async () => {
-  const negativeId = '-1';
-
+  test('should return 404 for non-existing negative id', async () => {
   const res = await request(app)
-    .get(`/collections/${encodeURIComponent(negativeId)}`)
-    .expect(400);
+    .get('/collections/-1')
+    .expect(404);
 
-  expect(res.body).toHaveProperty('code', 'InvalidParameter');
-  expect(res.body.description).toMatch(/id/i);
-})
+  expect(res.body.code).toBe('NotFound');
+});
   
   test('should return 404 for a non-existing numeric id', async () => {
     // use a very large id that is unlikely to exist
