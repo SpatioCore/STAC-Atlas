@@ -6,6 +6,7 @@ const { query } = require('../db/db_APIconnection');
 const { buildCollectionSearchQuery } = require('../db/buildCollectionSearchQuery');
 const { parseCql2Text, parseCql2Json } = require('../utils/cql2');
 const { cql2ToSql } = require('../utils/cql2ToSql');
+const { ErrorResponses } = require('../utils/errorResponse');
 
 // helper to map DB row to STAC Collection object
 // the full_json column contains the original STAC Collection Json as crawled but it is needed to set some fields/links correctly
@@ -253,12 +254,14 @@ const { sql, values } = buildCollectionSearchQuery(queryParams);
 const rows = await runQuery(sql, values);
 
     if (!rows || rows.length === 0) {
-      // Return 404 with standardized error format
-      return res.status(404).json({
-        code: 'NotFound',
-        description: `Collection with id '${id}' not found`,
-        id: id
-      });
+      // Return 404 with RFC 7807 format
+      const errorResponse = ErrorResponses.notFound(
+        `Collection with id '${id}' not found`,
+        req.requestId,
+        req.originalUrl
+      );
+      errorResponse.id = id; // Add collection id for context
+      return res.status(404).json(errorResponse);
     }
 
         const row = rows[0];
