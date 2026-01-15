@@ -4,6 +4,9 @@ const { validateCollectionId } = require('../middleware/validateCollectionId');
 const { validateCollectionSearchParams } = require('../middleware/validateCollectionSearch');
 const { query } = require('../db/db_APIconnection');
 const { buildCollectionSearchQuery } = require('../db/buildCollectionSearchQuery');
+const { parseCql2Text, parseCql2Json } = require('../utils/cql2');
+const { cql2ToSql } = require('../utils/cql2ToSql');
+const { ErrorResponses } = require('../utils/errorResponse');
 
 // helper to map DB row to STAC Collection object
 // the full_json column contains the original STAC Collection Json as crawled but it is needed to set some fields/links correctly
@@ -100,10 +103,33 @@ async function runQuery(sql, params = []) {
  */
 router.get('/', validateCollectionSearchParams, async (req, res, next) => {
   // TODO: Think about the parameters `provider` and `license` - They are mentioned in the bid, but not in the STAC spec
-  // TODO: Implement CQL2 filtering (GET endpoint) and add validator for `filter`, filter-lang` parameters
   try {
     // validated parameters from middleware
-    const { q, bbox, datetime, limit, sortby, token, provider, license } = req.validatedParams;
+    const { q, bbox, datetime, limit, sortby, token, provider, license, filter } = req.validatedParams;
+    const filterLang = req.validatedParams['filter-lang'] || 'cql2-text'; // seperate extraction due to hyphen and default value
+
+    let cqlFilter = undefined;
+    if (filter) {
+        try {
+            let cqlJson;
+            if (filterLang === 'cql2-text') {
+                cqlJson = await parseCql2Text(filter);
+            } else if (filterLang === 'cql2-json') {
+                cqlJson = await parseCql2Json(filter);
+            }
+            
+            if (cqlJson) {
+                const values = [];
+                const sql = cql2ToSql(cqlJson, values);
+                cqlFilter = { sql, values };
+            }
+        } catch (err) {
+            return res.status(400).json({
+                code: 'InvalidParameterValue',
+                description: `Invalid filter expression: ${err.message}`
+            });
+        }
+    }
 
     // build SQL querry and parameters
     const { sql, values } = buildCollectionSearchQuery({
@@ -114,7 +140,8 @@ router.get('/', validateCollectionSearchParams, async (req, res, next) => {
       license,
       limit,
       sortby,
-      token
+      token,
+      cqlFilter
     });
 
     // execute Query against database
@@ -227,12 +254,14 @@ const { sql, values } = buildCollectionSearchQuery(queryParams);
 const rows = await runQuery(sql, values);
 
     if (!rows || rows.length === 0) {
-      // Return 404 with standardized error format
-      return res.status(404).json({
-        code: 'NotFound',
-        description: `Collection with id '${id}' not found`,
-        id: id
-      });
+      // Return 404 with RFC 7807 format
+      const errorResponse = ErrorResponses.notFound(
+        `Collection with id '${id}' not found`,
+        req.requestId,
+        req.originalUrl
+      );
+      errorResponse.id = id; // Add collection id for context
+      return res.status(404).json(errorResponse);
     }
 
         const row = rows[0];

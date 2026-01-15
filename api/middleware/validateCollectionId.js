@@ -1,3 +1,5 @@
+const { ErrorResponses } = require('../utils/errorResponse');
+
 /**
  * Middleware to validate the :id route parameter for /collections/:id.
  *
@@ -6,30 +8,37 @@
  * - The database only uses digits as ids, but the API should accept common STAC
  * - collection id formats.
  * - Prevents obviously malformed input reaching the database layer.
- * - On error, responds with a 404 JSON body that matches the "NotFound" error
- *   format used elsewhere in the API tests.
+ * - On error, responds with a 400 JSON body using RFC 7807 format.
  */
 function validateCollectionId(req, res, next) {
   const { id } = req.params;
 
   // not empty
   if (typeof id !== 'string' || id.trim().length === 0) {
-    return res.status(400).json({
-      code: 'InvalidParameter',
-      description: 'The "id" parameter is required.',
-      parameter: 'id',
-      value: id
-    });
+    const errorResponse = ErrorResponses.invalidParameter(
+      'The "id" parameter is required. It cannot be empty.',
+      req.requestId,
+      req.originalUrl,
+      {
+        parameter: 'id',
+        value: id
+      }
+    );
+    return res.status(400).json(errorResponse);
   }
 
   // length limit (STAC IDs are usually short; 256 is generous)
   if (id.length > 256) {
-    return res.status(400).json({
-      code: 'InvalidParameter',
-      description: 'The "id" parameter is too long.',
-      parameter: 'id',
-      value: id
-    });
+    const errorResponse = ErrorResponses.invalidParameter(
+      'The "id" parameter is too long. It\'s not allowed to exceed 256 characters.',
+      req.requestId,
+      req.originalUrl,
+      {
+        parameter: 'id',
+        value: id
+      }
+    );
+    return res.status(400).json(errorResponse);
   }
 
   // whitelist allowed characters
@@ -37,13 +46,16 @@ function validateCollectionId(req, res, next) {
   // - disallows slashes, spaces, quotes, etc.
   const allowed = /^[A-Za-z0-9._-]+$/u;
   if (!allowed.test(id)) {
-    return res.status(400).json({
-      code: 'InvalidParameter',
-      description:
-        'The "id" parameter contains invalid characters. Allowed: letters, digits, ".", "_", "-".',
-      parameter: 'id',
-      value: id
-    });
+    const errorResponse = ErrorResponses.invalidParameter(
+      'The "id" parameter contains invalid characters. Allowed: letters, digits, ".", "_", "-".',
+      req.requestId,
+      req.originalUrl,
+      {
+        parameter: 'id',
+        value: id
+      }
+    );
+    return res.status(400).json(errorResponse);
   }
 
   return next();

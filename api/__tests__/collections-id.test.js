@@ -51,7 +51,7 @@ describe('GET /collections/:id - Single collection retrieval', () => {
     expect(selfLink.href).toContain(`/collections/${existingId}`);
   });
 
-  test('should return 404 for non-existing collection id (non-numeric)', async () => {
+  test('should return 404 for non-existing collection id', async () => {
   const res = await request(app)
     .get('/collections/not-a-number')
     .expect(404);
@@ -66,6 +66,13 @@ describe('GET /collections/:id - Single collection retrieval', () => {
     .expect(404);
 
   expect(res.body.code).toBe('NotFound');
+});
+  test('should return 400 for an empty string', async () => {
+  const res = await request(app)
+    .get('/collections/')
+    .expect(400);
+
+  expect(res.body).toHaveProperty('code', 'InvalidParameter');
 });
   
   test('should return 404 for a non-existing numeric id', async () => {

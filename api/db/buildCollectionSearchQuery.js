@@ -66,6 +66,11 @@
  *
  * @param {string|undefined} params.license
  *        License identifier to filter collections by `collection.license`.
+ * 
+ * @param {{sql: string, values: any[]}|undefined} params.cqlFilter
+ *        Pre-parsed CQL2 filter SQL fragment and values.
+ *        The SQL fragment uses 1-based placeholders ($1, $2...) relative to its own values.
+ *        This function will re-index them to match the main query's parameter sequence.
  *
  * @returns {{ sql: string, values: any[] }}
  *          sql    – complete parameterized SQL string
@@ -83,7 +88,8 @@ function buildCollectionSearchQuery(params) {
     sortby,
     limit,
     token,
-    collectionId
+    collectionId,
+    cqlFilter
   } = params;
 
   // Base SELECT columns. We may append a relevance `rank` column below when `q` is present.
@@ -235,6 +241,22 @@ function buildCollectionSearchQuery(params) {
     where.push(`c.license = $${i}`);
     values.push(license);
     i++;
+  }
+
+  // CQL2 Filter
+  if (cqlFilter && cqlFilter.sql) {
+    // Re-index placeholders in cqlFilter.sql
+    // Current index is i.
+    // cqlFilter.sql has $1, $2...
+    // We need to replace $1 with $i, $2 with $(i+1)...
+    
+    const reindexedSql = cqlFilter.sql.replace(/\$(\d+)/g, (match, num) => {
+      return '$' + (parseInt(num) + i - 1);
+    });
+    
+    where.push(`(${reindexedSql})`);
+    values.push(...cqlFilter.values);
+    i += cqlFilter.values.length;
   }
 
   // Build final SQL from selectPart and add FROM clause with LATERAL JOINs.
