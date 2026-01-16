@@ -40,8 +40,6 @@ async function crawlCatalogs(initialCatalogs, config = {}) {
 
     const crawler = new HttpCrawler({
         requestHandlerTimeoutSecs: timeoutSecs,
-        maxConcurrency: 20, // Limit concurrency to prevent lock file race conditions
-        maxRequestsPerMinute: 200, // Rate limit to avoid overwhelming targets
         
         // Rate limiting options
         maxConcurrency: config.maxConcurrency || 5,

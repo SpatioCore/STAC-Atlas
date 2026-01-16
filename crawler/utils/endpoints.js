@@ -57,7 +57,26 @@ export async function tryCollectionEndpoints(stacCatalog, baseUrl, catalogId, de
             urlParts.pop();
         }
         
-        collectionUrl = urlParts.join('/') + '/collections';
+        // In STAC API, /collections is at the API root, not under catalog paths
+        // Remove catalog-specific path segments (like /catalog) to get to API root
+        const apiRoot = urlParts.slice(0, 3).join('/'); // protocol://domain:port
+        const pathSegments = urlParts.slice(3);
+        
+        // Try to find API root by removing common catalog path patterns
+        let rootPath = '';
+        if (pathSegments.length > 0) {
+            // If there's a path like /api/catalog or /v1/catalog, use /api or /v1 as root
+            const catalogIndex = pathSegments.findIndex(seg => 
+                seg === 'catalog' || seg === 'catalogs' || seg.endsWith('.json')
+            );
+            if (catalogIndex > 0) {
+                rootPath = '/' + pathSegments.slice(0, catalogIndex).join('/');
+            } else {
+                rootPath = '/' + pathSegments.join('/');
+            }
+        }
+        
+        collectionUrl = `${apiRoot}${rootPath}/collections`;
         log.debug(`${indent}No collection link found, using fallback: ${collectionUrl}`);
     }
 

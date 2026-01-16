@@ -9,7 +9,7 @@
     "docker:run": "docker run --rm stac-crawler",
     "docker:compose:up": "docker-compose up -d",
     "docker:compose:down": "docker-compose down",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js"
   },
   "author": "",
   "license": "ISC",
@@ -20,5 +20,8 @@
     "crawlee": "^3.15.3",
     "dotenv": "^17.2.3",
     "stac-js": "^0.1.9"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
   }
 }
