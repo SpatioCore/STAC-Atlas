@@ -78,7 +78,8 @@ async function checkAndFlush(results, log) {
     
     // Clear catalogs array periodically to free memory
     // The catalogs array is only used for end statistics, which we track in stats object
-    if (results.catalogs.length >= CATALOG_CLEAR_BATCH_SIZE) {
+    // Note: catalogs may not exist when called from API crawler (which uses apis instead)
+    if (results.catalogs && results.catalogs.length >= CATALOG_CLEAR_BATCH_SIZE) {
         log.info(`[MEMORY] Clearing ${results.catalogs.length} catalogs from memory`);
         results.catalogs.length = 0;
     }

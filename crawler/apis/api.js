@@ -15,7 +15,15 @@ import { handleCollections, flushCollectionsToDb } from '../utils/handlers.js';
 const BATCH_SIZE = 500;
 
 /**
+ * Batch size for clearing apis array to free memory
+ * The apis array is only used for statistics, so we clear it periodically
+ * @type {number}
+ */
+const API_CLEAR_BATCH_SIZE = 500;
+
+/**
  * Checks if batch size is reached and flushes if necessary
+ * Also clears the apis array periodically to free memory
  * @async
  * @param {Object} results - Results object containing collections array
  * @param {Object} log - Logger instance
@@ -25,6 +33,13 @@ async function checkAndFlushApi(results, log) {
         const { saved, failed } = await flushCollectionsToDb(results, log, false);
         results.stats.collectionsSaved = (results.stats.collectionsSaved || 0) + saved;
         results.stats.collectionsFailed = (results.stats.collectionsFailed || 0) + failed;
+    }
+    
+    // Clear apis array periodically to free memory
+    // The apis array is only used for end statistics, which we track in stats object
+    if (results.apis && results.apis.length >= API_CLEAR_BATCH_SIZE) {
+        log.info(`[MEMORY] Clearing ${results.apis.length} APIs from memory`);
+        results.apis.length = 0;
     }
 }
 
