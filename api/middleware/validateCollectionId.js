@@ -16,7 +16,7 @@ function validateCollectionId(req, res, next) {
   // not empty - id must be present and be a non-empty string
   if (typeof id !== 'string' || id.trim().length === 0) {
     const errorResponse = ErrorResponses.invalidParameter(
-      'The "id" parameter is required. It can't be empty.',
+      'The "id" parameter is required. It cannot be empty.',
       req.requestId,
       req.originalUrl,
       {
@@ -30,7 +30,7 @@ function validateCollectionId(req, res, next) {
   // length limit (STAC IDs are usually short; 256 is generous)
   if (id.length > 256) {
     const errorResponse = ErrorResponses.invalidParameter(
-      'The "id" parameter is too long. It's not allowed to exceed 256 characters.',
+      'The "id" parameter is too long. It is not allowed to exceed 256 characters.',
       req.requestId,
       req.originalUrl,
       {
