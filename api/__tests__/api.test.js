@@ -86,6 +86,7 @@ describe('STAC API Core Endpoints', () => {
     const rels = response.body.links.map(l => l.rel);
     expect(rels).toContain('self');
     expect(rels).toContain('root');
+	expect(rels).toContain('parent');	  
   });
   });
 
