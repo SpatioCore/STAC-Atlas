@@ -51,7 +51,7 @@ describe('GET /collections/:id - Single collection retrieval', () => {
     expect(selfLink.href).toContain(`/collections/${existingId}`);
   });
 
-  test('should return 404 for non-existing collection id (non-numeric)', async () => {
+  test('should return 404 for non-existing collection id', async () => {
   const res = await request(app)
     .get('/collections/not-a-number')
     .expect(404);
