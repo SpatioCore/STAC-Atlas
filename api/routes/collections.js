@@ -11,6 +11,8 @@ const { ErrorResponses } = require('../utils/errorResponse');
 // helper to map DB row to STAC Collection object
 // the full_json column contains the original STAC Collection Json as crawled but it is needed to set some fields/links correctly
 function toStacCollection(row, baseHost) {
+  // TODO(DB-final): full_json is currently used as primary source for STAC fields.
+  // Once the DB schema is finalized, replace full_json-based mapping with normalized columns and only use full_json as fallback/debug
   const base =
     row.full_json &&
     typeof row.full_json === 'object' &&
@@ -46,6 +48,8 @@ function toStacCollection(row, baseHost) {
     delete collection.summaries;
   }
 
+  // TODO(DB-final): extent should come from normalized spatial/temporal columns once finalized.
+  // For now, fallback to DB-derived bbox/interval if full_json does not contain extent.
   if (!collection.extent) {
     const hasBbox =
       row.minx !== null && row.miny !== null && row.maxx !== null && row.maxy !== null;
