@@ -16,7 +16,7 @@ function validateCollectionId(req, res, next) {
   // not empty - id must be present and be a non-empty string
   if (typeof id !== 'string' || id.trim().length === 0) {
     const errorResponse = ErrorResponses.invalidParameter(
-      'The "id" parameter is required.',
+      'The "id" parameter is required. It can't be empty.',
       req.requestId,
       req.originalUrl,
       {
