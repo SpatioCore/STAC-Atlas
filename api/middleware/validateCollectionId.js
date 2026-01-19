@@ -29,12 +29,16 @@ function validateCollectionId(req, res, next) {
 
   // length limit (STAC IDs are usually short; 256 is generous)
   if (id.length > 256) {
-    return res.status(400).json({
-      code: 'InvalidParameter',
-      description: 'The "id" parameter is too long.',
-      parameter: 'id',
-      value: id
-    });
+    const errorResponse = ErrorResponses.invalidParameter(
+      'The "id" parameter is too long. It's not allowed to exceed 256 characters.',
+      req.requestId,
+      req.originalUrl,
+      {
+        parameter: 'id',
+        value: id
+      }
+    );
+    return res.status(400).json(errorResponse);
   }
 
   // whitelist allowed characters
