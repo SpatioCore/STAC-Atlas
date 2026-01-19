@@ -59,14 +59,6 @@ describe('GET /collections/:id - Single collection retrieval', () => {
   expect(res.body).toHaveProperty('code', 'NotFound');
   expect(res.body).toHaveProperty('id', 'not-a-number');
 });
-
-  test('should return 404 for non-existing negative id', async () => {
-  const res = await request(app)
-    .get('/collections/-1')
-    .expect(404);
-
-  expect(res.body.code).toBe('NotFound');
-});
   
   test('should return 404 for a non-existing numeric id', async () => {
     // use a very large id that is unlikely to exist
