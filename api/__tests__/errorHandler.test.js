@@ -82,7 +82,7 @@ describe('Error Handler Integration Tests', () => {
         .get('/collections/not-a-number')
         .expect(400);
 
-      expect(response.body.code).toBe('InvalidParameter');
+      expect(response.body.code).toBe('NotFound');
     });
 
     test('NotFound for missing resources', async () => {
