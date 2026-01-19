@@ -132,9 +132,8 @@ async function insertOrUpdateCollection(collection) {
           is_api = $9,
           is_active = $10,
           full_json = $11,
-          source_url = $12,
           updated_at = now()
-         WHERE id = $13`,
+         WHERE id = $12`,
         [
           stacId,
           collection.stac_version || null,
@@ -147,7 +146,6 @@ async function insertOrUpdateCollection(collection) {
           false, // is_api - will be determined by crawler
           true, // is_active
           JSON.stringify(collection),
-          sourceUrl,
           collectionId
         ]
       );
@@ -157,9 +155,9 @@ async function insertOrUpdateCollection(collection) {
         `INSERT INTO collection (
           stac_id, stac_version, type, title, description, license,
           spatial_extent, temporal_extent_start, temporal_extent_end,
-          is_api, is_active, full_json, source_url, updated_at
+          is_api, is_active, full_json, updated_at
         )
-        VALUES ($1, $2, $3, $4, $5, $6, ST_GeomFromEWKT($7), $8, $9, $10, $11, $12, $13, now())
+        VALUES ($1, $2, $3, $4, $5, $6, ST_GeomFromEWKT($7), $8, $9, $10, $11, $12, now())
         RETURNING id`,
         [
           stacId,
@@ -173,8 +171,7 @@ async function insertOrUpdateCollection(collection) {
           temporalEnd,
           false, // is_api - will be determined by crawler
           true, // is_active
-          JSON.stringify(collection),
-          sourceUrl
+          JSON.stringify(collection)
         ]
       );
       collectionId = collectionResult.rows[0].id;
@@ -184,7 +181,7 @@ async function insertOrUpdateCollection(collection) {
     if (collection.summaries && typeof collection.summaries === 'object') {
       await client.query('DELETE FROM collection_summaries WHERE collection_id = $1', [collectionId]);
       for (const [name, value] of Object.entries(collection.summaries)) {
-        await insertSummary(client, collectionId, name, value);
+        await insertSummary(client, collectionId, name, value, sourceUrl);
       }
     }
 
@@ -289,7 +286,7 @@ async function insertStacExtensions(client, parentId, extensions, type) {
 /**
  * Helper function to insert collection summaries
  */
-async function insertSummary(client, collectionId, name, value) {
+async function insertSummary(client, collectionId, name, value, sourceUrl) {
   let kind = 'unknown';
   let rangeMin = null;
   let rangeMax = null;
@@ -314,8 +311,8 @@ async function insertSummary(client, collectionId, name, value) {
   }
 
   await client.query(
-    'INSERT INTO collection_summaries (collection_id, name, kind, range_min, range_max, set_value, json_schema) VALUES ($1, $2, $3, $4, $5, $6, $7)',
-    [collectionId, name, kind, rangeMin, rangeMax, setValue, jsonSchema]
+    'INSERT INTO collection_summaries (collection_id, name, kind, source_url, range_min, range_max, set_value, json_schema) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
+    [collectionId, name, kind, sourceUrl, rangeMin, rangeMax, setValue, jsonSchema]
   );
 }
 
