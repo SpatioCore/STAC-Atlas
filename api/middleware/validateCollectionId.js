@@ -46,13 +46,16 @@ function validateCollectionId(req, res, next) {
   // - disallows slashes, spaces, quotes, etc.
   const allowed = /^[A-Za-z0-9._-]+$/u;
   if (!allowed.test(id)) {
+    const errorResponse = ErrorResponses.invalidParameter(
     return res.status(400).json({
-      code: 'InvalidParameter',
-      description:
-        'The "id" parameter contains invalid characters. Allowed: letters, digits, ".", "_", "-".',
-      parameter: 'id',
-      value: id
-    });
+      'The "id" parameter contains invalid characters. Allowed: letters, digits, ".", "_", "-".',
+      req.requestId,
+      req.originalUrl,
+      {
+        parameter: 'id',
+        value: id
+      }
+    );
   }
 
   return next();
