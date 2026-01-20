@@ -67,6 +67,14 @@ This project uses GitHub Actions for Continuous Integration:
 
 **Status:** ![CI Status](https://github.com/SpatioCore/STAC-Atlas/workflows/API%20CI%2FCD%20Pipeline/badge.svg?branch=dev-api)
 
+## 🚦 Rate Limiting
+
+All API endpoints are protected by rate limiting:
+
+- **Limit:** 1000 requests per 15 minutes per IP address
+- If the limit is exceeded, HTTP status **429 Too Many Requests** is returned
+- The headers `RateLimit-Limit`, `RateLimit-Remaining`, and `RateLimit-Reset` are set
+
 ## 📋 API Endpoints
 
 ### Core Endpoints
