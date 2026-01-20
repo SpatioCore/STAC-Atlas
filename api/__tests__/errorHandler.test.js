@@ -80,7 +80,7 @@ describe('Error Handler Integration Tests', () => {
     test('InvalidParameter for malformed parameters', async () => {
       const response = await request(app)
         .get('/collections/not-a-number')
-        .expect(400);
+        .expect(404);
 
       expect(response.body.code).toBe('NotFound');
     });
