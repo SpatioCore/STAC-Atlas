@@ -329,8 +329,30 @@ async function handleApiRoot({ request, json, crawler, log, indent, results, max
                         return null;
                     }
                     
+                    // Handle S3 protocol URLs - convert to HTTPS
+                    if (childUrl && typeof childUrl === 'string' && childUrl.startsWith('s3://')) {
+                        // s3://bucket-name/path -> https://bucket-name.s3.amazonaws.com/path
+                        const s3Match = childUrl.match(/^s3:\/\/([^/]+)\/(.*)$/);
+                        if (s3Match) {
+                            const [, bucket, path] = s3Match;
+                            childUrl = `https://${bucket}.s3.amazonaws.com/${path}`;
+                            log.debug(`${indent}Converted S3 URL: ${link.href} -> ${childUrl}`);
+                        } else {
+                            log.warning(`${indent}Skipping malformed S3 URL at index ${idx}: ${childUrl}`);
+                            return null;
+                        }
+                    }
+                    
+                    // If URL is relative, make it absolute using the API URL
+                    if (childUrl && typeof childUrl === 'string' && !childUrl.startsWith('http')) {
+                        const baseUrl = request.url.endsWith('/') ? request.url.slice(0, -1) : request.url;
+                        const basePath = baseUrl.substring(0, baseUrl.lastIndexOf('/'));
+                        childUrl = `${basePath}/${childUrl}`;
+                    }
+                    
                     // Validate URL
                     if (!childUrl || typeof childUrl !== 'string' || !childUrl.startsWith('http')) {
+                        log.warning(`${indent}Skipping invalid URL at index ${idx}: ${childUrl}`);
                         return null;
                     }
                     
