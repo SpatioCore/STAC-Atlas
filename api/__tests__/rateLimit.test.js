@@ -19,8 +19,8 @@ describe('Rate Limiting Middleware', () => {
     // The next request should be rate limited
     const res = await agent.get('/').set('X-Forwarded-For', '1.2.3.4');
     expect(res.status).toBe(429);
-    expect(res.body).toHaveProperty('error');
-    expect(res.body.error).toMatch(/too many requests/i);
+    expect(res.body).toHaveProperty('status', 429);
+    expect(res.body.title).toMatch(/too many requests/i);
   });
 
   it('should reset the limit after the window', async () => {
