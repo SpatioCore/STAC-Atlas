@@ -9,6 +9,7 @@ const path = require('path');
 // Import middleware
 const { requestIdMiddleware } = require('./middleware/requestId');
 const { globalErrorHandler } = require('./middleware/errorHandler');
+const { rateLimitMiddleware } = require('./middleware/rateLimit');
 
 // Import routes
 const indexRouter = require('./routes/index');
@@ -20,6 +21,10 @@ const app = express();
 
 // Request ID middleware (must be first)
 app.use(requestIdMiddleware);
+
+// Global rate limiting middleware
+// Limits each IP to 1000 requests per 15 minutes
+app.use(rateLimitMiddleware);
 
 // Middleware
 app.use(logger('dev'));
