@@ -47,7 +47,6 @@ function validateCollectionId(req, res, next) {
   const allowed = /^[A-Za-z0-9._-]+$/u;
   if (!allowed.test(id)) {
     const errorResponse = ErrorResponses.invalidParameter(
-    return res.status(400).json({
       'The "id" parameter contains invalid characters. Allowed: letters, digits, ".", "_", "-".',
       req.requestId,
       req.originalUrl,
