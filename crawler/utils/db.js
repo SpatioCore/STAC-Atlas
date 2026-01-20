@@ -79,20 +79,40 @@ async function insertOrUpdateCollection(collection) {
     await client.query('BEGIN');
 
     // Parse spatial extent (bbox)
+    // Support both normalized format (bbox) and original STAC format (extent.spatial.bbox)
     let spatialExtent = null;
-    if (collection.extent?.spatial?.bbox && collection.extent.spatial.bbox[0]) {
-      const bbox = collection.extent.spatial.bbox[0];
-      if (bbox.length === 4) {
-        // Create polygon from bbox [west, south, east, north]
-        spatialExtent = `EPSG:4326;POLYGON((${bbox[0]} ${bbox[1]}, ${bbox[2]} ${bbox[1]}, ${bbox[2]} ${bbox[3]}, ${bbox[0]} ${bbox[3]}, ${bbox[0]} ${bbox[1]}))`;
-      }
+    let bbox = null;
+    
+    // Try normalized format first (from normalizeCollection)
+    if (collection.bbox && Array.isArray(collection.bbox)) {
+      bbox = collection.bbox;
+    }
+    // Fallback to original STAC format
+    else if (collection.extent?.spatial?.bbox && collection.extent.spatial.bbox[0]) {
+      bbox = collection.extent.spatial.bbox[0];
+    }
+    
+    if (bbox && bbox.length === 4) {
+      // Create polygon from bbox [west, south, east, north]
+      spatialExtent = `EPSG:4326;POLYGON((${bbox[0]} ${bbox[1]}, ${bbox[2]} ${bbox[1]}, ${bbox[2]} ${bbox[3]}, ${bbox[0]} ${bbox[3]}, ${bbox[0]} ${bbox[1]}))`;
     }
 
     // Parse temporal extent
+    // Support both normalized format (temporal) and original STAC format (extent.temporal.interval)
     let temporalStart = null;
     let temporalEnd = null;
-    if (collection.extent?.temporal?.interval && collection.extent.temporal.interval[0]) {
-      const interval = collection.extent.temporal.interval[0];
+    let interval = null;
+    
+    // Try normalized format first (from normalizeCollection)
+    if (collection.temporal && Array.isArray(collection.temporal)) {
+      interval = collection.temporal;
+    }
+    // Fallback to original STAC format
+    else if (collection.extent?.temporal?.interval && collection.extent.temporal.interval[0]) {
+      interval = collection.extent.temporal.interval[0];
+    }
+    
+    if (interval) {
       temporalStart = interval[0] ? new Date(interval[0]) : null;
       temporalEnd = interval[1] ? new Date(interval[1]) : null;
     }
