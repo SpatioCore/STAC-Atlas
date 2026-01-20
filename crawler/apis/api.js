@@ -111,10 +111,22 @@ async function crawlApis(urls, isApi, config = {}) {
         // Accept additional MIME types (some STAC endpoints return JSON with incorrect Content-Type)
         additionalMimeTypes: ['application/geo+json', 'text/plain', 'binary/octet-stream', 'application/octet-stream'],
         
-        async requestHandler({ request, json, crawler, log }) {
+        async requestHandler({ request, json, body, crawler, log }) {
             results.stats.totalRequests++;
             const depth = request.userData?.depth || 0;
             const indent = '  '.repeat(Math.min(depth, 5)); // Cap indent at 5 levels
+            
+            // Fallback: manually parse JSON if Crawlee's automatic parsing failed
+            // This can happen with slow endpoints or unusual response streaming
+            if (!json && body) {
+                try {
+                    const bodyStr = typeof body === 'string' ? body : body.toString('utf8');
+                    json = JSON.parse(bodyStr);
+                    log.debug(`${indent}Manually parsed JSON for ${request.url} (${bodyStr.length} bytes)`);
+                } catch (parseError) {
+                    log.warning(`${indent}Failed to parse response body as JSON: ${parseError.message}`);
+                }
+            }
             
             try {
                 // Route based on request label
