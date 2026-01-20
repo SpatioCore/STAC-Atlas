@@ -104,9 +104,15 @@ export async function handleCatalog({ request, json, crawler, log, indent, resul
     
     log.info(`${indent}Processing catalog: ${catalogId} (depth: ${depth}${maxDepth > 0 ? `/${maxDepth}` : ''})`);
     
+    // Defensive check: ensure json is valid before passing to stac-js
+    if (!json || typeof json !== 'object') {
+        log.warning(`${indent}Invalid JSON response for catalog ${catalogId} at ${request.url}`);
+        throw new Error('Invalid JSON response: null or not an object');
+    }
+    
     // Validate with stac-js
     // Note: create(data, migrate, updateVersionNumber) - second param is boolean, not URL
-    // Disable migration as it can cause issues with newer STAC versions (1.1.0+)
+    // Using migrate=false to avoid issues with stac-migrate and newer STAC versions
     let stacCatalog;
     try {
         stacCatalog = create(json, false);

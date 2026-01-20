@@ -218,8 +218,15 @@ async function handleApiRoot({ request, json, crawler, log, indent, results, max
     
     log.info(`${indent}Processing API: ${apiId} at ${apiUrl} (depth: ${depth})`);
     
+    // Defensive check: ensure json is valid before passing to stac-js
+    if (!json || typeof json !== 'object') {
+        log.warning(`${indent}Invalid JSON response for ${apiId} at ${request.url}`);
+        throw new Error('Invalid JSON response: null or not an object');
+    }
+    
     // Validate with stac-js
     // Note: create(data, migrate, updateVersionNumber) - second param is boolean, not URL
+    // Using migrate=false to avoid issues with stac-migrate and newer STAC versions
     let stacObj;
     try {
         stacObj = create(json, false);
