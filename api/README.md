@@ -75,15 +75,6 @@ All API endpoints are protected by rate limiting:
 - If the limit is exceeded, HTTP status **429 Too Many Requests** is returned
 - The headers `RateLimit-Limit`, `RateLimit-Remaining`, and `RateLimit-Reset` are set
 
-**Example response when limit is exceeded:**
-
-```json
-{
-  "status": 429,
-  "error": "Too many requests, please try again later."
-}
-```
-
 ## 📋 API Endpoints
 
 ### Core Endpoints
