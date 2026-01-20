@@ -10,9 +10,9 @@ const { ErrorResponses } = require('../utils/errorResponse');
 
 // helper to map DB row to STAC Collection object
 // the full_json column contains the original STAC Collection Json as crawled but it is needed to set some fields/links correctly
+// TODO(DB-final): full_json is currently used as primary source for STAC fields.
+// Once the DB schema is finalized, replace full_json-based mapping with normalized columns and only use full_json as fallback/debug
 function toStacCollection(row, baseHost) {
-  // TODO(DB-final): full_json is currently used as primary source for STAC fields.
-  // Once the DB schema is finalized, replace full_json-based mapping with normalized columns and only use full_json as fallback/debug
   const base =
     row.full_json &&
     typeof row.full_json === 'object' &&
@@ -105,6 +105,15 @@ async function runQuery(sql, params = []) {
  * All parameters are validated by validateCollectionSearchParams middleware.
  * Validated/normalized values are available in req.validatedParams.
  */
+
+ // helper to create pagination links while keeping existing query params
+    function withToken(newToken) {
+      const url = new URL(selfHref);
+      url.searchParams.set('limit', String(limit));
+      url.searchParams.set('token', String(newToken));
+      return url.toString();
+    }
+
 router.get('/', validateCollectionSearchParams, async (req, res, next) => {
   // TODO: Think about the parameters `provider` and `license` - They are mentioned in the bid, but not in the STAC spec
   try {
@@ -180,14 +189,6 @@ router.get('/', validateCollectionSearchParams, async (req, res, next) => {
 
     // self MUST match the requested URL exactly (validator requirement)
     const selfHref = `${baseHost}${req.originalUrl}`;
-
-    // helper to create pagination links while keeping existing query params
-    function withToken(newToken) {
-      const url = new URL(selfHref);
-      url.searchParams.set('limit', String(limit));
-      url.searchParams.set('token', String(newToken));
-      return url.toString();
-    }
 
     const links = [
       { rel: 'self', href: selfHref, type: 'application/json' },
