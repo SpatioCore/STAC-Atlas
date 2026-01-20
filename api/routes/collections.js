@@ -106,14 +106,6 @@ async function runQuery(sql, params = []) {
  * Validated/normalized values are available in req.validatedParams.
  */
 
- // helper to create pagination links while keeping existing query params
-    function withToken(newToken) {
-      const url = new URL(selfHref);
-      url.searchParams.set('limit', String(limit));
-      url.searchParams.set('token', String(newToken));
-      return url.toString();
-    }
-
 router.get('/', validateCollectionSearchParams, async (req, res, next) => {
   // TODO: Think about the parameters `provider` and `license` - They are mentioned in the bid, but not in the STAC spec
   try {
@@ -190,9 +182,18 @@ router.get('/', validateCollectionSearchParams, async (req, res, next) => {
     // self MUST match the requested URL exactly (validator requirement)
     const selfHref = `${baseHost}${req.originalUrl}`;
 
+    // helper to create pagination links while keeping existing query params
+    function withToken(newToken) {
+      const url = new URL(selfHref);
+      url.searchParams.set('limit', String(limit));
+      url.searchParams.set('token', String(newToken));
+      return url.toString();
+    }
+
     const links = [
       { rel: 'self', href: selfHref, type: 'application/json' },
-      { rel: 'root', href: baseHost, type: 'application/json' }
+      { rel: 'root', href: baseHost, type: 'application/json' },
+      { rel: 'parent', href: baseHost, type: 'application/json' }
     ];
 
     // "next": only if returned === limit AND token + limit < matched

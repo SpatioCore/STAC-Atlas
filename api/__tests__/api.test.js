@@ -86,7 +86,7 @@ describe('STAC API Core Endpoints', () => {
     const rels = response.body.links.map(l => l.rel);
     expect(rels).toContain('self');
     expect(rels).toContain('root');
-	// expect(rels).toContain('parent'); TODO: we might also want to test if parent is existing in the future	  
+	  expect(rels).toContain('parent');
   });
   });
 
