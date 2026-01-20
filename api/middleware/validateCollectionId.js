@@ -55,9 +55,9 @@ function validateCollectionId(req, res, next) {
         value: id
       }
     );
+   return res.status(400).json(errorResponse); 
   }
 
-  return res.status(400).json(errorResponse);
 }
 
 module.exports = { validateCollectionId };
