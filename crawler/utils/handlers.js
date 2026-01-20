@@ -105,9 +105,11 @@ export async function handleCatalog({ request, json, crawler, log, indent, resul
     log.info(`${indent}Processing catalog: ${catalogId} (depth: ${depth}${maxDepth > 0 ? `/${maxDepth}` : ''})`);
     
     // Validate with stac-js
+    // Note: create(data, migrate, updateVersionNumber) - second param is boolean, not URL
+    // Disable migration as it can cause issues with newer STAC versions (1.1.0+)
     let stacCatalog;
     try {
-        stacCatalog = create(json, request.url);
+        stacCatalog = create(json, false);
         results.stats.stacCompliant++;
         
         // Log STAC object type
@@ -249,9 +251,10 @@ export async function handleCollections({ request, json, crawler, log, indent, r
     const catalogId = request.userData?.catalogId || 'unknown';
     
     // Parse response with stac-js
+    // Note: create(data, migrate, updateVersionNumber) - second param is boolean, not URL
     let stacObj;
     try {
-        stacObj = create(json, request.url);
+        stacObj = create(json, false);
     } catch (parseError) {
         log.warning(`${indent}Skipping non-compliant STAC collections at ${request.url}`);
         return;
@@ -266,7 +269,7 @@ export async function handleCollections({ request, json, crawler, log, indent, r
         // Handle array of collections
         collectionsData = json.map(col => {
             try {
-                return create(col, request.url);
+                return create(col, false);
             } catch {
                 return null;
             }
@@ -275,7 +278,7 @@ export async function handleCollections({ request, json, crawler, log, indent, r
         // Handle nested collections property
         collectionsData = json.collections.map(col => {
             try {
-                return create(col, request.url);
+                return create(col, false);
             } catch {
                 return null;
             }

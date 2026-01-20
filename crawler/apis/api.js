@@ -219,9 +219,10 @@ async function handleApiRoot({ request, json, crawler, log, indent, results, max
     log.info(`${indent}Processing API: ${apiId} at ${apiUrl} (depth: ${depth})`);
     
     // Validate with stac-js
+    // Note: create(data, migrate, updateVersionNumber) - second param is boolean, not URL
     let stacObj;
     try {
-        stacObj = create(json, request.url);
+        stacObj = create(json, false);
         results.stats.stacCompliant++;
         
         if (typeof stacObj.isCatalog === 'function' && stacObj.isCatalog()) {
@@ -354,9 +355,10 @@ async function handleApiCollection({ request, json, crawler, log, indent, result
     const apiId = request.userData?.apiId || 'unknown';
     
     // Validate with stac-js
+    // Note: create(data, migrate, updateVersionNumber) - second param is boolean, not URL
     let stacObj;
     try {
-        stacObj = create(json, request.url);
+        stacObj = create(json, false);
         
         if (typeof stacObj.isCollection === 'function' && stacObj.isCollection()) {
             const collection = normalizeCollection(stacObj, results.collections.length);
