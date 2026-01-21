@@ -59,7 +59,10 @@ async function checkAndFlushApi(results, log) {
  * @returns {Promise<Object>} Crawl results with collections and statistics
  */
 async function crawlSingleApiDomain(urls, domain, config = {}) {
-    // Use in-memory storage to avoid file lock race conditions under high concurrency
+    // Set unique storage directory for this crawler to avoid conflicts
+    const safeDomain = domain.replace(/[^a-zA-Z0-9]/g, '_');
+    const storageDir = `/tmp/crawlee-api-${safeDomain}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    Configuration.getGlobalConfig().set('storageDir', storageDir);
     Configuration.getGlobalConfig().set('persistStorage', false);
     
     const timeoutSecs = config.timeout && config.timeout !== Infinity 
@@ -101,9 +104,9 @@ async function crawlSingleApiDomain(urls, domain, config = {}) {
         // High concurrency for throughput
         maxConcurrency: concurrency,
         
-        // Disable periodic statistics logging (we have our own end statistics)
+        // Reduce periodic statistics logging (we have our own end statistics)
         statisticsOptions: {
-            logIntervalSecs: null,
+            logIntervalSecs: 60,
         },
         
         // Accept additional MIME types
@@ -252,6 +255,13 @@ async function crawlApis(urls, isApi, config = {}) {
     
     // Number of domains to crawl in parallel (default: 5)
     const parallelDomains = config.parallelDomains || 5;
+    const maxRequestsPerMinutePerDomain = config.maxRequestsPerMinutePerDomain || 120;
+    
+    console.log(`\n=== Parallel API Crawling Configuration ===`);
+    console.log(`Parallel domains: ${parallelDomains}`);
+    console.log(`Max requests/min per domain: ${maxRequestsPerMinutePerDomain}`);
+    console.log(`Theoretical max throughput: ${parallelDomains * maxRequestsPerMinutePerDomain} req/min across all domains`);
+    console.log(`============================================\n`);
     
     // Create tasks for each domain
     const domainTasks = Array.from(domainUrlMap.entries()).map(([domain, domainUrls]) => {
