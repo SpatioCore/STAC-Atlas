@@ -53,8 +53,11 @@ async function crawlSingleDomain(catalogs, domain, config = {}) {
     const crawler = new HttpCrawler({
         requestHandlerTimeoutSecs: timeoutSecs,
         
-        // Per-domain rate limiting
-        maxConcurrency: config.maxConcurrencyPerDomain || 10,
+        // Per-domain rate limiting - HIGH concurrency for throughput
+        // maxConcurrency should be higher than req/sec to avoid bottlenecks
+        // 120 req/min = 2 req/sec, so we need at least 2-3 concurrent requests
+        // Using 20 to handle slow responses and maintain throughput
+        maxConcurrency: config.maxConcurrencyPerDomain || 20,
         maxRequestsPerMinute: rateLimits.maxRequestsPerMinute,
         sameDomainDelaySecs: rateLimits.sameDomainDelaySecs,
         maxRequestRetries: config.maxRequestRetries || 3,
@@ -132,7 +135,8 @@ async function crawlSingleDomain(catalogs, domain, config = {}) {
 
     await crawler.addRequests(initialRequests);
     
-    console.log(`  [${domain}] Starting crawl with ${initialRequests.length} catalogs (max ${rateLimits.maxRequestsPerMinute} req/min)`);
+    const concurrency = config.maxConcurrencyPerDomain || 20;
+    console.log(`  [${domain}] Starting: ${initialRequests.length} catalogs, ${rateLimits.maxRequestsPerMinute} req/min, ${concurrency} concurrent, ${rateLimits.sameDomainDelaySecs}s delay`);
     await crawler.run();
     
     // Flush any remaining collections to database

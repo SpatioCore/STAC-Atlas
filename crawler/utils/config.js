@@ -47,7 +47,7 @@ function getConfig() {
         // NEW: Parallel crawling options (recommended for performance)
         parallelDomains: 5,              // Number of domains to crawl in parallel
         maxRequestsPerMinutePerDomain: 120, // Max requests per minute PER domain
-        maxConcurrencyPerDomain: 10,     // Max concurrent requests per domain
+        maxConcurrencyPerDomain: 20,     // Max concurrent requests per domain (must be > req/sec)
         
         // Legacy rate limiting options (still supported but parallel options are preferred)
         maxConcurrency: 5,      // Maximum number of concurrent requests (global)
