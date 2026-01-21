@@ -9,6 +9,7 @@ on:
       - main
     paths:
       - 'api/**'
+      - 'db/**'
       - '.github/workflows/api-ci.yml'
   pull_request:
     branches:
@@ -17,6 +18,7 @@ on:
       - main
     paths:
       - 'api/**'
+      - 'db/**'
       - '.github/workflows/api-ci.yml'
 
 jobs:
@@ -177,8 +179,118 @@ jobs:
           cd api
           timeout 10s npm start || code=$?; if [[ $code -ne 124 && $code -ne 0 ]]; then exit $code; fi
         continue-on-error: false
-  
-  # Job 3: Security Audit
+
+  # Job 3: STAC API Validator
+  stac_validator:
+    name: STAC API Validator (core + collections)
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          cache: 'npm'
+          cache-dependency-path: api/package-lock.json
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Create .env file
+        working-directory: api
+        run: |
+          cat > .env << EOF
+          # Server Configuration
+          PORT=3000
+          NODE_ENV=test
+
+          # Database Configuration
+          DB_HOST=${{ secrets.DB_HOST }}
+          DB_PORT=${{ secrets.DB_PORT }}
+          DB_NAME=${{ secrets.DB_NAME }}
+          DB_USER=${{ secrets.DB_USER }}
+          DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+          DB_SSL=false
+
+          # Connection Pool Configuration
+          DB_POOL_MAX=20
+          DB_POOL_MIN=2
+          DB_IDLE_TIMEOUT=30000
+          DB_CONNECTION_TIMEOUT=10000
+
+          # CORS Configuration
+          CORS_ORIGIN=*
+
+          # API Configuration
+          API_TITLE=STAC Atlas
+          API_DESCRIPTION=A centralized platform for managing, indexing, and providing STAC Collection metadata
+          API_VERSION=1.1.0
+          EOF
+
+      - name: Install Node dependencies
+        working-directory: api
+        run: npm ci
+
+      - name: Install STAC API Validator
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install stac-api-validator
+
+      - name: Start API server
+        working-directory: api
+        run: |
+          # Start server in background
+          npm start > server.log 2>&1 &
+          echo $! > server.pid
+
+          # Wait until landing page responds
+          for i in {1..30}; do
+            if curl -fsS http://localhost:3000/ > /dev/null; then
+              echo "API is up"
+              exit 0
+            fi
+            sleep 1
+          done
+
+          echo "API did not start in time"
+          echo "---- server.log ----"
+          tail -n 200 server.log || true
+          exit 1
+
+      - name: Run STAC API Validator (core + collections)
+        run: |
+          python -m stac_api_validator \
+            --root-url "http://localhost:3000/" \
+            --conformance core \
+            --conformance collections \
+            --collection 1 \
+            --verbose | tee stac-validator-output.txt
+
+      - name: Upload validator output
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: stac-validator-output
+          path: stac-validator-output.txt
+          retention-days: 30
+
+      - name: Stop API server
+        if: always()
+        working-directory: api
+        run: |
+          if [ -f server.pid ]; then
+            kill "$(cat server.pid)" || true
+          fi
+          echo "---- server.log (tail) ----"
+          tail -n 200 server.log || true
+
+  # Job 4: Security Audit
   security:
     name: Security Audit
     runs-on: ubuntu-latest
@@ -200,17 +312,17 @@ jobs:
           npm audit --audit-level=moderate
         continue-on-error: true
   
-  # Job 4: Status-Check for Branch Protection
+  # Job 5: Status-Check for Branch Protection
   ci-success:
     name: CI Success
     runs-on: ubuntu-latest
-    needs: [test, build]
+    needs: [test, build, stac_validator, security]
     if: always()
     
     steps:
       - name: Check all jobs succeeded
         run: |
-          if [ "${{ needs.test.result }}" != "success" ] || [ "${{ needs.build.result }}" != "success" ]; then
+          if [ "${{ needs.test.result }}" != "success" ] || [ "${{ needs.build.result }}" != "success" ] || [ "${{ needs.stac_validator.result }}" != "success" ] || [ "${{ needs.security.result }}" != "success" ]; then
             echo "CI Pipeline failed!"
             echo "Test status: ${{ needs.test.result }}"
             echo "Build status: ${{ needs.build.result }}"

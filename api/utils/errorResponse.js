@@ -161,6 +161,20 @@ const ErrorResponses = {
       requestId,
       instance
     });
+  },
+
+  /**
+   * 429 - Too Many Requests (Rate Limit Exceeded)
+   */
+  tooManyRequests(detail, requestId, instance) {
+    return createErrorResponse({
+      status: 429,
+      code: 'TooManyRequests',
+      title: 'Too Many Requests',
+      detail: detail || 'Too many requests from this IP address, please try again later.',
+      requestId,
+      instance
+    });
   }
 };
 

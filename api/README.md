@@ -67,6 +67,14 @@ This project uses GitHub Actions for Continuous Integration:
 
 **Status:** ![CI Status](https://github.com/SpatioCore/STAC-Atlas/workflows/API%20CI%2FCD%20Pipeline/badge.svg?branch=dev-api)
 
+## 🚦 Rate Limiting
+
+All API endpoints are protected by rate limiting:
+
+- **Limit:** 1000 requests per 15 minutes per IP address
+- If the limit is exceeded, HTTP status **429 Too Many Requests** is returned
+- The headers `RateLimit-Limit`, `RateLimit-Remaining`, and `RateLimit-Reset` are set
+
 ## 📋 API Endpoints
 
 ### Core Endpoints
@@ -199,6 +207,52 @@ This API implements:
 - ✅ CQL2 Spatial Functions (s_intersects, s_within, s_contains)
 - ✅ CQL2 Temporal Functions (t_intersects, t_before, t_after)
 - ✅ CQL2-Text and CQL2-JSON encodings
+
+### STAC API Validator
+
+The API can be tested using the official [STAC API Validator](https://github.com/stac-utils/stac-api-validator):
+
+#### Installation
+
+```bash
+# Python 3.11 required
+pip install stac-api-validator
+```
+
+#### Usage
+
+```bash
+# Validate Core Conformance Class
+python -m stac_api_validator --root-url http://localhost:3000 --conformance core
+
+# Validate Collections Extension (requires collection ID)
+python -m stac_api_validator \
+  --root-url http://localhost:3000 \
+  --conformance core \
+  --conformance collections \
+  --collection <collection-id>
+
+# With spatial filtering (requires geometry in dataset)
+python -m stac_api_validator \
+  --root-url http://localhost:3000 \
+  --conformance core \
+  --conformance collections \
+  --collection <collection-id> \
+  --geometry '{"type": "Polygon", "coordinates": [[[7.0, 51.0], [8.0, 51.0], [8.0, 52.0], [7.0, 52.0], [7.0, 51.0]]]}'
+```
+
+#### Validation Status
+
+| Conformance Class | Status | Date | Errors | Warnings |
+|-------------------|--------|------|--------|----------|
+| **STAC API - Core** | ✅ Passed | 2025-12-10 | 0 | 0 |
+| STAC API - Collections | ⏳ Pending | - | - | - |
+| STAC API - Features | ⏳ Pending | - | - | - |
+| STAC API - Item Search | ⏳ Pending | - | - | - |
+| CQL2 - Basic | ⏳ Pending | - | - | - |
+| CQL2 - Advanced | ⏳ Pending | - | - | - |
+
+**Note:** The Collection Search Extension is not currently validated automatically by the validator and is instead validated through custom Jest integration tests (see `__tests__/`).
 
 ### STAC API Validator
 
