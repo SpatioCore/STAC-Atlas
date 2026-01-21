@@ -8,8 +8,11 @@ const {
   validateSortby,
   validateToken,
   validateProvider,
-  validateLicense
+  validateLicense,
+  validateFilter,
+  validateFilterLang
 } = require('../validators/collectionSearchParams');
+const { ErrorResponses } = require('../utils/errorResponse');
 
 /**
  * Express middleware to validate Collection Search query parameters
@@ -27,6 +30,8 @@ const {
  * - token: Pagination continuation token
  * - provider: Provider name — filter by data provider
  * - license: License identifier — filter by collection license
+ * - filter: CQL2 filter expression
+ * - filter-lang: Language of the filter (cql2-text, cql2-json)
  * 
  * @param {Request} req - Express request object
  * @param {Response} res - Express response object
@@ -37,7 +42,8 @@ function validateCollectionSearchParams(req, res, next) {
   const normalized = {};
   
   // Extract query parameters
-  const { q, bbox, datetime, limit, sortby, token, provider, license } = req.query;
+  const { q, bbox, datetime, limit, sortby, token, provider, license, filter } = req.query;
+  const filterLang = req.query['filter-lang']; // separate extraction due to hyphen in name
   
   // Validate q (free-text search)
   const qResult = validateQ(q);
@@ -102,13 +108,31 @@ function validateCollectionSearchParams(req, res, next) {
   } else if (licenseResult.normalized !== undefined) {
     normalized.license = licenseResult.normalized;
   }
+
+  // Validate filter
+  const filterResult = validateFilter(filter);
+  if (!filterResult.valid) {
+    errors.push(filterResult.error);
+  } else if (filterResult.normalized !== undefined) {
+    normalized.filter = filterResult.normalized;
+  }
+
+  // Validate filter-lang
+  const filterLangResult = validateFilterLang(filterLang);
+  if (!filterLangResult.valid) {
+    errors.push(filterLangResult.error);
+  } else if (filterLangResult.normalized !== undefined) {
+    normalized['filter-lang'] = filterLangResult.normalized;
+  }
   
-  // If any validation errors occurred, return 400 with details
+  // If any validation errors occurred, return 400 with RFC 7807 format
   if (errors.length > 0) {
-    return res.status(400).json({
-      code: 'InvalidParameterValue',
-      description: errors.join('; ')
-    });
+    const errorResponse = ErrorResponses.badRequest(
+      errors.join('; '),
+      req.requestId,
+      req.originalUrl
+    );
+    return res.status(400).json(errorResponse);
   }
   
   // Attach normalized params to request for use in route handler
