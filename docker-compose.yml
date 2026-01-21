@@ -1,0 +1,9 @@
+# This docker-compose file orchestrates the startup of the entire STAC-Atlas project.
+# It includes the docker-compose configurations from the individual components.
+
+#TODO: add docker-compose files for UI and Crawler components
+include:
+  - db/docker-compose.yml
+  #- crawler/docker-compose.yml 
+  - api/docker-compose.yml
+  #- ui/docker-compose.yml 
