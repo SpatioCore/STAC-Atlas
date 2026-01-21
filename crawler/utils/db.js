@@ -67,13 +67,62 @@ async function insertOrUpdateCatalog(catalog) {
 }
 
 /**
- * Insert or update a collection in the database
+ * Check if an error is a PostgreSQL deadlock error
+ * @param {Error} error - The error to check
+ * @returns {boolean} true if it's a deadlock error
+ */
+function isDeadlockError(error) {
+  // PostgreSQL deadlock error code is '40P01'
+  return error.code === '40P01' || error.message?.includes('deadlock detected');
+}
+
+/**
+ * Sleep for a given number of milliseconds
+ * @param {number} ms - Milliseconds to sleep
+ * @returns {Promise<void>}
+ */
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+/**
+ * Insert or update a collection in the database with deadlock retry logic
+ * @param {Object} collection - STAC collection object
+ * @param {number} maxRetries - Maximum number of retry attempts for deadlocks (default: 3)
+ * @returns {Promise<number>} collection ID
+ */
+async function insertOrUpdateCollection(collection, maxRetries = 3) {
+  let lastError;
+  
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      return await _insertOrUpdateCollectionInternal(collection);
+    } catch (error) {
+      lastError = error;
+      
+      if (isDeadlockError(error) && attempt < maxRetries) {
+        // Exponential backoff: 100ms, 200ms, 400ms, ...
+        const delayMs = 100 * Math.pow(2, attempt - 1) + Math.random() * 50;
+        console.warn(`WARN  [DB] Deadlock detected for collection "${collection.title || collection.id}", retrying in ${Math.round(delayMs)}ms (attempt ${attempt}/${maxRetries})`);
+        await sleep(delayMs);
+        continue;
+      }
+      
+      // Not a deadlock or max retries reached, throw the error
+      throw error;
+    }
+  }
+  
+  // Should not reach here, but just in case
+  throw lastError;
+}
+
+/**
+ * Internal implementation of insertOrUpdateCollection
  * @param {Object} collection - STAC collection object
  * @returns {Promise<number>} collection ID
  */
-async function insertOrUpdateCollection(collection) {
-
-
+async function _insertOrUpdateCollectionInternal(collection) {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -130,11 +179,33 @@ async function insertOrUpdateCollection(collection) {
       sourceUrl = selfLink?.href || rootLink?.href || null;
     }
     
-    // Check if collection with this title already exists
-    const existingCollection = await client.query(
-      'SELECT id FROM collection WHERE title = $1',
-      [collectionTitle]
-    );
+    // Check if collection with same stac_id from same source already exists
+    // This allows collections with the same title from different sources to coexist
+    let existingCollection;
+    if (stacId && sourceUrl) {
+      // Best case: match by stac_id + source_url (most precise)
+      existingCollection = await client.query(
+        'SELECT id FROM collection WHERE stac_id = $1 AND full_json->>\'links\' LIKE $2',
+        [stacId, `%${sourceUrl}%`]
+      );
+    }
+    
+    // Fallback: if no stac_id or source_url, check by title only (legacy behavior)
+    if (!existingCollection || existingCollection.rows.length === 0) {
+      if (stacId) {
+        // Try matching by stac_id + title combination
+        existingCollection = await client.query(
+          'SELECT id FROM collection WHERE stac_id = $1 AND title = $2',
+          [stacId, collectionTitle]
+        );
+      } else {
+        // Last resort: match by title only (for collections without stac_id)
+        existingCollection = await client.query(
+          'SELECT id FROM collection WHERE title = $1 AND stac_id IS NULL',
+          [collectionTitle]
+        );
+      }
+    }
     
     let collectionId;
     if (existingCollection.rows.length > 0) {
@@ -240,7 +311,10 @@ async function insertOrUpdateCollection(collection) {
     return collectionId;
   } catch (error) {
     await client.query('ROLLBACK');
-    console.error('Error inserting collection:', error.message);
+    // Only log non-deadlock errors here, deadlocks are handled by retry wrapper
+    if (!isDeadlockError(error)) {
+      console.error('Error inserting collection:', error.message);
+    }
     throw error;
   } finally {
     client.release();
