@@ -2,8 +2,33 @@
 # It includes the docker-compose configurations from the individual components.
 
 #TODO: add docker-compose files for UI and Crawler components
-include:
-  - db/docker-compose.yml
-  #- crawler/docker-compose.yml 
-  - api/docker-compose.yml
-  #- ui/docker-compose.yml 
+
+version: "3.9"
+
+networks:
+  stac_net:
+
+services:
+  db:
+    extends:
+      file: db/docker-compose.yml
+      service: database
+    networks: [stac_net]
+
+  #crawler:
+  #  extends:
+  #    file: crawler/docker-compose.yml
+  #    service: crawler
+  #  networks: [stac_net]
+
+  api:
+    extends:
+      file: api/docker-compose.yml
+      service: api
+    networks: [stac_net]
+
+  #ui:
+  #  extends:
+  #    file: ui/docker-compose.yml
+  #    service: ui
+  #  networks: [stac_net] 
