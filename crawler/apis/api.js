@@ -15,6 +15,7 @@ import {
     calculateRateLimits,
     logDomainStats 
 } from '../utils/parallel.js';
+import globalStats from '../utils/globalStats.js';
 
 /**
  * Batch size for saving collections to database during API crawling
@@ -100,11 +101,17 @@ async function crawlSingleApiDomain(urls, domain, config = {}) {
         // High concurrency for throughput
         maxConcurrency: concurrency,
         
+        // Disable periodic statistics logging (we have our own end statistics)
+        statisticsOptions: {
+            logIntervalSecs: null,
+        },
+        
         // Accept additional MIME types
         additionalMimeTypes: ['application/geo+json', 'text/plain', 'binary/octet-stream', 'application/octet-stream'],
         
         async requestHandler({ request, json, body, crawler, log }) {
             results.stats.totalRequests++;
+            globalStats.increment('totalRequests');
             const depth = request.userData?.depth || 0;
             const indent = '  '.repeat(Math.min(depth, 5));
             
@@ -129,6 +136,7 @@ async function crawlSingleApiDomain(urls, domain, config = {}) {
                 }
                 
                 results.stats.successfulRequests++;
+                globalStats.increment('successfulRequests');
             } catch (error) {
                 log.error(`${indent}Error handling ${request.label} at ${request.url}: ${error.message}`);
                 throw error;
@@ -137,6 +145,7 @@ async function crawlSingleApiDomain(urls, domain, config = {}) {
         
         async failedRequestHandler({ request, error, log }) {
             results.stats.failedRequests++;
+            globalStats.increment('failedRequests');
             const indent = '  ';
             const apiId = request.userData?.apiId || 'unknown';
             
@@ -144,6 +153,7 @@ async function crawlSingleApiDomain(urls, domain, config = {}) {
                 log.info(`${indent}[STAC VALIDATION FAILED] ${apiId} at ${request.url}`);
                 log.info(`${indent}   Reason: ${error.message}`);
                 results.stats.nonCompliant++;
+                globalStats.increment('nonCompliant');
             } else if (error.message.includes('timeout')) {
                 log.warning(`${indent}[TIMEOUT] ${apiId} at ${request.url}`);
             } else if (error.message.includes('ENOTFOUND') || error.message.includes('ECONNREFUSED')) {
@@ -173,6 +183,9 @@ async function crawlSingleApiDomain(urls, domain, config = {}) {
 
     await crawler.addRequests(initialRequests);
     
+    // Register domain as active in global stats
+    globalStats.domainStarted(domain);
+    
     console.log(`  [${domain}] Starting: ${initialRequests.length} APIs, max ${rateLimits.maxRequestsPerMinute} req/min, ${concurrency} concurrent`);
     await crawler.run();
     
@@ -180,6 +193,16 @@ async function crawlSingleApiDomain(urls, domain, config = {}) {
     const finalFlush = await flushCollectionsToDb(results, crawleeLog, true);
     results.stats.collectionsSaved += finalFlush.saved;
     results.stats.collectionsFailed += finalFlush.failed;
+    
+    // Update global stats with final counts
+    globalStats.increment('collectionsSaved', results.stats.collectionsSaved);
+    globalStats.increment('collectionsFailed', results.stats.collectionsFailed);
+    globalStats.increment('collectionsFound', results.stats.collectionsFound);
+    globalStats.increment('apisProcessed', results.stats.apisProcessed);
+    globalStats.increment('stacCompliant', results.stats.stacCompliant);
+    
+    // Register domain as completed
+    globalStats.domainCompleted(domain);
     
     // Clear apis array to free memory
     results.apis.length = 0;
@@ -229,13 +252,6 @@ async function crawlApis(urls, isApi, config = {}) {
     
     // Number of domains to crawl in parallel (default: 5)
     const parallelDomains = config.parallelDomains || 5;
-    const maxRequestsPerMinutePerDomain = config.maxRequestsPerMinutePerDomain || 120;
-    
-    console.log(`\n=== Parallel API Crawling Configuration ===`);
-    console.log(`Parallel domains: ${parallelDomains}`);
-    console.log(`Max requests/min per domain: ${maxRequestsPerMinutePerDomain}`);
-    console.log(`Theoretical max throughput: ${parallelDomains * maxRequestsPerMinutePerDomain} req/min across all domains`);
-    console.log(`============================================\n`);
     
     // Create tasks for each domain
     const domainTasks = Array.from(domainUrlMap.entries()).map(([domain, domainUrls]) => {
@@ -243,6 +259,9 @@ async function crawlApis(urls, isApi, config = {}) {
     });
     
     console.log(`Starting parallel API crawl of ${domainUrlMap.size} domains (${parallelDomains} at a time)...\n`);
+    
+    // Track total runtime for throughput calculation
+    const crawlStartTime = Date.now();
     
     // Execute with concurrency limit
     const allResults = await executeWithConcurrency(
@@ -253,12 +272,23 @@ async function crawlApis(urls, isApi, config = {}) {
         }
     );
     
+    const crawlEndTime = Date.now();
+    const totalRuntimeMs = crawlEndTime - crawlStartTime;
+    const totalRuntimeMinutes = totalRuntimeMs / 60000;
+    
     // Aggregate all statistics
     const aggregatedStats = aggregateStats(allResults);
     
-    console.log('\n=== Parallel API Crawl Statistics ===');
+    // Calculate actual throughput
+    const requestsPerMinute = totalRuntimeMinutes > 0 
+        ? Math.round(aggregatedStats.totalRequests / totalRuntimeMinutes) 
+        : 0;
+    
+    console.log('\n=== API Crawl Statistics ===');
     console.log(`   Domains Processed: ${domainUrlMap.size}`);
+    console.log(`   Total Runtime: ${Math.round(totalRuntimeMs / 1000)}s`);
     console.log(`   Total Requests: ${aggregatedStats.totalRequests}`);
+    console.log(`   Requests/Min (actual): ${requestsPerMinute}`);
     console.log(`   Successful: ${aggregatedStats.successfulRequests}`);
     console.log(`   Failed: ${aggregatedStats.failedRequests}`);
     console.log(`   STAC Compliant: ${aggregatedStats.stacCompliant}`);
