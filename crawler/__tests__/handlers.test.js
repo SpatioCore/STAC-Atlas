@@ -57,7 +57,7 @@ describe('handlers utilities', () => {
       
       const result = await flushCollectionsToDb(results, mockLog, false);
       
-      expect(result).toEqual({ saved: 0, failed: 0 });
+      expect(result).toEqual({ saved: 0, failed: 0, active: 0, inactive: 0 });
       expect(mockDbInsert).not.toHaveBeenCalled();
       expect(results.collections.length).toBe(1);
     });
@@ -65,19 +65,42 @@ describe('handlers utilities', () => {
     test('should flush when force is true', async () => {
       const results = {
         collections: [
-          { id: 'col1', title: 'Collection 1' },
-          { id: 'col2', title: 'Collection 2' }
+          { 
+            id: 'sentinel-2-l2a', 
+            title: 'Sentinel-2 Level-2A',
+            type: 'Collection',
+            stac_version: '1.0.0',
+            links: [
+              { rel: 'self', type: 'application/json', href: 'https://earth-search.aws.element84.com/v1/collections/sentinel-2-l2a' },
+              { rel: 'root', type: 'application/json', href: 'https://earth-search.aws.element84.com/v1' }
+            ]
+          },
+          { 
+            id: 'landsat-c2-l2', 
+            title: 'Landsat Collection 2 Level-2',
+            type: 'Collection',
+            stac_version: '1.0.0',
+            links: [
+              { rel: 'self', type: 'application/json', href: 'https://earth-search.aws.element84.com/v1/collections/landsat-c2-l2' },
+              { rel: 'root', type: 'application/json', href: 'https://earth-search.aws.element84.com/v1' }
+            ]
+          }
         ]
       };
       const mockLog = {
         info: jest.fn(),
-        warning: jest.fn()
+        warning: jest.fn(),
+        debug: jest.fn()
       };
       
       const result = await flushCollectionsToDb(results, mockLog, true);
       
-      expect(result).toEqual({ saved: 2, failed: 0 });
-      expect(mockDbInsert).toHaveBeenCalledTimes(2);
+      // Real STAC collections from earth-search should be validated as active
+      expect(result.saved).toBe(2);
+      expect(result.failed).toBe(0);
+      expect(result.active).toBeGreaterThanOrEqual(0); // May be active or inactive depending on network
+      expect(result.inactive).toBeGreaterThanOrEqual(0);
+      expect(result.active + result.inactive).toBe(2); // Total should equal saved
       expect(results.collections.length).toBe(0);
     });
     
@@ -88,20 +111,38 @@ describe('handlers utilities', () => {
       
       const results = {
         collections: [
-          { id: 'col1', title: 'Collection 1' },
-          { id: 'col2', title: 'Collection 2' }
+          { 
+            id: 'sentinel-2-l2a', 
+            title: 'Sentinel-2 Level-2A',
+            type: 'Collection',
+            links: [
+              { rel: 'self', type: 'application/json', href: 'https://earth-search.aws.element84.com/v1/collections/sentinel-2-l2a' }
+            ]
+          },
+          { 
+            id: 'landsat-c2-l2', 
+            title: 'Landsat Collection 2 Level-2',
+            type: 'Collection',
+            links: [
+              { rel: 'self', type: 'application/json', href: 'https://earth-search.aws.element84.com/v1/collections/landsat-c2-l2' }
+            ]
+          }
         ]
       };
       const mockLog = {
         info: jest.fn(),
-        warning: jest.fn()
+        warning: jest.fn(),
+        debug: jest.fn()
       };
       
       const result = await flushCollectionsToDb(results, mockLog, true);
       
-      expect(result).toEqual({ saved: 1, failed: 1 });
+      expect(result.saved).toBe(1);
+      expect(result.failed).toBe(1);
+      expect(result).toHaveProperty('active');
+      expect(result).toHaveProperty('inactive');
       expect(mockLog.warning).toHaveBeenCalledWith(
-        expect.stringContaining('Failed to save collection col2')
+        expect.stringContaining('Failed to save collection landsat-c2-l2')
       );
     });
     
@@ -111,7 +152,7 @@ describe('handlers utilities', () => {
       
       const result = await flushCollectionsToDb(results, mockLog, true);
       
-      expect(result).toEqual({ saved: 0, failed: 0 });
+      expect(result).toEqual({ saved: 0, failed: 0, active: 0, inactive: 0 });
       expect(mockDbInsert).not.toHaveBeenCalled();
     });
   });

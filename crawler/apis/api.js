@@ -66,6 +66,10 @@ async function crawlApis(urls, isApi, config = {}) {
                 successfulRequests: 0,
                 failedRequests: 0,
                 collectionsFound: 0,
+                collectionsSaved: 0,
+                collectionsFailed: 0,
+                collectionsActive: 0,
+                collectionsInactive: 0,
                 apisProcessed: 0,
                 stacCompliant: 0,
                 nonCompliant: 0
@@ -88,6 +92,8 @@ async function crawlApis(urls, isApi, config = {}) {
             collectionsFound: 0,
             collectionsSaved: 0,
             collectionsFailed: 0,
+            collectionsActive: 0,
+            collectionsInactive: 0,
             apisProcessed: 0,
             stacCompliant: 0,
             nonCompliant: 0

@@ -69,11 +69,10 @@ async function insertOrUpdateCatalog(catalog) {
 /**
  * Insert or update a collection in the database
  * @param {Object} collection - STAC collection object
+ * @param {boolean} isActive - Whether the collection's source URL is accessible (default: true)
  * @returns {Promise<number>} collection ID
  */
-async function insertOrUpdateCollection(collection) {
-
-
+async function insertOrUpdateCollection(collection, isActive = true) {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -109,48 +108,78 @@ async function insertOrUpdateCollection(collection) {
       sourceUrl = selfLink?.href || rootLink?.href || null;
     }
     
-    // Check if collection with this title already exists
-    const existingCollection = await client.query(
-      'SELECT id FROM collection WHERE title = $1',
-      [collectionTitle]
-    );
+    // Check if collection exists - prefer URL-based matching, fallback to title
+    let existingCollection;
+    if (sourceUrl) {
+      // Use JSONB path query to safely search for URL in links array
+      // This is more efficient and prevents SQL injection
+      existingCollection = await client.query(
+        `SELECT id FROM collection 
+         WHERE full_json @> jsonb_build_object('links', jsonb_build_array(jsonb_build_object('href', $1)))
+         OR full_json @> jsonb_build_object('links', jsonb_build_array(jsonb_build_object('href', $1, 'rel', 'self')))
+         OR full_json @> jsonb_build_object('links', jsonb_build_array(jsonb_build_object('href', $1, 'rel', 'root')))`,
+        [sourceUrl]
+      );
+    }
+    
+    // If not found by URL or no URL available, try by title as fallback
+    if (!existingCollection || existingCollection.rows.length === 0) {
+      existingCollection = await client.query(
+        'SELECT id FROM collection WHERE title = $1',
+        [collectionTitle]
+      );
+    }
     
     let collectionId;
     if (existingCollection.rows.length > 0) {
-      // Update existing collection
+      // Update existing collection - only update if still active
       collectionId = existingCollection.rows[0].id;
-      await client.query(
-        `UPDATE collection SET 
-          stac_id = $1,
-          stac_version = $2,
-          type = $3,
-          description = $4,
-          license = $5,
-          spatial_extent = ST_GeomFromEWKT($6),
-          temporal_extent_start = $7,
-          temporal_extent_end = $8,
-          is_api = $9,
-          is_active = $10,
-          full_json = $11,
-          updated_at = now()
-         WHERE id = $12`,
-        [
-          stacId,
-          collection.stac_version || null,
-          collection.type || 'Collection',
-          collection.description || null,
-          collection.license || null,
-          spatialExtent,
-          temporalStart,
-          temporalEnd,
-          false, // is_api - will be determined by crawler
-          true, // is_active
-          JSON.stringify(collection),
-          collectionId
-        ]
-      );
+      if (isActive) {
+        // Collection is still accessible - update all fields
+        await client.query(
+          `UPDATE collection SET 
+            stac_id = $1,
+            stac_version = $2,
+            type = $3,
+            title = $4,
+            description = $5,
+            license = $6,
+            spatial_extent = ST_GeomFromEWKT($7),
+            temporal_extent_start = $8,
+            temporal_extent_end = $9,
+            is_api = $10,
+            is_active = $11,
+            full_json = $12,
+            updated_at = now()
+           WHERE id = $13`,
+          [
+            stacId,
+            collection.stac_version || null,
+            collection.type || 'Collection',
+            collectionTitle,
+            collection.description || null,
+            collection.license || null,
+            spatialExtent,
+            temporalStart,
+            temporalEnd,
+            false, // is_api - will be determined by crawler
+            true, // is_active - validated and confirmed
+            JSON.stringify(collection),
+            collectionId
+          ]
+        );
+      } else {
+        // Collection URL is not accessible - only update is_active
+        // Don't update updated_at since collection metadata hasn't changed
+        await client.query(
+          `UPDATE collection SET 
+            is_active = $1
+           WHERE id = $2`,
+          [false, collectionId]
+        );
+      }
     } else {
-      // Insert new collection
+      // Insert new collection with validated is_active status
       const collectionResult = await client.query(
         `INSERT INTO collection (
           stac_id, stac_version, type, title, description, license,
@@ -170,42 +199,46 @@ async function insertOrUpdateCollection(collection) {
           temporalStart,
           temporalEnd,
           false, // is_api - will be determined by crawler
-          true, // is_active
+          isActive, // is_active - validated before save
           JSON.stringify(collection)
         ]
       );
       collectionId = collectionResult.rows[0].id;
     }
 
-    // Insert summaries
-    if (collection.summaries && typeof collection.summaries === 'object') {
-      await client.query('DELETE FROM collection_summaries WHERE collection_id = $1', [collectionId]);
-      for (const [name, value] of Object.entries(collection.summaries)) {
-        await insertSummary(client, collectionId, name, value, sourceUrl);
+    // Only update related tables if collection is active
+    // Skip updating summaries, keywords, etc. for inactive collections to save time
+    if (isActive) {
+      // Insert summaries
+      if (collection.summaries && typeof collection.summaries === 'object') {
+        await client.query('DELETE FROM collection_summaries WHERE collection_id = $1', [collectionId]);
+        for (const [name, value] of Object.entries(collection.summaries)) {
+          await insertSummary(client, collectionId, name, value, sourceUrl);
+        }
+      }
+
+      // Insert keywords
+      if (collection.keywords && Array.isArray(collection.keywords)) {
+        await insertKeywords(client, collectionId, collection.keywords, 'collection');
+      }
+
+      // Insert STAC extensions
+      if (collection.stac_extensions && Array.isArray(collection.stac_extensions)) {
+        await insertStacExtensions(client, collectionId, collection.stac_extensions, 'collection');
+      }
+
+      // Insert providers
+      if (collection.providers && Array.isArray(collection.providers)) {
+        await insertProviders(client, collectionId, collection.providers);
+      }
+
+      // Insert assets
+      if (collection.assets && typeof collection.assets === 'object') {
+        await insertAssets(client, collectionId, collection.assets);
       }
     }
 
-    // Insert keywords
-    if (collection.keywords && Array.isArray(collection.keywords)) {
-      await insertKeywords(client, collectionId, collection.keywords, 'collection');
-    }
-
-    // Insert STAC extensions
-    if (collection.stac_extensions && Array.isArray(collection.stac_extensions)) {
-      await insertStacExtensions(client, collectionId, collection.stac_extensions, 'collection');
-    }
-
-    // Insert providers
-    if (collection.providers && Array.isArray(collection.providers)) {
-      await insertProviders(client, collectionId, collection.providers);
-    }
-
-    // Insert assets
-    if (collection.assets && typeof collection.assets === 'object') {
-      await insertAssets(client, collectionId, collection.assets);
-    }
-
-    // Update crawl log
+    // Always update crawl log regardless of active status
     await client.query(
       'DELETE FROM crawllog_collection WHERE collection_id = $1',
       [collectionId]

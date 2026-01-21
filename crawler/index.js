@@ -100,7 +100,12 @@ export const crawler = async () => {
             
             try {
                 const results = await crawlCatalogs(catalogsToProcess, config);
-                console.log(`\nTotal collections found across all catalogs: ${results.stats.collectionsFound}`);
+                console.log(`\nCatalog Crawl Complete:`);
+                console.log(`   Collections Found: ${results.stats.collectionsFound}`);
+                console.log(`   Collections Saved: ${results.stats.collectionsSaved}`);
+                console.log(`   Collections Active: ${results.stats.collectionsActive || 0}`);
+                console.log(`   Collections Inactive: ${results.stats.collectionsInactive || 0}`);
+                console.log(`   Collections Failed: ${results.stats.collectionsFailed}`);
             } catch (error) {
                 console.error(`Failed to crawl catalogs: ${error.message}`);
             }
@@ -125,6 +130,8 @@ export const crawler = async () => {
                     console.log(`\nAPI Crawl Complete:`);
                     console.log(`   Collections Found: ${apiResults.stats.collectionsFound}`);
                     console.log(`   Collections Saved: ${apiResults.stats.collectionsSaved}`);
+                    console.log(`   Collections Active: ${apiResults.stats.collectionsActive || 0}`);
+                    console.log(`   Collections Inactive: ${apiResults.stats.collectionsInactive || 0}`);
                     console.log(`   Collections Failed: ${apiResults.stats.collectionsFailed}`);
                 } catch (error) {
                     console.error(`Failed to crawl APIs: ${error.message}`);

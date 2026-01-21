@@ -32,6 +32,8 @@ async function crawlCatalogs(initialCatalogs, config = {}) {
             collectionsFound: 0,
             collectionsSaved: 0,
             collectionsFailed: 0,
+            collectionsActive: 0,
+            collectionsInactive: 0,
             catalogsProcessed: 0,
             stacCompliant: 0,
             nonCompliant: 0
