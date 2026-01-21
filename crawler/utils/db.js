@@ -94,7 +94,8 @@ async function insertOrUpdateCollection(collection) {
     
     if (bbox && bbox.length === 4) {
       // Create polygon from bbox [west, south, east, north]
-      spatialExtent = `EPSG:4326;POLYGON((${bbox[0]} ${bbox[1]}, ${bbox[2]} ${bbox[1]}, ${bbox[2]} ${bbox[3]}, ${bbox[0]} ${bbox[3]}, ${bbox[0]} ${bbox[1]}))`;
+      // EWKT format requires SRID=4326, not EPSG:4326
+      spatialExtent = `SRID=4326;POLYGON((${bbox[0]} ${bbox[1]}, ${bbox[2]} ${bbox[1]}, ${bbox[2]} ${bbox[3]}, ${bbox[0]} ${bbox[3]}, ${bbox[0]} ${bbox[1]}))`;
     }
 
     // Parse temporal extent
