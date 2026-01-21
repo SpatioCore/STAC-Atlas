@@ -34,6 +34,16 @@ export async function tryCollectionEndpoints(stacCatalog, baseUrl, catalogId, de
                     ? collectionLink.getAbsoluteUrl()
                     : collectionLink.href;
                 
+                // Handle S3 protocol URLs - convert to HTTPS
+                if (collectionUrl && collectionUrl.startsWith('s3://')) {
+                    const s3Match = collectionUrl.match(/^s3:\/\/([^/]+)\/(.*)$/);
+                    if (s3Match) {
+                        const [, bucket, path] = s3Match;
+                        collectionUrl = `https://${bucket}.s3.amazonaws.com/${path}`;
+                        log.debug(`${indent}Converted S3 URL: ${collectionLink.href} -> ${collectionUrl}`);
+                    }
+                }
+                
                 // Handle relative URLs
                 if (collectionUrl && !collectionUrl.startsWith('http')) {
                     const basePath = baseUrl.substring(0, baseUrl.lastIndexOf('/'));

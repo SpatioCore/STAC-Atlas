@@ -1,5 +1,6 @@
 /**
  * @fileoverview API crawling functionality for STAC Index using Crawlee
+ * Supports parallel crawling of multiple domains simultaneously
  * @module apis/api
  */
 
@@ -7,23 +8,30 @@ import { HttpCrawler, Configuration, log as crawleeLog } from 'crawlee';
 import create from 'stac-js';
 import { normalizeCollection } from '../utils/normalization.js';
 import { handleCollections, flushCollectionsToDb } from '../utils/handlers.js';
+import { 
+    groupByDomain, 
+    executeWithConcurrency, 
+    aggregateStats, 
+    calculateRateLimits,
+    logDomainStats 
+} from '../utils/parallel.js';
 
 /**
  * Batch size for saving collections to database during API crawling
+ * Set low (25) for servers with limited RAM (2GB)
  * @type {number}
  */
-const BATCH_SIZE = 500;
+const BATCH_SIZE = 25;
 
 /**
  * Batch size for clearing apis array to free memory
- * The apis array is only used for statistics, so we clear it periodically
+ * Set low (25) for servers with limited RAM (2GB)
  * @type {number}
  */
-const API_CLEAR_BATCH_SIZE = 500;
+const API_CLEAR_BATCH_SIZE = 25;
 
 /**
  * Checks if batch size is reached and flushes if necessary
- * Also clears the apis array periodically to free memory
  * @async
  * @param {Object} results - Results object containing collections array
  * @param {Object} log - Logger instance
@@ -35,8 +43,6 @@ async function checkAndFlushApi(results, log) {
         results.stats.collectionsFailed = (results.stats.collectionsFailed || 0) + failed;
     }
     
-    // Clear apis array periodically to free memory
-    // The apis array is only used for end statistics, which we track in stats object
     if (results.apis && results.apis.length >= API_CLEAR_BATCH_SIZE) {
         log.info(`[MEMORY] Clearing ${results.apis.length} APIs from memory`);
         results.apis.length = 0;
@@ -44,42 +50,23 @@ async function checkAndFlushApi(results, log) {
 }
 
 /**
- * Note: This crawler is for REAL APIs only. Static catalogs (*.json files)
- * are now routed to the catalog crawler in index.js
- * 
- * Crawls STAC APIs to retrieve collection information without fetching items.
- * 
- * @param {string[]} urls - Array of API URLs to crawl
- * @param {boolean} isApi - Boolean flag indicating if the URLs are APIs
- * @param {Object} config - Configuration object with timeout settings
- * @returns {Promise<Object>} Results object with collections array and statistics
+ * Creates and runs a single Crawlee HttpCrawler for a specific domain
+ * @async
+ * @param {Array<string>} urls - Array of API URLs for this domain
+ * @param {string} domain - The domain being crawled
+ * @param {Object} config - Configuration object
+ * @returns {Promise<Object>} Crawl results with collections and statistics
  */
-async function crawlApis(urls, isApi, config = {}) {
+async function crawlSingleApiDomain(urls, domain, config = {}) {
     // Use in-memory storage to avoid file lock race conditions under high concurrency
     Configuration.getGlobalConfig().set('persistStorage', false);
     
-    if (!isApi || !Array.isArray(urls) || urls.length === 0) {
-        return {
-            collections: [],
-            stats: {
-                totalRequests: 0,
-                successfulRequests: 0,
-                failedRequests: 0,
-                collectionsFound: 0,
-                collectionsSaved: 0,
-                collectionsFailed: 0,
-                collectionsActive: 0,
-                collectionsInactive: 0,
-                apisProcessed: 0,
-                stacCompliant: 0,
-                nonCompliant: 0
-            }
-        };
-    }
-
     const timeoutSecs = config.timeout && config.timeout !== Infinity 
         ? Math.ceil(config.timeout / 1000) 
         : 60;
+
+    // Calculate rate limits for this domain
+    const rateLimits = calculateRateLimits(config.maxRequestsPerMinutePerDomain || 120);
 
     // Store results
     const results = {
@@ -103,35 +90,38 @@ async function crawlApis(urls, isApi, config = {}) {
     // Maximum depth for nested catalog crawling (0 = unlimited)
     const maxDepth = config.maxDepth || 10;
     
+    const concurrency = config.maxConcurrencyPerDomain || 20;
+    
     const crawler = new HttpCrawler({
         requestHandlerTimeoutSecs: timeoutSecs,
         
-        
-        // Rate limiting options
-        maxConcurrency: config.maxConcurrency || 5,
-        maxRequestsPerMinute: config.maxRequestsPerMinute || 60,
-        sameDomainDelaySecs: config.sameDomainDelaySecs || 1,
+        // Rate limiting
+        maxRequestsPerMinute: rateLimits.maxRequestsPerMinute,
         maxRequestRetries: config.maxRequestRetries || 3,
         
-        // Accept additional MIME types (some STAC endpoints return JSON with incorrect Content-Type)
+        // High concurrency for throughput
+        maxConcurrency: concurrency,
+        
+        // Accept additional MIME types
         additionalMimeTypes: ['application/geo+json', 'text/plain', 'binary/octet-stream', 'application/octet-stream'],
         
-        // Rate limiting options
-        maxConcurrency: config.maxConcurrency || 5,
-        maxRequestsPerMinute: config.maxRequestsPerMinute || 60,
-        sameDomainDelaySecs: config.sameDomainDelaySecs || 1,
-        maxRequestRetries: config.maxRequestRetries || 3,
-        
-        // Accept additional MIME types (some STAC endpoints return JSON with incorrect Content-Type)
-        additionalMimeTypes: ['application/geo+json', 'text/plain', 'binary/octet-stream', 'application/octet-stream'],
-        
-        async requestHandler({ request, json, crawler, log }) {
+        async requestHandler({ request, json, body, crawler, log }) {
             results.stats.totalRequests++;
             const depth = request.userData?.depth || 0;
-            const indent = '  '.repeat(Math.min(depth, 5)); // Cap indent at 5 levels
+            const indent = '  '.repeat(Math.min(depth, 5));
+            
+            // Fallback: manually parse JSON if Crawlee's automatic parsing failed
+            if (!json && body) {
+                try {
+                    const bodyStr = typeof body === 'string' ? body : body.toString('utf8');
+                    json = JSON.parse(bodyStr);
+                    log.debug(`${indent}Manually parsed JSON for ${request.url} (${bodyStr.length} bytes)`);
+                } catch (parseError) {
+                    log.warning(`${indent}Failed to parse response body as JSON: ${parseError.message}`);
+                }
+            }
             
             try {
-                // Route based on request label
                 if (request.label === 'API_ROOT') {
                     await handleApiRoot({ request, json, crawler, log, indent, results, maxDepth });
                 } else if (request.label === 'API_COLLECTIONS') {
@@ -143,7 +133,7 @@ async function crawlApis(urls, isApi, config = {}) {
                 results.stats.successfulRequests++;
             } catch (error) {
                 log.error(`${indent}Error handling ${request.label} at ${request.url}: ${error.message}`);
-                throw error; // Re-throw to trigger failedRequestHandler
+                throw error;
             }
         },
         
@@ -152,7 +142,6 @@ async function crawlApis(urls, isApi, config = {}) {
             const indent = '  ';
             const apiId = request.userData?.apiId || 'unknown';
             
-            // Log detailed failure information
             if (error.message.includes('STAC validation')) {
                 log.info(`${indent}[STAC VALIDATION FAILED] ${apiId} at ${request.url}`);
                 log.info(`${indent}   Reason: ${error.message}`);
@@ -178,7 +167,7 @@ async function crawlApis(urls, isApi, config = {}) {
         url: url,
         label: 'API_ROOT',
         userData: {
-            apiId: `api-${index}`,
+            apiId: `${domain}-api-${index}`,
             apiUrl: url,
             depth: 0
         }
@@ -186,44 +175,113 @@ async function crawlApis(urls, isApi, config = {}) {
 
     await crawler.addRequests(initialRequests);
     
-    console.log(`\nStarting Crawlee crawler with ${initialRequests.length} APIs...\n`);
+    console.log(`  [${domain}] Starting: ${initialRequests.length} APIs, max ${rateLimits.maxRequestsPerMinute} req/min, ${concurrency} concurrent`);
     await crawler.run();
     
     // Flush any remaining collections to database
-    console.log('\nFlushing remaining API collections to database...');
     const finalFlush = await flushCollectionsToDb(results, crawleeLog, true);
     results.stats.collectionsSaved += finalFlush.saved;
     results.stats.collectionsFailed += finalFlush.failed;
     
-    // Clear apis array to free memory (we don't need them after crawl)
+    // Clear apis array to free memory
     results.apis.length = 0;
     
-    console.log('\nAPI Crawl Statistics:');
-    console.log(`   Total Requests: ${results.stats.totalRequests}`);
-    console.log(`   Successful: ${results.stats.successfulRequests}`);
-    console.log(`   Failed: ${results.stats.failedRequests}`);
-    console.log(`   STAC Compliant: ${results.stats.stacCompliant}`);
-    console.log(`   Non-Compliant: ${results.stats.nonCompliant}`);
-    console.log(`   APIs Processed: ${results.stats.apisProcessed}`);
-    console.log(`   Collections Found: ${results.stats.collectionsFound}`);
-    console.log(`   Collections Saved to DB: ${results.stats.collectionsSaved}`);
-    console.log(`   Collections Failed: ${results.stats.collectionsFailed}\n`);
+    console.log(`  [${domain}] Finished: ${results.stats.collectionsFound} collections, ${results.stats.successfulRequests}/${results.stats.totalRequests} requests`);
 
     return results;
+}
+
+/**
+ * Crawls STAC APIs to retrieve collection information without fetching items.
+ * Groups APIs by domain and crawls multiple domains simultaneously.
+ * 
+ * @param {string[]} urls - Array of API URLs to crawl
+ * @param {boolean} isApi - Boolean flag indicating if the URLs are APIs
+ * @param {Object} config - Configuration object with timeout settings
+ * @returns {Promise<Object>} Results object with collections array and statistics
+ */
+async function crawlApis(urls, isApi, config = {}) {
+    if (!isApi || !Array.isArray(urls) || urls.length === 0) {
+        return {
+            collections: [],
+            stats: {
+                totalRequests: 0,
+                successfulRequests: 0,
+                failedRequests: 0,
+                collectionsFound: 0,
+                apisProcessed: 0,
+                stacCompliant: 0,
+                nonCompliant: 0
+            }
+        };
+    }
+
+    // Convert URLs to objects for groupByDomain
+    const urlObjects = urls.map(url => ({ url }));
+    const domainMap = groupByDomain(urlObjects);
+    
+    // Convert back to URL arrays per domain
+    const domainUrlMap = new Map();
+    for (const [domain, objs] of domainMap.entries()) {
+        domainUrlMap.set(domain, objs.map(o => o.url));
+    }
+    
+    // Log domain distribution
+    logDomainStats(domainMap, 'APIs');
+    
+    // Number of domains to crawl in parallel (default: 5)
+    const parallelDomains = config.parallelDomains || 5;
+    const maxRequestsPerMinutePerDomain = config.maxRequestsPerMinutePerDomain || 120;
+    
+    console.log(`\n=== Parallel API Crawling Configuration ===`);
+    console.log(`Parallel domains: ${parallelDomains}`);
+    console.log(`Max requests/min per domain: ${maxRequestsPerMinutePerDomain}`);
+    console.log(`Theoretical max throughput: ${parallelDomains * maxRequestsPerMinutePerDomain} req/min across all domains`);
+    console.log(`============================================\n`);
+    
+    // Create tasks for each domain
+    const domainTasks = Array.from(domainUrlMap.entries()).map(([domain, domainUrls]) => {
+        return () => crawlSingleApiDomain(domainUrls, domain, config);
+    });
+    
+    console.log(`Starting parallel API crawl of ${domainUrlMap.size} domains (${parallelDomains} at a time)...\n`);
+    
+    // Execute with concurrency limit
+    const allResults = await executeWithConcurrency(
+        domainTasks, 
+        parallelDomains,
+        (completed, total) => {
+            console.log(`\n>>> Domain progress: ${completed}/${total} domains completed <<<\n`);
+        }
+    );
+    
+    // Aggregate all statistics
+    const aggregatedStats = aggregateStats(allResults);
+    
+    console.log('\n=== Parallel API Crawl Statistics ===');
+    console.log(`   Domains Processed: ${domainUrlMap.size}`);
+    console.log(`   Total Requests: ${aggregatedStats.totalRequests}`);
+    console.log(`   Successful: ${aggregatedStats.successfulRequests}`);
+    console.log(`   Failed: ${aggregatedStats.failedRequests}`);
+    console.log(`   STAC Compliant: ${aggregatedStats.stacCompliant}`);
+    console.log(`   Non-Compliant: ${aggregatedStats.nonCompliant}`);
+    console.log(`   APIs Processed: ${aggregatedStats.apisProcessed}`);
+    console.log(`   Collections Found: ${aggregatedStats.collectionsFound}`);
+    console.log(`   Collections Saved to DB: ${aggregatedStats.collectionsSaved}`);
+    console.log(`   Collections Failed: ${aggregatedStats.collectionsFailed}`);
+    console.log('=====================================\n');
+
+    return {
+        collections: [],
+        apis: [],
+        stats: aggregatedStats
+    };
 }
 
 
 /**
  * Handles API root endpoint - validates STAC, discovers collections endpoints
  * @async
- * @param {Object} context - Request handler context
- * @param {Object} context.request - Crawlee request object
- * @param {Object} context.json - Parsed JSON response
- * @param {Object} context.crawler - Crawlee crawler instance
- * @param {Object} context.log - Logger instance
- * @param {string} context.indent - Indentation for logging
- * @param {Object} context.results - Results object to store data
- * @param {number} context.maxDepth - Maximum recursion depth (0 = unlimited)
  */
 async function handleApiRoot({ request, json, crawler, log, indent, results, maxDepth = 10 }) {
     const apiId = request.userData?.apiId || 'unknown';
@@ -232,10 +290,14 @@ async function handleApiRoot({ request, json, crawler, log, indent, results, max
     
     log.info(`${indent}Processing API: ${apiId} at ${apiUrl} (depth: ${depth})`);
     
-    // Validate with stac-js
+    if (!json || typeof json !== 'object') {
+        log.warning(`${indent}Invalid JSON response for ${apiId} at ${request.url}`);
+        throw new Error('Invalid JSON response: null or not an object');
+    }
+    
     let stacObj;
     try {
-        stacObj = create(json, request.url);
+        stacObj = create(json, true);
         results.stats.stacCompliant++;
         
         if (typeof stacObj.isCatalog === 'function' && stacObj.isCatalog()) {
@@ -250,10 +312,9 @@ async function handleApiRoot({ request, json, crawler, log, indent, results, max
     }
     
     results.stats.apisProcessed++;
+    // Only track minimal info to reduce memory
     results.apis.push({
-        id: apiId,
-        url: request.url,
-        stacType: stacObj.isCollection() ? 'collection' : 'catalog'
+        id: apiId
     });
     
     // If this is a STAC Collection directly, extract and store it
@@ -263,9 +324,8 @@ async function handleApiRoot({ request, json, crawler, log, indent, results, max
         results.stats.collectionsFound++;
         log.info(`${indent}Extracted collection: ${collection.id} - ${collection.title}`);
         
-        // Check if we should flush to database
         await checkAndFlushApi(results, log);
-        return; // Single collection, no need to look for more
+        return;
     }
     
     // Try to find collections endpoint using stac-js
@@ -274,7 +334,6 @@ async function handleApiRoot({ request, json, crawler, log, indent, results, max
     if (typeof stacObj.getApiCollectionsLink === 'function') {
         const collectionsLink = stacObj.getApiCollectionsLink();
         if (collectionsLink && collectionsLink.href) {
-            // Direkt die href verwenden - diese ist bereits absolut im JSON
             collectionsEndpoint = collectionsLink.href;
             log.info(`${indent}Found collections link via stac-js: ${collectionsEndpoint}`);
         }
@@ -304,7 +363,6 @@ async function handleApiRoot({ request, json, crawler, log, indent, results, max
         if (childLinks.length > 0) {
             log.info(`${indent}Found ${childLinks.length} child catalog links`);
             
-            // Check if we've reached maximum depth
             const nextDepth = depth + 1;
             if (maxDepth > 0 && nextDepth > maxDepth) {
                 log.warning(`${indent}Skipping ${childLinks.length} child catalogs - max depth (${maxDepth}) reached`);
@@ -323,12 +381,32 @@ async function handleApiRoot({ request, json, crawler, log, indent, results, max
                         return null;
                     }
                     
+                    // Handle S3 protocol URLs - convert to HTTPS
+                    if (childUrl && typeof childUrl === 'string' && childUrl.startsWith('s3://')) {
+                        const s3Match = childUrl.match(/^s3:\/\/([^/]+)\/(.*)$/);
+                        if (s3Match) {
+                            const [, bucket, path] = s3Match;
+                            childUrl = `https://${bucket}.s3.amazonaws.com/${path}`;
+                            log.debug(`${indent}Converted S3 URL: ${link.href} -> ${childUrl}`);
+                        } else {
+                            log.warning(`${indent}Skipping malformed S3 URL at index ${idx}: ${childUrl}`);
+                            return null;
+                        }
+                    }
+                    
+                    // If URL is relative, make it absolute using the API URL
+                    if (childUrl && typeof childUrl === 'string' && !childUrl.startsWith('http')) {
+                        const baseUrl = request.url.endsWith('/') ? request.url.slice(0, -1) : request.url;
+                        const basePath = baseUrl.substring(0, baseUrl.lastIndexOf('/'));
+                        childUrl = `${basePath}/${childUrl}`;
+                    }
+                    
                     // Validate URL
                     if (!childUrl || typeof childUrl !== 'string' || !childUrl.startsWith('http')) {
+                        log.warning(`${indent}Skipping invalid URL at index ${idx}: ${childUrl}`);
                         return null;
                     }
                     
-                    // Check if this is a collection link or child catalog
                     const rel = link.rel || '';
                     const label = rel === 'child' || rel === 'item' ? 'API_ROOT' : 'API_COLLECTION';
                     
@@ -351,26 +429,21 @@ async function handleApiRoot({ request, json, crawler, log, indent, results, max
             }
         }
     }
+    
+    // Help garbage collector by dereferencing large objects
+    stacObj = null;
 }
 
 /**
  * Handles individual API collection endpoint
  * @async
- * @param {Object} context - Request handler context
- * @param {Object} context.request - Crawlee request object
- * @param {Object} context.json - Parsed JSON response
- * @param {Object} context.crawler - Crawlee crawler instance
- * @param {Object} context.log - Logger instance
- * @param {string} context.indent - Indentation for logging
- * @param {Object} context.results - Results object to store data
  */
 async function handleApiCollection({ request, json, crawler, log, indent, results }) {
     const apiId = request.userData?.apiId || 'unknown';
     
-    // Validate with stac-js
     let stacObj;
     try {
-        stacObj = create(json, request.url);
+        stacObj = create(json, true);
         
         if (typeof stacObj.isCollection === 'function' && stacObj.isCollection()) {
             const collection = normalizeCollection(stacObj, results.collections.length);
@@ -378,7 +451,6 @@ async function handleApiCollection({ request, json, crawler, log, indent, result
             results.stats.collectionsFound++;
             log.info(`${indent}Extracted collection: ${collection.id} - ${collection.title}`);
             
-            // Check if we should flush to database
             await checkAndFlushApi(results, log);
         } else {
             log.warning(`${indent}Expected collection but got: ${json.type || 'unknown type'}`);
@@ -386,6 +458,9 @@ async function handleApiCollection({ request, json, crawler, log, indent, result
     } catch (parseError) {
         log.warning(`${indent}Skipping non-compliant STAC collection at ${request.url}`);
     }
+    
+    // Help garbage collector
+    stacObj = null;
 }
 
 export {

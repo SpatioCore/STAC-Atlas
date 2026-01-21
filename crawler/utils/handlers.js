@@ -12,16 +12,18 @@ import axios from 'axios';
 /**
  * Batch size for saving collections to database
  * After this many collections are collected, they will be flushed to DB
+ * Set low (25) for servers with limited RAM (2GB)
  * @type {number}
  */
-const BATCH_SIZE = 500;
+const BATCH_SIZE = 25;
 
 /**
  * Batch size for clearing catalogs array to free memory
  * The catalogs array is only used for statistics, so we clear it periodically
+ * Set low (25) for servers with limited RAM (2GB)
  * @type {number}
  */
-const CATALOG_CLEAR_BATCH_SIZE = 500;
+const CATALOG_CLEAR_BATCH_SIZE = 25;
 
 /**
  * Timeout for URL validation requests (in milliseconds)
@@ -267,10 +269,18 @@ export async function handleCatalog({ request, json, crawler, log, indent, resul
     
     log.info(`${indent}Processing catalog: ${catalogId} (depth: ${depth}${maxDepth > 0 ? `/${maxDepth}` : ''})`);
     
+    // Defensive check: ensure json is valid before passing to stac-js
+    if (!json || typeof json !== 'object') {
+        log.warning(`${indent}Invalid JSON response for catalog ${catalogId} at ${request.url}`);
+        throw new Error('Invalid JSON response: null or not an object');
+    }
+    
     // Validate with stac-js
+    // Note: create(data, migrate, updateVersionNumber) - second param is boolean, not URL
+    // Using migrate=false to avoid issues with stac-migrate and newer STAC versions
     let stacCatalog;
     try {
-        stacCatalog = create(json, request.url);
+        stacCatalog = create(json, true);
         results.stats.stacCompliant++;
         
         // Log STAC object type
@@ -287,15 +297,17 @@ export async function handleCatalog({ request, json, crawler, log, indent, resul
     }
     
     results.stats.catalogsProcessed++;
+    // Only track minimal info to reduce memory - don't store full catalog data
     results.catalogs.push({
         id: catalogId,
-        url: request.url,
-        depth,
-        stacType: stacCatalog.isCatalog() ? 'catalog' : 'collection'
+        depth
     });
     
     // If this is a STAC Collection (not a catalog), extract and store it
-    if (typeof stacCatalog.isCollection === 'function' && stacCatalog.isCollection()) {
+    // Collections don't have /collections endpoints, so we skip tryCollectionEndpoints for them
+    const isCollection = typeof stacCatalog.isCollection === 'function' && stacCatalog.isCollection();
+    
+    if (isCollection) {
         const collection = normalizeCollection(stacCatalog, results.collections.length);
         results.collections.push(collection);
         results.stats.collectionsFound++;
@@ -303,10 +315,12 @@ export async function handleCatalog({ request, json, crawler, log, indent, resul
         
         // Check if we should flush to database
         await checkAndFlush(results, log);
+    } else {
+        // Only try /collections endpoint for Catalogs, not Collections
+        // Static STAC catalogs don't have /collections endpoints - they use rel="child" links
+        // STAC APIs have /collections endpoints and advertise them via rel="data" or rel="collections"
+        await tryCollectionEndpoints(stacCatalog, request.url, catalogId, depth, crawler, log, indent);
     }
-    
-    // Try to get collections from this catalog (using STAC link discovery)
-    await tryCollectionEndpoints(stacCatalog, request.url, catalogId, depth, crawler, log, indent);
     
     // Extract and enqueue child catalog links using stac-js
     if (stacCatalog && typeof stacCatalog.getChildLinks === 'function') {
@@ -343,6 +357,20 @@ export async function handleCatalog({ request, json, crawler, log, indent, resul
                     } catch (err) {
                         log.warning(`${indent}Error getting URL for link ${idx}: ${err.message}`);
                         return null;
+                    }
+                    
+                    // Handle S3 protocol URLs - convert to HTTPS
+                    if (childUrl && typeof childUrl === 'string' && childUrl.startsWith('s3://')) {
+                        // s3://bucket-name/path -> https://bucket-name.s3.amazonaws.com/path
+                        const s3Match = childUrl.match(/^s3:\/\/([^/]+)\/(.*)$/);
+                        if (s3Match) {
+                            const [, bucket, path] = s3Match;
+                            childUrl = `https://${bucket}.s3.amazonaws.com/${path}`;
+                            log.debug(`${indent}Converted S3 URL: ${link.href} -> ${childUrl}`);
+                        } else {
+                            log.warning(`${indent}Skipping malformed S3 URL at index ${idx}: ${childUrl}`);
+                            return null;
+                        }
                     }
                     
                     // If URL is relative, make it absolute using the catalog URL
@@ -395,6 +423,9 @@ export async function handleCatalog({ request, json, crawler, log, indent, resul
     
     // Ensure memory is cleared periodically even if no collections were found
     await checkAndFlush(results, log);
+    
+    // Help garbage collector by dereferencing large objects
+    stacCatalog = null;
 }
 
 /**
@@ -412,9 +443,10 @@ export async function handleCollections({ request, json, crawler, log, indent, r
     const catalogId = request.userData?.catalogId || 'unknown';
     
     // Parse response with stac-js
+    // Note: create(data, migrate, updateVersionNumber) - second param is boolean, not URL
     let stacObj;
     try {
-        stacObj = create(json, request.url);
+        stacObj = create(json, true);
     } catch (parseError) {
         log.warning(`${indent}Skipping non-compliant STAC collections at ${request.url}`);
         return;
@@ -429,7 +461,7 @@ export async function handleCollections({ request, json, crawler, log, indent, r
         // Handle array of collections
         collectionsData = json.map(col => {
             try {
-                return create(col, request.url);
+                return create(col, true);
             } catch {
                 return null;
             }
@@ -438,7 +470,7 @@ export async function handleCollections({ request, json, crawler, log, indent, r
         // Handle nested collections property
         collectionsData = json.collections.map(col => {
             try {
-                return create(col, request.url);
+                return create(col, true);
             } catch {
                 return null;
             }
@@ -464,4 +496,8 @@ export async function handleCollections({ request, json, crawler, log, indent, r
         // Check if we should flush to database
         await checkAndFlush(results, log);
     }
+    
+    // Help garbage collector by dereferencing large objects
+    stacObj = null;
+    collectionsData = null;
 }

@@ -67,31 +67,102 @@ async function insertOrUpdateCatalog(catalog) {
 }
 
 /**
- * Insert or update a collection in the database
+ * Check if an error is a PostgreSQL deadlock error
+ * @param {Error} error - The error to check
+ * @returns {boolean} true if it's a deadlock error
+ */
+function isDeadlockError(error) {
+  // PostgreSQL deadlock error code is '40P01'
+  return error.code === '40P01' || error.message?.includes('deadlock detected');
+}
+
+/**
+ * Sleep for a given number of milliseconds
+ * @param {number} ms - Milliseconds to sleep
+ * @returns {Promise<void>}
+ */
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+/**
+ * Insert or update a collection in the database with deadlock retry logic
  * @param {Object} collection - STAC collection object
- * @param {boolean} isActive - Whether the collection's source URL is accessible (default: true)
+ * @param {number} maxRetries - Maximum number of retry attempts for deadlocks (default: 3)
  * @returns {Promise<number>} collection ID
  */
-async function insertOrUpdateCollection(collection, isActive = true) {
+async function insertOrUpdateCollection(collection, maxRetries = 3) {
+  let lastError;
+  
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      return await _insertOrUpdateCollectionInternal(collection);
+    } catch (error) {
+      lastError = error;
+      
+      if (isDeadlockError(error) && attempt < maxRetries) {
+        // Exponential backoff: 100ms, 200ms, 400ms, ...
+        const delayMs = 100 * Math.pow(2, attempt - 1) + Math.random() * 50;
+        console.warn(`WARN  [DB] Deadlock detected for collection "${collection.title || collection.id}", retrying in ${Math.round(delayMs)}ms (attempt ${attempt}/${maxRetries})`);
+        await sleep(delayMs);
+        continue;
+      }
+      
+      // Not a deadlock or max retries reached, throw the error
+      throw error;
+    }
+  }
+  
+  // Should not reach here, but just in case
+  throw lastError;
+}
+
+/**
+ * Internal implementation of insertOrUpdateCollection
+ * @param {Object} collection - STAC collection object
+ * @returns {Promise<number>} collection ID
+ */
+async function _insertOrUpdateCollectionInternal(collection) {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
 
     // Parse spatial extent (bbox)
+    // Support both normalized format (bbox) and original STAC format (extent.spatial.bbox)
     let spatialExtent = null;
-    if (collection.extent?.spatial?.bbox && collection.extent.spatial.bbox[0]) {
-      const bbox = collection.extent.spatial.bbox[0];
-      if (bbox.length === 4) {
-        // Create polygon from bbox [west, south, east, north]
-        spatialExtent = `EPSG:4326;POLYGON((${bbox[0]} ${bbox[1]}, ${bbox[2]} ${bbox[1]}, ${bbox[2]} ${bbox[3]}, ${bbox[0]} ${bbox[3]}, ${bbox[0]} ${bbox[1]}))`;
-      }
+    let bbox = null;
+    
+    // Try normalized format first (from normalizeCollection)
+    if (collection.bbox && Array.isArray(collection.bbox)) {
+      bbox = collection.bbox;
+    }
+    // Fallback to original STAC format
+    else if (collection.extent?.spatial?.bbox && collection.extent.spatial.bbox[0]) {
+      bbox = collection.extent.spatial.bbox[0];
+    }
+    
+    if (bbox && bbox.length === 4) {
+      // Create polygon from bbox [west, south, east, north]
+      // EWKT format requires SRID=4326, not EPSG:4326
+      spatialExtent = `SRID=4326;POLYGON((${bbox[0]} ${bbox[1]}, ${bbox[2]} ${bbox[1]}, ${bbox[2]} ${bbox[3]}, ${bbox[0]} ${bbox[3]}, ${bbox[0]} ${bbox[1]}))`;
     }
 
     // Parse temporal extent
+    // Support both normalized format (temporal) and original STAC format (extent.temporal.interval)
     let temporalStart = null;
     let temporalEnd = null;
-    if (collection.extent?.temporal?.interval && collection.extent.temporal.interval[0]) {
-      const interval = collection.extent.temporal.interval[0];
+    let interval = null;
+    
+    // Try normalized format first (from normalizeCollection)
+    if (collection.temporal && Array.isArray(collection.temporal)) {
+      interval = collection.temporal;
+    }
+    // Fallback to original STAC format
+    else if (collection.extent?.temporal?.interval && collection.extent.temporal.interval[0]) {
+      interval = collection.extent.temporal.interval[0];
+    }
+    
+    if (interval) {
       temporalStart = interval[0] ? new Date(interval[0]) : null;
       temporalEnd = interval[1] ? new Date(interval[1]) : null;
     }
@@ -108,85 +179,77 @@ async function insertOrUpdateCollection(collection, isActive = true) {
       sourceUrl = selfLink?.href || rootLink?.href || null;
     }
     
-    // Check if collection exists - prefer URL-based matching, fallback to title
+    // Check if collection with same stac_id from same source already exists
+    // This allows collections with the same title from different sources to coexist
     let existingCollection;
-    if (sourceUrl) {
-      // Use JSONB path query to safely search for URL in links array
-      // This is more efficient and prevents SQL injection
+    if (stacId && sourceUrl) {
+      // Best case: match by stac_id + source_url (most precise)
       existingCollection = await client.query(
-        `SELECT id FROM collection 
-         WHERE full_json @> jsonb_build_object('links', jsonb_build_array(jsonb_build_object('href', $1)))
-         OR full_json @> jsonb_build_object('links', jsonb_build_array(jsonb_build_object('href', $1, 'rel', 'self')))
-         OR full_json @> jsonb_build_object('links', jsonb_build_array(jsonb_build_object('href', $1, 'rel', 'root')))`,
-        [sourceUrl]
+        'SELECT id FROM collection WHERE stac_id = $1 AND full_json->>\'links\' LIKE $2',
+        [stacId, `%${sourceUrl}%`]
       );
     }
     
-    // If not found by URL or no URL available, try by title as fallback
+    // Fallback: if no stac_id or source_url, check by title only (legacy behavior)
     if (!existingCollection || existingCollection.rows.length === 0) {
-      existingCollection = await client.query(
-        'SELECT id FROM collection WHERE title = $1',
-        [collectionTitle]
-      );
+      if (stacId) {
+        // Try matching by stac_id + title combination
+        existingCollection = await client.query(
+          'SELECT id FROM collection WHERE stac_id = $1 AND title = $2',
+          [stacId, collectionTitle]
+        );
+      } else {
+        // Last resort: match by title only (for collections without stac_id)
+        existingCollection = await client.query(
+          'SELECT id FROM collection WHERE title = $1 AND stac_id IS NULL',
+          [collectionTitle]
+        );
+      }
     }
     
     let collectionId;
     if (existingCollection.rows.length > 0) {
-      // Update existing collection - only update if still active
+      // Update existing collection
       collectionId = existingCollection.rows[0].id;
-      if (isActive) {
-        // Collection is still accessible - update all fields
-        await client.query(
-          `UPDATE collection SET 
-            stac_id = $1,
-            stac_version = $2,
-            type = $3,
-            title = $4,
-            description = $5,
-            license = $6,
-            spatial_extent = ST_GeomFromEWKT($7),
-            temporal_extent_start = $8,
-            temporal_extent_end = $9,
-            is_api = $10,
-            is_active = $11,
-            full_json = $12,
-            updated_at = now()
-           WHERE id = $13`,
-          [
-            stacId,
-            collection.stac_version || null,
-            collection.type || 'Collection',
-            collectionTitle,
-            collection.description || null,
-            collection.license || null,
-            spatialExtent,
-            temporalStart,
-            temporalEnd,
-            false, // is_api - will be determined by crawler
-            true, // is_active - validated and confirmed
-            JSON.stringify(collection),
-            collectionId
-          ]
-        );
-      } else {
-        // Collection URL is not accessible - only update is_active
-        // Don't update updated_at since collection metadata hasn't changed
-        await client.query(
-          `UPDATE collection SET 
-            is_active = $1
-           WHERE id = $2`,
-          [false, collectionId]
-        );
-      }
+      await client.query(
+        `UPDATE collection SET 
+          stac_id = $1,
+          stac_version = $2,
+          type = $3,
+          title = $4,
+          description = $5,
+          license = $6,
+          spatial_extent = ST_GeomFromEWKT($7),
+          temporal_extent_start = $8,
+          temporal_extent_end = $9,
+          is_api = $10,
+          full_json = $11,
+          updated_at = now()
+         WHERE id = $12`,
+        [
+          stacId,
+          collection.stac_version || null,
+          collection.type || 'Collection',
+          collectionTitle,
+          collection.description || null,
+          collection.license || null,
+          spatialExtent,
+          temporalStart,
+          temporalEnd,
+          false, // is_api - will be determined by crawler
+          JSON.stringify(collection),
+          collectionId
+        ]
+      );
     } else {
-      // Insert new collection with validated is_active status
+      // Insert new collection
       const collectionResult = await client.query(
         `INSERT INTO collection (
           stac_id, stac_version, type, title, description, license,
           spatial_extent, temporal_extent_start, temporal_extent_end,
-          is_api, is_active, full_json, updated_at
+          is_api, full_json, updated_at
         )
-        VALUES ($1, $2, $3, $4, $5, $6, ST_GeomFromEWKT($7), $8, $9, $10, $11, $12, now())
+        VALUES ($1, $2, $3, $4, $5, $6, ST_GeomFromEWKT($7), $8, $9, $10, $11, now())
         RETURNING id`,
         [
           stacId,
@@ -199,46 +262,41 @@ async function insertOrUpdateCollection(collection, isActive = true) {
           temporalStart,
           temporalEnd,
           false, // is_api - will be determined by crawler
-          isActive, // is_active - validated before save
           JSON.stringify(collection)
         ]
       );
       collectionId = collectionResult.rows[0].id;
     }
 
-    // Only update related tables if collection is active
-    // Skip updating summaries, keywords, etc. for inactive collections to save time
-    if (isActive) {
-      // Insert summaries
-      if (collection.summaries && typeof collection.summaries === 'object') {
-        await client.query('DELETE FROM collection_summaries WHERE collection_id = $1', [collectionId]);
-        for (const [name, value] of Object.entries(collection.summaries)) {
-          await insertSummary(client, collectionId, name, value, sourceUrl);
-        }
-      }
-
-      // Insert keywords
-      if (collection.keywords && Array.isArray(collection.keywords)) {
-        await insertKeywords(client, collectionId, collection.keywords, 'collection');
-      }
-
-      // Insert STAC extensions
-      if (collection.stac_extensions && Array.isArray(collection.stac_extensions)) {
-        await insertStacExtensions(client, collectionId, collection.stac_extensions, 'collection');
-      }
-
-      // Insert providers
-      if (collection.providers && Array.isArray(collection.providers)) {
-        await insertProviders(client, collectionId, collection.providers);
-      }
-
-      // Insert assets
-      if (collection.assets && typeof collection.assets === 'object') {
-        await insertAssets(client, collectionId, collection.assets);
+    // Insert summaries
+    if (collection.summaries && typeof collection.summaries === 'object') {
+      await client.query('DELETE FROM collection_summaries WHERE collection_id = $1', [collectionId]);
+      for (const [name, value] of Object.entries(collection.summaries)) {
+        await insertSummary(client, collectionId, name, value, sourceUrl);
       }
     }
 
-    // Always update crawl log regardless of active status
+    // Insert keywords
+    if (collection.keywords && Array.isArray(collection.keywords)) {
+      await insertKeywords(client, collectionId, collection.keywords, 'collection');
+    }
+
+    // Insert STAC extensions
+    if (collection.stac_extensions && Array.isArray(collection.stac_extensions)) {
+      await insertStacExtensions(client, collectionId, collection.stac_extensions, 'collection');
+    }
+
+    // Insert providers
+    if (collection.providers && Array.isArray(collection.providers)) {
+      await insertProviders(client, collectionId, collection.providers);
+    }
+
+    // Insert assets
+    if (collection.assets && typeof collection.assets === 'object') {
+      await insertAssets(client, collectionId, collection.assets);
+    }
+
+    // Update crawl log
     await client.query(
       'DELETE FROM crawllog_collection WHERE collection_id = $1',
       [collectionId]
@@ -252,7 +310,10 @@ async function insertOrUpdateCollection(collection, isActive = true) {
     return collectionId;
   } catch (error) {
     await client.query('ROLLBACK');
-    console.error('Error inserting collection:', error.message);
+    // Only log non-deadlock errors here, deadlocks are handled by retry wrapper
+    if (!isDeadlockError(error)) {
+      console.error('Error inserting collection:', error.message);
+    }
     throw error;
   } finally {
     client.release();
