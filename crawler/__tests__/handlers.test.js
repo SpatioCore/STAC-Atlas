@@ -194,7 +194,7 @@ describe('handlers utilities', () => {
       
       await handleCatalog(context);
       
-      expect(mockCreate).toHaveBeenCalledWith(context.json, context.request.url);
+      expect(mockCreate).toHaveBeenCalledWith(context.json, true);
       expect(context.results.stats.catalogsProcessed).toBe(1);
       expect(context.results.stats.stacCompliant).toBe(1);
       expect(context.results.catalogs).toHaveLength(1);
