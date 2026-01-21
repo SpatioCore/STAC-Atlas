@@ -41,7 +41,7 @@ async function crawlCatalogs(initialCatalogs, config = {}) {
     const crawler = new HttpCrawler({
         requestHandlerTimeoutSecs: timeoutSecs,
         
-        // Rate limiting options
+        // Rate limiting options - prevents memory buildup from queue overflow
         maxConcurrency: config.maxConcurrency || 5,
         maxRequestsPerMinute: config.maxRequestsPerMinute || 60,
         sameDomainDelaySecs: config.sameDomainDelaySecs || 1,
@@ -58,7 +58,7 @@ async function crawlCatalogs(initialCatalogs, config = {}) {
             try {
                 // Route based on request label
                 if (request.label === 'CATALOG') {
-                    await handleCatalog({ request, json, crawler, log, indent, results });
+                    await handleCatalog({ request, json, crawler, log, indent, results, config });
                 } else if (request.label === 'COLLECTIONS') {
                     await handleCollections({ request, json, crawler, log, indent, results });
                 }

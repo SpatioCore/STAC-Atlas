@@ -16,7 +16,7 @@ router.get('/', (req, res) => {
     id: 'stac-atlas',
     title: 'STAC Atlas',
     description: 'A centralized platform for managing, indexing, and providing STAC Collection metadata from distributed catalogs and APIs.',
-    stac_version: '1.0.0',
+    stac_version: '1.1.0',
     conformsTo: CONFORMANCE_URIS,
     links: [
       {

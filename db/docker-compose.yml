@@ -7,9 +7,13 @@ services:
       - .env
 
     environment:
+      # Admin user (required for initial database setup)
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      # Application user passwords
+      STAC_API_PASSWORD: ${STAC_API_PASSWORD}
+      STAC_CRAWLER_PASSWORD: ${STAC_CRAWLER_PASSWORD}
 
     ports:
       - "${DB_PORT}:5432"

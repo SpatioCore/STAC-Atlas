@@ -13,7 +13,14 @@ import db from './db.js';
  * After this many collections are collected, they will be flushed to DB
  * @type {number}
  */
-const BATCH_SIZE = 1000;
+const BATCH_SIZE = 500;
+
+/**
+ * Batch size for clearing catalogs array to free memory
+ * The catalogs array is only used for statistics, so we clear it periodically
+ * @type {number}
+ */
+const CATALOG_CLEAR_BATCH_SIZE = 500;
 
 /**
  * Flushes collected collections to the database and clears the array
@@ -57,6 +64,7 @@ export async function flushCollectionsToDb(results, log, force = false) {
 
 /**
  * Checks if batch size is reached and flushes if necessary
+ * Also clears the catalogs array periodically to free memory
  * @async
  * @param {Object} results - Results object containing collections array
  * @param {Object} log - Logger instance
@@ -66,6 +74,14 @@ async function checkAndFlush(results, log) {
         const { saved, failed } = await flushCollectionsToDb(results, log, false);
         results.stats.collectionsSaved += saved;
         results.stats.collectionsFailed += failed;
+    }
+    
+    // Clear catalogs array periodically to free memory
+    // The catalogs array is only used for end statistics, which we track in stats object
+    // Note: catalogs may not exist when called from API crawler (which uses apis instead)
+    if (results.catalogs && results.catalogs.length >= CATALOG_CLEAR_BATCH_SIZE) {
+        log.info(`[MEMORY] Clearing ${results.catalogs.length} catalogs from memory`);
+        results.catalogs.length = 0;
     }
 }
 
@@ -79,12 +95,14 @@ async function checkAndFlush(results, log) {
  * @param {Object} context.log - Logger instance
  * @param {string} context.indent - Indentation for logging
  * @param {Object} context.results - Results object to store data
+ * @param {Object} context.config - Configuration object with maxDepth
  */
-export async function handleCatalog({ request, json, crawler, log, indent, results }) {
+export async function handleCatalog({ request, json, crawler, log, indent, results, config = {} }) {
     const depth = request.userData?.depth || 0;
     const catalogId = request.userData?.catalogId || 'unknown';
+    const maxDepth = config.maxDepth || 0; // 0 = unlimited
     
-    log.info(`${indent}Processing catalog: ${catalogId} (depth: ${depth})`);
+    log.info(`${indent}Processing catalog: ${catalogId} (depth: ${depth}${maxDepth > 0 ? `/${maxDepth}` : ''})`);
     
     // Validate with stac-js
     let stacCatalog;
@@ -133,6 +151,14 @@ export async function handleCatalog({ request, json, crawler, log, indent, resul
         
         if (childLinks.length > 0) {
             log.info(`${indent}Found ${childLinks.length} child catalog links`);
+            
+            // Check maxDepth before enqueueing children
+            if (maxDepth > 0 && depth >= maxDepth) {
+                log.info(`${indent}Max depth (${maxDepth}) reached, skipping ${childLinks.length} child catalogs`);
+                // Clear memory and return early - don't enqueue children
+                await checkAndFlush(results, log);
+                return;
+            }
             
             // Log first child link structure for debugging
             if (childLinks[0]) {
@@ -203,6 +229,9 @@ export async function handleCatalog({ request, json, crawler, log, indent, resul
             }
         }
     }
+    
+    // Ensure memory is cleared periodically even if no collections were found
+    await checkAndFlush(results, log);
 }
 
 /**

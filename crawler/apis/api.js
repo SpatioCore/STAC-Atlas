@@ -3,10 +3,45 @@
  * @module apis/api
  */
 
-import { HttpCrawler, Configuration } from 'crawlee';
+import { HttpCrawler, Configuration, log as crawleeLog } from 'crawlee';
 import create from 'stac-js';
 import { normalizeCollection } from '../utils/normalization.js';
-import { handleCollections } from '../utils/handlers.js';
+import { handleCollections, flushCollectionsToDb } from '../utils/handlers.js';
+
+/**
+ * Batch size for saving collections to database during API crawling
+ * @type {number}
+ */
+const BATCH_SIZE = 500;
+
+/**
+ * Batch size for clearing apis array to free memory
+ * The apis array is only used for statistics, so we clear it periodically
+ * @type {number}
+ */
+const API_CLEAR_BATCH_SIZE = 500;
+
+/**
+ * Checks if batch size is reached and flushes if necessary
+ * Also clears the apis array periodically to free memory
+ * @async
+ * @param {Object} results - Results object containing collections array
+ * @param {Object} log - Logger instance
+ */
+async function checkAndFlushApi(results, log) {
+    if (results.collections.length >= BATCH_SIZE) {
+        const { saved, failed } = await flushCollectionsToDb(results, log, false);
+        results.stats.collectionsSaved = (results.stats.collectionsSaved || 0) + saved;
+        results.stats.collectionsFailed = (results.stats.collectionsFailed || 0) + failed;
+    }
+    
+    // Clear apis array periodically to free memory
+    // The apis array is only used for end statistics, which we track in stats object
+    if (results.apis && results.apis.length >= API_CLEAR_BATCH_SIZE) {
+        log.info(`[MEMORY] Clearing ${results.apis.length} APIs from memory`);
+        results.apis.length = 0;
+    }
+}
 
 /**
  * Note: This crawler is for REAL APIs only. Static catalogs (*.json files)
@@ -51,12 +86,17 @@ async function crawlApis(urls, isApi, config = {}) {
             successfulRequests: 0,
             failedRequests: 0,
             collectionsFound: 0,
+            collectionsSaved: 0,
+            collectionsFailed: 0,
             apisProcessed: 0,
             stacCompliant: 0,
             nonCompliant: 0
         }
     };
 
+    // Maximum depth for nested catalog crawling (0 = unlimited)
+    const maxDepth = config.maxDepth || 10;
+    
     const crawler = new HttpCrawler({
         requestHandlerTimeoutSecs: timeoutSecs,
         
@@ -70,14 +110,24 @@ async function crawlApis(urls, isApi, config = {}) {
         // Accept additional MIME types (some STAC endpoints return JSON with incorrect Content-Type)
         additionalMimeTypes: ['application/geo+json', 'text/plain', 'binary/octet-stream', 'application/octet-stream'],
         
+        // Rate limiting options
+        maxConcurrency: config.maxConcurrency || 5,
+        maxRequestsPerMinute: config.maxRequestsPerMinute || 60,
+        sameDomainDelaySecs: config.sameDomainDelaySecs || 1,
+        maxRequestRetries: config.maxRequestRetries || 3,
+        
+        // Accept additional MIME types (some STAC endpoints return JSON with incorrect Content-Type)
+        additionalMimeTypes: ['application/geo+json', 'text/plain', 'binary/octet-stream', 'application/octet-stream'],
+        
         async requestHandler({ request, json, crawler, log }) {
             results.stats.totalRequests++;
-            const indent = '  ';
+            const depth = request.userData?.depth || 0;
+            const indent = '  '.repeat(Math.min(depth, 5)); // Cap indent at 5 levels
             
             try {
                 // Route based on request label
                 if (request.label === 'API_ROOT') {
-                    await handleApiRoot({ request, json, crawler, log, indent, results });
+                    await handleApiRoot({ request, json, crawler, log, indent, results, maxDepth });
                 } else if (request.label === 'API_COLLECTIONS') {
                     await handleCollections({ request, json, crawler, log, indent, results });
                 } else if (request.label === 'API_COLLECTION') {
@@ -123,7 +173,8 @@ async function crawlApis(urls, isApi, config = {}) {
         label: 'API_ROOT',
         userData: {
             apiId: `api-${index}`,
-            apiUrl: url
+            apiUrl: url,
+            depth: 0
         }
     }));
 
@@ -132,6 +183,15 @@ async function crawlApis(urls, isApi, config = {}) {
     console.log(`\nStarting Crawlee crawler with ${initialRequests.length} APIs...\n`);
     await crawler.run();
     
+    // Flush any remaining collections to database
+    console.log('\nFlushing remaining API collections to database...');
+    const finalFlush = await flushCollectionsToDb(results, crawleeLog, true);
+    results.stats.collectionsSaved += finalFlush.saved;
+    results.stats.collectionsFailed += finalFlush.failed;
+    
+    // Clear apis array to free memory (we don't need them after crawl)
+    results.apis.length = 0;
+    
     console.log('\nAPI Crawl Statistics:');
     console.log(`   Total Requests: ${results.stats.totalRequests}`);
     console.log(`   Successful: ${results.stats.successfulRequests}`);
@@ -139,7 +199,9 @@ async function crawlApis(urls, isApi, config = {}) {
     console.log(`   STAC Compliant: ${results.stats.stacCompliant}`);
     console.log(`   Non-Compliant: ${results.stats.nonCompliant}`);
     console.log(`   APIs Processed: ${results.stats.apisProcessed}`);
-    console.log(`   Collections Found: ${results.stats.collectionsFound}\n`);
+    console.log(`   Collections Found: ${results.stats.collectionsFound}`);
+    console.log(`   Collections Saved to DB: ${results.stats.collectionsSaved}`);
+    console.log(`   Collections Failed: ${results.stats.collectionsFailed}\n`);
 
     return results;
 }
@@ -155,12 +217,14 @@ async function crawlApis(urls, isApi, config = {}) {
  * @param {Object} context.log - Logger instance
  * @param {string} context.indent - Indentation for logging
  * @param {Object} context.results - Results object to store data
+ * @param {number} context.maxDepth - Maximum recursion depth (0 = unlimited)
  */
-async function handleApiRoot({ request, json, crawler, log, indent, results }) {
+async function handleApiRoot({ request, json, crawler, log, indent, results, maxDepth = 10 }) {
     const apiId = request.userData?.apiId || 'unknown';
     const apiUrl = request.userData?.apiUrl || request.url;
+    const depth = request.userData?.depth || 0;
     
-    log.info(`${indent}Processing API: ${apiId} at ${apiUrl}`);
+    log.info(`${indent}Processing API: ${apiId} at ${apiUrl} (depth: ${depth})`);
     
     // Validate with stac-js
     let stacObj;
@@ -192,6 +256,9 @@ async function handleApiRoot({ request, json, crawler, log, indent, results }) {
         results.collections.push(collection);
         results.stats.collectionsFound++;
         log.info(`${indent}Extracted collection: ${collection.id} - ${collection.title}`);
+        
+        // Check if we should flush to database
+        await checkAndFlushApi(results, log);
         return; // Single collection, no need to look for more
     }
     
@@ -231,6 +298,13 @@ async function handleApiRoot({ request, json, crawler, log, indent, results }) {
         if (childLinks.length > 0) {
             log.info(`${indent}Found ${childLinks.length} child catalog links`);
             
+            // Check if we've reached maximum depth
+            const nextDepth = depth + 1;
+            if (maxDepth > 0 && nextDepth > maxDepth) {
+                log.warning(`${indent}Skipping ${childLinks.length} child catalogs - max depth (${maxDepth}) reached`);
+                return;
+            }
+            
             const childRequests = childLinks
                 .map((link, idx) => {
                     let childUrl;
@@ -258,7 +332,8 @@ async function handleApiRoot({ request, json, crawler, log, indent, results }) {
                         userData: {
                             apiId: `${apiId}-child-${idx}`,
                             apiUrl: apiUrl,
-                            parentId: apiId
+                            parentId: apiId,
+                            depth: nextDepth
                         }
                     };
                 })
@@ -296,6 +371,9 @@ async function handleApiCollection({ request, json, crawler, log, indent, result
             results.collections.push(collection);
             results.stats.collectionsFound++;
             log.info(`${indent}Extracted collection: ${collection.id} - ${collection.title}`);
+            
+            // Check if we should flush to database
+            await checkAndFlushApi(results, log);
         } else {
             log.warning(`${indent}Expected collection but got: ${json.type || 'unknown type'}`);
         }

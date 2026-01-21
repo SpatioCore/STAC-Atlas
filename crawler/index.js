@@ -48,7 +48,7 @@ export const crawler = async () => {
         console.log(`Max Catalogs: ${config.maxCatalogs === 0 ? 'unlimited' : config.maxCatalogs} (debugging limit)`);
         console.log(`Max APIs: ${config.maxApis === 0 ? 'unlimited' : config.maxApis} (debugging limit)`);
         console.log(`Timeout: ${config.timeout === Infinity ? 'unlimited' : config.timeout + 'ms'}`);
-        console.log(`Crawl Depth: unlimited`);
+        console.log(`Max Depth: ${config.maxDepth === 0 ? 'unlimited' : config.maxDepth} levels`);
         console.log('==================================\n');
         
         const response = await axios.get(targetUrl);
@@ -121,33 +121,11 @@ export const crawler = async () => {
                 
                 try {
                     const apiResults = await crawlApis(apisToProcess, true, config);
-                    const collections = apiResults.collections || [];
-                    console.log(`\nFetched ${collections.length} collections from APIs.`);
-                    
-                    if (collections.length > 0) {
-                        console.log('First 3 collections found:');
-                        collections.slice(0, 3).forEach(c => {
-                            console.log(` - ${c.id}: ${c.title}`);
-                        });
-                        
-                        // Save API collections to database
-                        console.log('\n=== Saving API collections to database ===');
-                        let apiCollectionsSaved = 0;
-                        let apiCollectionsFailed = 0;
-                        
-                        for (const collection of collections) {
-                            try {
-                                const collectionId = await db.insertOrUpdateCollection(collection);
-                                console.log(`  Saved: ${collection.title || collection.id} (DB ID: ${collectionId})`);
-                                apiCollectionsSaved++;
-                            } catch (err) {
-                                console.error(`  Failed: ${collection.title || collection.id} - ${err.message}`);
-                                apiCollectionsFailed++;
-                            }
-                        }
-                        
-                        console.log(`\nAPI Collections: ${apiCollectionsSaved} saved, ${apiCollectionsFailed} failed`);
-                    }
+                    // Collections are now saved to DB during the crawl (batch flushing)
+                    console.log(`\nAPI Crawl Complete:`);
+                    console.log(`   Collections Found: ${apiResults.stats.collectionsFound}`);
+                    console.log(`   Collections Saved: ${apiResults.stats.collectionsSaved}`);
+                    console.log(`   Collections Failed: ${apiResults.stats.collectionsFailed}`);
                 } catch (error) {
                     console.error(`Failed to crawl APIs: ${error.message}`);
                 }
