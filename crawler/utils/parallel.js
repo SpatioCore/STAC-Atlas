@@ -147,17 +147,12 @@ export async function executeWithConcurrency(tasks, concurrency, onProgress = nu
  * @returns {Object} Rate limiting configuration
  */
 export function calculateRateLimits(maxRequestsPerMinute = 120) {
-    // IMPORTANT: In Crawlee, maxRequestsPerMinute and sameDomainDelaySecs work independently
-    // Using BOTH causes double-throttling. We rely primarily on maxRequestsPerMinute.
-    // 
-    // sameDomainDelaySecs is set to a minimal value (0.05s = 50ms) just to prevent
-    // overwhelming a single server with truly simultaneous requests.
+    // Use only maxRequestsPerMinute for rate limiting
+    // sameDomainDelaySecs is set to 0 - we rely solely on the rate limiter
+    // This gives us maximum throughput while respecting the rate limit
     
     return {
-        maxRequestsPerMinute: maxRequestsPerMinute,  // Use full limit, no safety margin needed
-        sameDomainDelaySecs: 0.05,  // Minimal delay (50ms) - just prevent request flooding
-        // With 120 req/min, that's 2 req/sec
-        // With concurrency 20+, we can achieve this easily
+        maxRequestsPerMinute: maxRequestsPerMinute,
     };
 }
 

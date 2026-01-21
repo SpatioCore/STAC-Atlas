@@ -50,17 +50,30 @@ async function crawlSingleDomain(catalogs, domain, config = {}) {
         }
     };
 
+    const concurrency = config.maxConcurrencyPerDomain || 20;
+    
     const crawler = new HttpCrawler({
         requestHandlerTimeoutSecs: timeoutSecs,
         
-        // Per-domain rate limiting - HIGH concurrency for throughput
-        // maxConcurrency should be higher than req/sec to avoid bottlenecks
-        // 120 req/min = 2 req/sec, so we need at least 2-3 concurrent requests
-        // Using 20 to handle slow responses and maintain throughput
-        maxConcurrency: config.maxConcurrencyPerDomain || 20,
+        // Rate limiting - use maxRequestsPerMinute as primary control
         maxRequestsPerMinute: rateLimits.maxRequestsPerMinute,
-        sameDomainDelaySecs: rateLimits.sameDomainDelaySecs,
         maxRequestRetries: config.maxRequestRetries || 3,
+        
+        // Concurrency settings - disable autoscaling for consistent speed
+        maxConcurrency: concurrency,
+        minConcurrency: Math.min(concurrency, 5),  // Start with at least 5 concurrent
+        
+        // Disable autoscaling delays - we want full speed immediately
+        autoscaledPoolOptions: {
+            desiredConcurrency: concurrency,
+            minConcurrency: Math.min(concurrency, 5),
+            maxConcurrency: concurrency,
+            scaleUpStepRatio: 1,      // Scale up immediately
+            scaleDownStepRatio: 0.5,
+        },
+        
+        // Minimal delays - let maxRequestsPerMinute handle rate limiting
+        sameDomainDelaySecs: 0,  // No delay between requests
         
         // Accept additional MIME types (some STAC endpoints return JSON with incorrect Content-Type)
         additionalMimeTypes: ['application/geo+json', 'text/plain', 'binary/octet-stream', 'application/octet-stream'],
@@ -135,8 +148,7 @@ async function crawlSingleDomain(catalogs, domain, config = {}) {
 
     await crawler.addRequests(initialRequests);
     
-    const concurrency = config.maxConcurrencyPerDomain || 20;
-    console.log(`  [${domain}] Starting: ${initialRequests.length} catalogs, ${rateLimits.maxRequestsPerMinute} req/min, ${concurrency} concurrent, ${rateLimits.sameDomainDelaySecs}s delay`);
+    console.log(`  [${domain}] Starting: ${initialRequests.length} catalogs, max ${rateLimits.maxRequestsPerMinute} req/min, ${concurrency} concurrent`);
     await crawler.run();
     
     // Flush any remaining collections to database
