@@ -70,14 +70,37 @@ export function normalizeCatalog(catalog, index) {
  * @returns {Object} Normalized collection object
  */
 export function normalizeCollection(colObj, index) {
-    // Use stac-js methods for robust metadata extraction
-    const bbox = typeof colObj.getBoundingBox === 'function' 
-        ? colObj.getBoundingBox() 
-        : (colObj.extent?.spatial?.bbox?.[0] || null);
+    // Get raw data from stac-js object if available
+    // stac-js stores the original data in toJSON() or we can access it directly
+    const rawData = typeof colObj.toJSON === 'function' ? colObj.toJSON() : colObj;
     
-    const temporal = typeof colObj.getTemporalExtent === 'function'
-        ? colObj.getTemporalExtent()
-        : (colObj.extent?.temporal?.interval?.[0] || null);
+    // Extract bbox: try stac-js method first, then fallback to raw data
+    let bbox = null;
+    if (typeof colObj.getBoundingBox === 'function') {
+        bbox = colObj.getBoundingBox();
+    }
+    // Fallback to raw data if stac-js method returned null/undefined
+    if (!bbox && rawData?.extent?.spatial?.bbox?.[0]) {
+        bbox = rawData.extent.spatial.bbox[0];
+    }
+    // Final fallback: direct access on colObj
+    if (!bbox && colObj?.extent?.spatial?.bbox?.[0]) {
+        bbox = colObj.extent.spatial.bbox[0];
+    }
+    
+    // Extract temporal: try stac-js method first, then fallback to raw data
+    let temporal = null;
+    if (typeof colObj.getTemporalExtent === 'function') {
+        temporal = colObj.getTemporalExtent();
+    }
+    // Fallback to raw data if stac-js method returned null/undefined
+    if (!temporal && rawData?.extent?.temporal?.interval?.[0]) {
+        temporal = rawData.extent.temporal.interval[0];
+    }
+    // Final fallback: direct access on colObj
+    if (!temporal && colObj?.extent?.temporal?.interval?.[0]) {
+        temporal = colObj.extent.temporal.interval[0];
+    }
     
     // Get self URL using stac-js link navigation
     let selfUrl = null;
@@ -87,17 +110,22 @@ export function normalizeCollection(colObj, index) {
         const selfLink = colObj.links.find(l => l.rel === 'self');
         selfUrl = selfLink?.href || null;
     }
+    // Fallback to raw data for URL
+    if (!selfUrl && rawData?.links) {
+        const selfLink = rawData.links.find(l => l.rel === 'self');
+        selfUrl = selfLink?.href || null;
+    }
     
     return {
         index,
-        id: colObj.id || 'Unknown',
+        id: colObj.id || rawData?.id || 'Unknown',
         url: selfUrl,
-        title: colObj.title || null,
-        description: colObj.description || colObj.summary || null,
+        title: colObj.title || rawData?.title || null,
+        description: colObj.description || colObj.summary || rawData?.description || rawData?.summary || null,
         bbox,
         temporal,
-        license: colObj.license || null,
-        keywords: colObj.keywords || []
+        license: colObj.license || rawData?.license || null,
+        keywords: colObj.keywords || rawData?.keywords || []
     };
 }
 
