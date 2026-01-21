@@ -23,12 +23,12 @@ services:
       - ./init:/docker-entrypoint-initdb.d
 
     networks:
-      - stac_network
+      - stac-network
 
 volumes:
   stac_data:
 
 networks:
-  stac_network:
-    name: stac_network
+  stac-network:
+    name: stac-network
     driver: bridge
