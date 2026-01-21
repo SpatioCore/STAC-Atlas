@@ -115,12 +115,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { MapPin, Calendar, Box, X } from 'lucide-vue-next'
 import CustomSelect from '@/components/CustomSelect.vue'
 import BoundingBoxModal from '@/components/BoundingBoxModal.vue'
 import { useFilterStore } from '@/stores/filterStore'
+import { useQueryables } from '@/composables/useQueryables'
 
 const emit = defineEmits<{
   (e: 'apply'): void
@@ -136,6 +137,14 @@ const {
   endDate, 
   drawnBbox
 } = storeToRefs(filterStore)
+
+// Load providers and licenses from static file (auto-refreshes every 15 min)
+const { queryables, providerOptions, licenseOptions, updateOptions } = useQueryables()
+
+// Update options when queryables data changes
+watch(queryables, () => {
+  updateOptions()
+}, { deep: true })
 
 // Format bbox coordinates for display (4 decimal places)
 const formattedBbox = computed(() => {
@@ -178,35 +187,6 @@ function resetFilters() {
   filterStore.resetFilters()
   emit('reset')
 }
-
-// Provider options from database
-const providerOptions = [
-  { value: '', label: 'All Providers' },
-  { value: 'Agroscope', label: 'Agroscope' },
-  { value: 'Deltares', label: 'Deltares' },
-  { value: 'ESA', label: 'ESA' },
-  { value: 'Federal Office for Civil Protection - FOCP', label: 'Federal Office for Civil Protection - FOCP' },
-  { value: 'Federal Office for Civil Protection FOCP', label: 'Federal Office for Civil Protection FOCP' },
-  { value: 'Federal Office for Defence Procurement armasuisse', label: 'Federal Office for Defence Procurement armasuisse' },
-  { value: 'Federal Office for Spatial Development - ARE', label: 'Federal Office for Spatial Development - ARE' },
-  { value: 'Federal Office for the Environment - FOEN', label: 'Federal Office for the Environment - FOEN' },
-  { value: 'Federal Roads Office - FEDRO', label: 'Federal Roads Office - FEDRO' },
-  { value: 'Microsoft', label: 'Microsoft' },
-  { value: 'Planet Labs', label: 'Planet Labs' },
-  { value: 'Salo Sciences', label: 'Salo Sciences' }
-]
-
-// License options from database
-const licenseOptions = [
-  { value: '', label: 'All Licenses' },
-  { value: 'CC-0', label: 'CC-0' },
-  { value: 'CC-BY', label: 'CC-BY' },
-  { value: 'CC-BY-4.0', label: 'CC-BY-4.0' },
-  { value: 'CC-BY-NC-4.0', label: 'CC-BY-NC-4.0' },
-  { value: 'CC-BY-SA-4.0', label: 'CC-BY-SA-4.0' },
-  { value: 'Other (Non-Commercial)', label: 'Other (Non-Commercial)' },
-  { value: 'proprietary', label: 'proprietary' }
-]
 
 // Region options with bounding boxes (minLon, minLat, maxLon, maxLat)
 const regionOptions = [

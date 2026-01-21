@@ -271,33 +271,33 @@ const truncateUrl = (url: string, maxLength: number = 40) => {
   return url.substring(0, maxLength - 3) + '...'
 }
 
-// Computed properties from collection data
+// Computed properties from STAC-conformant collection data (no more full_json wrapper)
 const collectionTitle = computed(() => 
-  collection.value?.title || collection.value?.full_json?.title || 'Untitled Collection'
+  collection.value?.title || 'Untitled Collection'
 )
 
 const provider = computed(() => {
-  const providers = collection.value?.full_json?.providers
+  const providers = collection.value?.providers
   return providers && providers.length > 0 ? providers[0].name : 'Unknown Provider'
 })
 
 const platform = computed(() => {
-  const keywords = collection.value?.full_json?.keywords
+  const keywords = collection.value?.keywords
   return keywords && keywords.length > 0 ? keywords[0] : 'N/A'
 })
 
 const license = computed(() => 
-  collection.value?.license || collection.value?.full_json?.license || 'Unknown'
+  collection.value?.license || 'Unknown'
 )
 
 const description = computed(() => 
-  collection.value?.description || collection.value?.full_json?.description || 'No description available'
+  collection.value?.description || 'No description available'
 )
 
 const coordinateSystem = computed(() => 'EPSG:4326')
 
 const bbox = computed(() => {
-  const extent = collection.value?.full_json?.extent?.spatial?.bbox
+  const extent = collection.value?.extent?.spatial?.bbox
   if (extent && extent.length > 0 && extent[0].length === 4) {
     const [west, south, east, north] = extent[0]
     return {
@@ -313,7 +313,7 @@ const bbox = computed(() => {
 const infoCards = computed(() => {
   const cards = []
   
-  const temporalExtent = collection.value?.full_json?.extent?.temporal?.interval
+  const temporalExtent = collection.value?.extent?.temporal?.interval
   if (temporalExtent && temporalExtent.length > 0) {
     const [start, end] = temporalExtent[0]
     if (start) {
@@ -332,21 +332,7 @@ const infoCards = computed(() => {
     }
   }
   
-  if (collection.value?.created_at) {
-    cards.push({
-      icon: 'clock',
-      label: 'Created',
-      value: new Date(collection.value.created_at).toLocaleDateString()
-    })
-  }
-  
-  if (collection.value?.updated_at) {
-    cards.push({
-      icon: 'clock',
-      label: 'Updated',
-      value: new Date(collection.value.updated_at).toLocaleDateString()
-    })
-  }
+  // Note: created_at/updated_at are not part of STAC spec, removed
   
   return cards
 })
@@ -354,25 +340,29 @@ const infoCards = computed(() => {
 const metadata = computed(() => {
   const meta = []
   
-  if (collection.value?.full_json?.id) {
-    meta.push({ label: 'Collection ID', value: collection.value.full_json.id })
+  if (collection.value?.id) {
+    meta.push({ label: 'Collection ID', value: collection.value.id })
   }
   
-  if (collection.value?.full_json?.stac_version) {
-    meta.push({ label: 'STAC Version', value: collection.value.full_json.stac_version })
+  if (collection.value?.stac_version) {
+    meta.push({ label: 'STAC Version', value: collection.value.stac_version })
   }
   
-  const keywords = collection.value?.full_json?.keywords
+  const keywords = collection.value?.keywords
   if (keywords && keywords.length > 0) {
     meta.push({ label: 'Keywords', value: keywords.join(', ') })
   }
   
-  const providers = collection.value?.full_json?.providers
+  const providers = collection.value?.providers
   if (providers && providers.length > 0) {
     meta.push({ 
       label: 'Providers', 
       value: providers.map(p => p.name).join(', ') 
     })
+  }
+
+  if (collection.value?.license) {
+    meta.push({ label: 'License', value: collection.value.license })
   }
   
   return meta
@@ -381,7 +371,7 @@ const metadata = computed(() => {
 const items = ref<Array<{ id: string; date: string; coverage: string; thumbnail: string }>>([])
 
 const fetchItems = async () => {
-  const links = collection.value?.full_json?.links || []
+  const links = collection.value?.links || []
   const itemLinks = links.filter(link => link.rel === 'item')
   
   // Fetch first 10 items to avoid too many requests
@@ -419,9 +409,9 @@ const fetchItems = async () => {
   items.value = fetchedItems
 }
 
-// Provider information computed from full_json
+// Provider information computed from collection
 const providerInfo = computed(() => {
-  const providers = collection.value?.full_json?.providers || []
+  const providers = collection.value?.providers || []
   return providers.map(p => ({
     name: p.name || 'Unknown',
     roles: Array.isArray(p.roles) ? p.roles.join(', ') : (p.roles || ''),
@@ -430,9 +420,9 @@ const providerInfo = computed(() => {
   }))
 })
 
-// Source links computed from full_json
+// Source links computed from collection links
 const sourceLinks = computed(() => {
-  const links = collection.value?.full_json?.links || []
+  const links = collection.value?.links || []
   // Filter to show only relevant links (self, root, parent, license)
   const relevantRels = new Set(['self', 'root', 'parent', 'license'])
   return links.filter(link => relevantRels.has(link.rel))
@@ -441,7 +431,7 @@ const sourceLinks = computed(() => {
 const initializeMap = () => {
   if (!mapContainer.value || map.value) return
   
-  const extent = collection.value?.full_json?.extent?.spatial?.bbox
+  const extent = collection.value?.extent?.spatial?.bbox
   if (!extent || extent.length === 0 || extent[0].length !== 4) return
   
   const [west, south, east, north] = extent[0]
