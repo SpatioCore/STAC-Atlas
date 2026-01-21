@@ -67,32 +67,102 @@ async function insertOrUpdateCatalog(catalog) {
 }
 
 /**
- * Insert or update a collection in the database
+ * Check if an error is a PostgreSQL deadlock error
+ * @param {Error} error - The error to check
+ * @returns {boolean} true if it's a deadlock error
+ */
+function isDeadlockError(error) {
+  // PostgreSQL deadlock error code is '40P01'
+  return error.code === '40P01' || error.message?.includes('deadlock detected');
+}
+
+/**
+ * Sleep for a given number of milliseconds
+ * @param {number} ms - Milliseconds to sleep
+ * @returns {Promise<void>}
+ */
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+/**
+ * Insert or update a collection in the database with deadlock retry logic
+ * @param {Object} collection - STAC collection object
+ * @param {number} maxRetries - Maximum number of retry attempts for deadlocks (default: 3)
+ * @returns {Promise<number>} collection ID
+ */
+async function insertOrUpdateCollection(collection, maxRetries = 3) {
+  let lastError;
+  
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      return await _insertOrUpdateCollectionInternal(collection);
+    } catch (error) {
+      lastError = error;
+      
+      if (isDeadlockError(error) && attempt < maxRetries) {
+        // Exponential backoff: 100ms, 200ms, 400ms, ...
+        const delayMs = 100 * Math.pow(2, attempt - 1) + Math.random() * 50;
+        console.warn(`WARN  [DB] Deadlock detected for collection "${collection.title || collection.id}", retrying in ${Math.round(delayMs)}ms (attempt ${attempt}/${maxRetries})`);
+        await sleep(delayMs);
+        continue;
+      }
+      
+      // Not a deadlock or max retries reached, throw the error
+      throw error;
+    }
+  }
+  
+  // Should not reach here, but just in case
+  throw lastError;
+}
+
+/**
+ * Internal implementation of insertOrUpdateCollection
  * @param {Object} collection - STAC collection object
  * @returns {Promise<number>} collection ID
  */
-async function insertOrUpdateCollection(collection) {
-
-
+async function _insertOrUpdateCollectionInternal(collection) {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
 
     // Parse spatial extent (bbox)
+    // Support both normalized format (bbox) and original STAC format (extent.spatial.bbox)
     let spatialExtent = null;
-    if (collection.extent?.spatial?.bbox && collection.extent.spatial.bbox[0]) {
-      const bbox = collection.extent.spatial.bbox[0];
-      if (bbox.length === 4) {
-        // Create polygon from bbox [west, south, east, north]
-        spatialExtent = `EPSG:4326;POLYGON((${bbox[0]} ${bbox[1]}, ${bbox[2]} ${bbox[1]}, ${bbox[2]} ${bbox[3]}, ${bbox[0]} ${bbox[3]}, ${bbox[0]} ${bbox[1]}))`;
-      }
+    let bbox = null;
+    
+    // Try normalized format first (from normalizeCollection)
+    if (collection.bbox && Array.isArray(collection.bbox)) {
+      bbox = collection.bbox;
+    }
+    // Fallback to original STAC format
+    else if (collection.extent?.spatial?.bbox && collection.extent.spatial.bbox[0]) {
+      bbox = collection.extent.spatial.bbox[0];
+    }
+    
+    if (bbox && bbox.length === 4) {
+      // Create polygon from bbox [west, south, east, north]
+      // EWKT format requires SRID=4326, not EPSG:4326
+      spatialExtent = `SRID=4326;POLYGON((${bbox[0]} ${bbox[1]}, ${bbox[2]} ${bbox[1]}, ${bbox[2]} ${bbox[3]}, ${bbox[0]} ${bbox[3]}, ${bbox[0]} ${bbox[1]}))`;
     }
 
     // Parse temporal extent
+    // Support both normalized format (temporal) and original STAC format (extent.temporal.interval)
     let temporalStart = null;
     let temporalEnd = null;
-    if (collection.extent?.temporal?.interval && collection.extent.temporal.interval[0]) {
-      const interval = collection.extent.temporal.interval[0];
+    let interval = null;
+    
+    // Try normalized format first (from normalizeCollection)
+    if (collection.temporal && Array.isArray(collection.temporal)) {
+      interval = collection.temporal;
+    }
+    // Fallback to original STAC format
+    else if (collection.extent?.temporal?.interval && collection.extent.temporal.interval[0]) {
+      interval = collection.extent.temporal.interval[0];
+    }
+    
+    if (interval) {
       temporalStart = interval[0] ? new Date(interval[0]) : null;
       temporalEnd = interval[1] ? new Date(interval[1]) : null;
     }
@@ -109,11 +179,33 @@ async function insertOrUpdateCollection(collection) {
       sourceUrl = selfLink?.href || rootLink?.href || null;
     }
     
-    // Check if collection with this title already exists
-    const existingCollection = await client.query(
-      'SELECT id FROM collection WHERE title = $1',
-      [collectionTitle]
-    );
+    // Check if collection with same stac_id from same source already exists
+    // This allows collections with the same title from different sources to coexist
+    let existingCollection;
+    if (stacId && sourceUrl) {
+      // Best case: match by stac_id + source_url (most precise)
+      existingCollection = await client.query(
+        'SELECT id FROM collection WHERE stac_id = $1 AND full_json->>\'links\' LIKE $2',
+        [stacId, `%${sourceUrl}%`]
+      );
+    }
+    
+    // Fallback: if no stac_id or source_url, check by title only (legacy behavior)
+    if (!existingCollection || existingCollection.rows.length === 0) {
+      if (stacId) {
+        // Try matching by stac_id + title combination
+        existingCollection = await client.query(
+          'SELECT id FROM collection WHERE stac_id = $1 AND title = $2',
+          [stacId, collectionTitle]
+        );
+      } else {
+        // Last resort: match by title only (for collections without stac_id)
+        existingCollection = await client.query(
+          'SELECT id FROM collection WHERE title = $1 AND stac_id IS NULL',
+          [collectionTitle]
+        );
+      }
+    }
     
     let collectionId;
     if (existingCollection.rows.length > 0) {
@@ -219,7 +311,10 @@ async function insertOrUpdateCollection(collection) {
     return collectionId;
   } catch (error) {
     await client.query('ROLLBACK');
-    console.error('Error inserting collection:', error.message);
+    // Only log non-deadlock errors here, deadlocks are handled by retry wrapper
+    if (!isDeadlockError(error)) {
+      console.error('Error inserting collection:', error.message);
+    }
     throw error;
   } finally {
     client.release();
