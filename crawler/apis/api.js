@@ -18,15 +18,17 @@ import {
 
 /**
  * Batch size for saving collections to database during API crawling
+ * Set low (25) for servers with limited RAM (2GB)
  * @type {number}
  */
-const BATCH_SIZE = 500;
+const BATCH_SIZE = 25;
 
 /**
  * Batch size for clearing apis array to free memory
+ * Set low (25) for servers with limited RAM (2GB)
  * @type {number}
  */
-const API_CLEAR_BATCH_SIZE = 500;
+const API_CLEAR_BATCH_SIZE = 25;
 
 /**
  * Checks if batch size is reached and flushes if necessary
@@ -293,7 +295,7 @@ async function handleApiRoot({ request, json, crawler, log, indent, results, max
     
     let stacObj;
     try {
-        stacObj = create(json, false);
+        stacObj = create(json, true);
         results.stats.stacCompliant++;
         
         if (typeof stacObj.isCatalog === 'function' && stacObj.isCatalog()) {
@@ -308,10 +310,9 @@ async function handleApiRoot({ request, json, crawler, log, indent, results, max
     }
     
     results.stats.apisProcessed++;
+    // Only track minimal info to reduce memory
     results.apis.push({
-        id: apiId,
-        url: request.url,
-        stacType: stacObj.isCollection() ? 'collection' : 'catalog'
+        id: apiId
     });
     
     // If this is a STAC Collection directly, extract and store it
@@ -426,6 +427,9 @@ async function handleApiRoot({ request, json, crawler, log, indent, results, max
             }
         }
     }
+    
+    // Help garbage collector by dereferencing large objects
+    stacObj = null;
 }
 
 /**
@@ -437,7 +441,7 @@ async function handleApiCollection({ request, json, crawler, log, indent, result
     
     let stacObj;
     try {
-        stacObj = create(json, false);
+        stacObj = create(json, true);
         
         if (typeof stacObj.isCollection === 'function' && stacObj.isCollection()) {
             const collection = normalizeCollection(stacObj, results.collections.length);
@@ -452,6 +456,9 @@ async function handleApiCollection({ request, json, crawler, log, indent, result
     } catch (parseError) {
         log.warning(`${indent}Skipping non-compliant STAC collection at ${request.url}`);
     }
+    
+    // Help garbage collector
+    stacObj = null;
 }
 
 export {

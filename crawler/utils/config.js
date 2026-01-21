@@ -36,7 +36,7 @@ dotenv.config();
 function getConfig() {
     const cliArgs = parseCliArgs();
     
-    // Default configuration
+    // Default configuration (optimized for 2GB RAM servers)
     const defaults = {
         mode: 'both',           // 'catalogs', 'apis', or 'both'
         maxCatalogs: 10,        // Maximum number of catalogs to crawl
@@ -44,10 +44,10 @@ function getConfig() {
         timeout: 30000,         // Timeout in milliseconds (30 seconds)
         maxDepth: 10,           // Maximum recursion depth for nested catalogs (0 = unlimited)
         
-        // NEW: Parallel crawling options (recommended for performance)
-        parallelDomains: 5,              // Number of domains to crawl in parallel
-        maxRequestsPerMinutePerDomain: 120, // Max requests per minute PER domain
-        maxConcurrencyPerDomain: 20,     // Max concurrent requests per domain (must be > req/sec)
+        // Parallel crawling options (reduced for 2GB RAM servers)
+        parallelDomains: 2,              // Number of domains to crawl in parallel (reduced from 5)
+        maxRequestsPerMinutePerDomain: 60, // Max requests per minute PER domain (reduced from 120)
+        maxConcurrencyPerDomain: 5,      // Max concurrent requests per domain (reduced from 20)
         
         // Legacy rate limiting options (still supported but parallel options are preferred)
         maxConcurrency: 5,      // Maximum number of concurrent requests (global)
