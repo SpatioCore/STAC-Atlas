@@ -55,25 +55,12 @@ async function crawlSingleDomain(catalogs, domain, config = {}) {
     const crawler = new HttpCrawler({
         requestHandlerTimeoutSecs: timeoutSecs,
         
-        // Rate limiting - use maxRequestsPerMinute as primary control
+        // Rate limiting
         maxRequestsPerMinute: rateLimits.maxRequestsPerMinute,
         maxRequestRetries: config.maxRequestRetries || 3,
         
-        // Concurrency settings - disable autoscaling for consistent speed
+        // High concurrency for throughput
         maxConcurrency: concurrency,
-        minConcurrency: Math.min(concurrency, 5),  // Start with at least 5 concurrent
-        
-        // Disable autoscaling delays - we want full speed immediately
-        autoscaledPoolOptions: {
-            desiredConcurrency: concurrency,
-            minConcurrency: Math.min(concurrency, 5),
-            maxConcurrency: concurrency,
-            scaleUpStepRatio: 1,      // Scale up immediately
-            scaleDownStepRatio: 0.5,
-        },
-        
-        // Minimal delays - let maxRequestsPerMinute handle rate limiting
-        sameDomainDelaySecs: 0,  // No delay between requests
         
         // Accept additional MIME types (some STAC endpoints return JSON with incorrect Content-Type)
         additionalMimeTypes: ['application/geo+json', 'text/plain', 'binary/octet-stream', 'application/octet-stream'],
