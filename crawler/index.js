@@ -49,6 +49,11 @@ export const crawler = async () => {
         console.log(`Max APIs: ${config.maxApis === 0 ? 'unlimited' : config.maxApis} (debugging limit)`);
         console.log(`Timeout: ${config.timeout === Infinity ? 'unlimited' : config.timeout + 'ms'}`);
         console.log(`Max Depth: ${config.maxDepth === 0 ? 'unlimited' : config.maxDepth} levels`);
+        console.log('--- Parallel Crawling ---');
+        console.log(`Parallel Domains: ${config.parallelDomains}`);
+        console.log(`Max Requests/Min per Domain: ${config.maxRequestsPerMinutePerDomain}`);
+        console.log(`Max Concurrency per Domain: ${config.maxConcurrencyPerDomain}`);
+        console.log(`Theoretical Max Throughput: ${config.parallelDomains * config.maxRequestsPerMinutePerDomain} req/min`);
         console.log('==================================\n');
         
         const response = await axios.get(targetUrl);

@@ -33,6 +33,13 @@ export function parseCliArgs() {
             config.sameDomainDelaySecs = parseFloat(args[++i]);
         } else if (arg === '--max-retries') {
             config.maxRequestRetries = parseInt(args[++i], 10);
+        // New parallel crawling options
+        } else if (arg === '--parallel-domains' || arg === '-p') {
+            config.parallelDomains = parseInt(args[++i], 10);
+        } else if (arg === '--rpm-per-domain') {
+            config.maxRequestsPerMinutePerDomain = parseInt(args[++i], 10);
+        } else if (arg === '--concurrency-per-domain') {
+            config.maxConcurrencyPerDomain = parseInt(args[++i], 10);
         } else if (arg === '--help' || arg === '-h') {
             printHelp();
             process.exit(0);
@@ -56,7 +63,14 @@ STAC Crawler Configuration Options:
                                  Note: Limits are for debugging purposes only
   -t, --timeout <milliseconds>   Timeout for each crawl operation in ms (default: 30000)
   
-  Rate Limiting Options:
+  Parallel Crawling Options (NEW):
+  -p, --parallel-domains <num>   Number of domains to crawl in parallel (default: 5)
+                                 Each domain gets its own crawler instance
+  --rpm-per-domain <number>      Max requests per minute PER DOMAIN (default: 120)
+                                 Total throughput = parallel-domains × rpm-per-domain
+  --concurrency-per-domain <n>   Max concurrent requests per domain (default: 10)
+  
+  Legacy Rate Limiting Options (still supported):
   --max-concurrency <number>     Maximum concurrent requests (default: 5)
   --requests-per-minute, --rpm   Maximum requests per minute (default: 60)
   --domain-delay <seconds>       Delay between requests to same domain (default: 1)
@@ -67,21 +81,32 @@ STAC Crawler Configuration Options:
   -h, --help                     Show this help message
 
 Environment Variables:
-  CRAWL_MODE               Same as --mode
-  MAX_CATALOGS             Same as --max-catalogs (use 0 for unlimited)
-  MAX_APIS                 Same as --max-apis (use 0 for unlimited)
-  TIMEOUT_MS               Same as --timeout
-  MAX_CONCURRENCY          Same as --max-concurrency
-  MAX_REQUESTS_PER_MINUTE  Same as --requests-per-minute
-  SAME_DOMAIN_DELAY_SECS   Same as --domain-delay
-  MAX_REQUEST_RETRIES      Same as --max-retries
-  MAX_DEPTH           Same as --max-depth (use 0 for unlimited)
+  CRAWL_MODE                     Same as --mode
+  MAX_CATALOGS                   Same as --max-catalogs (use 0 for unlimited)
+  MAX_APIS                       Same as --max-apis (use 0 for unlimited)
+  TIMEOUT_MS                     Same as --timeout
+  PARALLEL_DOMAINS               Same as --parallel-domains
+  MAX_REQUESTS_PER_MINUTE_PER_DOMAIN  Same as --rpm-per-domain
+  MAX_CONCURRENCY_PER_DOMAIN     Same as --concurrency-per-domain
+  MAX_CONCURRENCY                Same as --max-concurrency
+  MAX_REQUESTS_PER_MINUTE        Same as --requests-per-minute
+  SAME_DOMAIN_DELAY_SECS         Same as --domain-delay
+  MAX_REQUEST_RETRIES            Same as --max-retries
+  MAX_DEPTH                      Same as --max-depth (use 0 for unlimited)
 
 Examples:
+  # Basic usage
   node index.js --mode catalogs --max-catalogs 20
   node index.js -m apis -a 10 -t 60000
-  node index.js -m both -c 0 -a 0              # Unlimited mode (no debugging limits)
-  node index.js -m apis -d 5                   # Limit nesting depth to 5 levels
-  CRAWL_MODE=both MAX_CATALOGS=50 node index.js
+  
+  # Parallel crawling (recommended for performance)
+  node index.js -p 5 --rpm-per-domain 120      # 5 domains × 120 req/min = 600 req/min max
+  node index.js -p 10 --rpm-per-domain 60      # 10 domains × 60 req/min = 600 req/min max
+  
+  # Unlimited mode (no debugging limits)
+  node index.js -m both -c 0 -a 0
+  
+  # With environment variables
+  PARALLEL_DOMAINS=5 MAX_REQUESTS_PER_MINUTE_PER_DOMAIN=120 node index.js
     `);
 }
