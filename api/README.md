@@ -67,6 +67,14 @@ This project uses GitHub Actions for Continuous Integration:
 
 **Status:** ![CI Status](https://github.com/SpatioCore/STAC-Atlas/workflows/API%20CI%2FCD%20Pipeline/badge.svg?branch=dev-api)
 
+## 🚦 Rate Limiting
+
+All API endpoints are protected by rate limiting:
+
+- **Limit:** 1000 requests per 15 minutes per IP address
+- If the limit is exceeded, HTTP status **429 Too Many Requests** is returned
+- The headers `RateLimit-Limit`, `RateLimit-Remaining`, and `RateLimit-Reset` are set
+
 ## 📋 API Endpoints
 
 ### Core Endpoints
@@ -106,6 +114,40 @@ GET /collections?limit=20&sortby=-created&token=2
 ```
 
 📖 **Detailed documentation:** See [docs/collection-search-parameters.md](docs/collection-search-parameters.md)
+
+### CQL2 Filtering (GET /collections)
+
+The API supports advanced filtering using the Common Query Language 2 (CQL2) standard. Both CQL2-Text and CQL2-JSON encodings are supported.
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `filter` | String | CQL2 filter expression |
+| `filter-lang` | String | Filter language: `cql2-text` (default) or `cql2-json` |
+
+**Supported Operators:**
+- **Comparison:** `=`, `<`, `>`, `<=`, `>=`, `<>`, `BETWEEN`, `IN`, `IS NULL`
+- **Logical:** `AND`, `OR`, `NOT`
+- **Spatial:** `S_INTERSECTS`, `S_WITHIN`, `S_CONTAINS`
+- **Temporal:** `T_INTERSECTS`, `T_BEFORE`, `T_AFTER`
+
+**Examples:**
+```bash
+# Filter by license (note: string literals require single quotes)
+GET /collections?filter=license = 'MIT'
+
+# Combined filters
+GET /collections?filter=license = 'CC-BY-4.0' AND title LIKE '%Sentinel%'
+
+# Spatial filter with GeoJSON
+GET /collections?filter-lang=cql2-json&filter={"op":"s_intersects","args":[{"property":"spatial_extend"},{"type":"Polygon","coordinates":[[[7,51],[8,51],[8,52],[7,52],[7,51]]]}]}
+
+# Temporal filter
+GET /collections?filter-lang=cql2-json&filter={"op":"t_intersects","args":[{"property":"datetime"},{"interval":["2020-01-01","2025-12-31"]}]}
+```
+
+⚠️ **Important:** In CQL2-Text, string literals must be enclosed in single quotes (`'MIT'`), not bare words (`MIT`) as they will be interpreted as propertys.
+
+📖 **Detailed documentation:** See [docs/cql2-filtering.md](docs/cql2-filtering.md)
 
 ### API Documentation
 
@@ -160,8 +202,57 @@ This API implements:
 - ✅ OGC API Features Core
 - ✅ STAC Collections
 - ✅ Collection Search Extension
-- 🚧 CQL2 Basic Filtering (in development)
-- 🚧 CQL2 Advanced Operators (in development)
+- ✅ CQL2 Basic Filtering (comparison, logical operators)
+- ✅ CQL2 Advanced Comparison Operators (between, in, isNull)
+- ✅ CQL2 Spatial Functions (s_intersects, s_within, s_contains)
+- ✅ CQL2 Temporal Functions (t_intersects, t_before, t_after)
+- ✅ CQL2-Text and CQL2-JSON encodings
+
+### STAC API Validator
+
+The API can be tested using the official [STAC API Validator](https://github.com/stac-utils/stac-api-validator):
+
+#### Installation
+
+```bash
+# Python 3.11 required
+pip install stac-api-validator
+```
+
+#### Usage
+
+```bash
+# Validate Core Conformance Class
+python -m stac_api_validator --root-url http://localhost:3000 --conformance core
+
+# Validate Collections Extension (requires collection ID)
+python -m stac_api_validator \
+  --root-url http://localhost:3000 \
+  --conformance core \
+  --conformance collections \
+  --collection <collection-id>
+
+# With spatial filtering (requires geometry in dataset)
+python -m stac_api_validator \
+  --root-url http://localhost:3000 \
+  --conformance core \
+  --conformance collections \
+  --collection <collection-id> \
+  --geometry '{"type": "Polygon", "coordinates": [[[7.0, 51.0], [8.0, 51.0], [8.0, 52.0], [7.0, 52.0], [7.0, 51.0]]]}'
+```
+
+#### Validation Status
+
+| Conformance Class | Status | Date | Errors | Warnings |
+|-------------------|--------|------|--------|----------|
+| **STAC API - Core** | ✅ Passed | 2025-12-10 | 0 | 0 |
+| STAC API - Collections | ⏳ Pending | - | - | - |
+| STAC API - Features | ⏳ Pending | - | - | - |
+| STAC API - Item Search | ⏳ Pending | - | - | - |
+| CQL2 - Basic | ⏳ Pending | - | - | - |
+| CQL2 - Advanced | ⏳ Pending | - | - | - |
+
+**Note:** The Collection Search Extension is not currently validated automatically by the validator and is instead validated through custom Jest integration tests (see `__tests__/`).
 
 ### STAC API Validator
 
@@ -213,28 +304,28 @@ python -m stac_api_validator \
 
 ### TODO
 
-- [ ] Database integration (PostgreSQL + PostGIS)
-  - [ ] Implement q (full-text search with TSVector)
-  - [ ] Implement bbox (PostGIS spatial queries)
-  - [ ] Implement datetime (temporal overlap queries)
-  - [ ] Implement sortby (ORDER BY in SQL)
-- [ ] CQL2 parser integration (cql2-rs via WASM)
+- [x] Database integration (PostgreSQL + PostGIS)
+  - [x] Implement q (full-text search with TSVector)
+  - [x] Implement bbox (PostGIS spatial queries)
+  - [x] Implement datetime (temporal overlap queries)
+  - [x] Implement sortby (ORDER BY in SQL)
+- [x] CQL2 parser integration (cql2-rs via WASM)
 - [ ] Implement controller layer
 - [ ] Service layer for business logic
 - [ ] Complete OpenAPI documentation
-- [ ] Advanced tests (integration, E2E)
-  - [ ] Unit tests for validators
-  - [ ] Integration tests for filtered queries
+- [x] Advanced tests (integration, E2E)
+  - [x] Unit tests for validators
+  - [x] Integration tests for filtered queries
 - [ ] Docker setup
-- [ ] CI/CD pipeline
+- [x] CI/CD pipeline
 
 ### Implementation Plan (see bid.md)
 
 1. ✅ **AP-01**: Project skeleton & infrastructure
 2. ✅ **AP-02**: Query parameter validation (q, bbox, datetime, limit, sortby, token)
-3. 🚧 **AP-03**: STAC core endpoints (baseline implemented)
-4. 🚧 **AP-04**: Collection search – filter implementation (DB integration pending)
-5. ⏳ **AP-05**: CQL2 filtering integration
+3. ✅ **AP-03**: STAC core endpoints (implemented)
+4. ✅ **AP-04**: Collection search – filter implementation (DB integration complete)
+5. ✅ **AP-05**: CQL2 filtering integration (Basic, Advanced, Spatial, Temporal)
 
 ## 📄 License
 
@@ -242,4 +333,4 @@ Apache-2.0
 
 ## 👥 Team
 
-STAC Atlas API Team — Robin (Team lead), Jonas, George, Vincent
+STAC Atlas API Team — Robin (Team lead), Jonas, Vincent
