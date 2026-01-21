@@ -36,16 +36,22 @@ dotenv.config();
 function getConfig() {
     const cliArgs = parseCliArgs();
     
-    // Default configuration
+    // Default configuration (optimized for 2GB RAM servers)
     const defaults = {
         mode: 'both',           // 'catalogs', 'apis', or 'both'
         maxCatalogs: 10,        // Maximum number of catalogs to crawl
         maxApis: 5,             // Maximum number of APIs to crawl
         timeout: 30000,         // Timeout in milliseconds (30 seconds)
-        maxDepth: 10            // Maximum recursion depth for nested catalogs (0 = unlimited)
-        // Rate limiting options (Crawlee)
-        maxConcurrency: 5,      // Maximum number of concurrent requests
-        maxRequestsPerMinute: 60, // Maximum requests per minute
+        maxDepth: 10,           // Maximum recursion depth for nested catalogs (0 = unlimited)
+        
+        // Parallel crawling options (reduced for 2GB RAM servers)
+        parallelDomains: 2,              // Number of domains to crawl in parallel (reduced from 5)
+        maxRequestsPerMinutePerDomain: 60, // Max requests per minute PER domain (reduced from 120)
+        maxConcurrencyPerDomain: 5,      // Max concurrent requests per domain (reduced from 20)
+        
+        // Legacy rate limiting options (still supported but parallel options are preferred)
+        maxConcurrency: 5,      // Maximum number of concurrent requests (global)
+        maxRequestsPerMinute: 60, // Maximum requests per minute (global)
         sameDomainDelaySecs: 1, // Delay between requests to the same domain
         maxRequestRetries: 3    // Maximum number of retries for failed requests
     };
@@ -60,8 +66,17 @@ function getConfig() {
         timeout: cliArgs.timeout !== undefined ? cliArgs.timeout : 
                  (process.env.TIMEOUT_MS ? parseInt(process.env.TIMEOUT_MS, 10) : defaults.timeout),
         maxDepth: cliArgs.maxDepth !== undefined ? cliArgs.maxDepth :
-                  (process.env.MAX_DEPTH ? parseInt(process.env.MAX_DEPTH, 10) : defaults.maxDepth)
-        // Rate limiting options
+                  (process.env.MAX_DEPTH ? parseInt(process.env.MAX_DEPTH, 10) : defaults.maxDepth),
+        
+        // NEW: Parallel crawling options
+        parallelDomains: cliArgs.parallelDomains !== undefined ? cliArgs.parallelDomains :
+                         (process.env.PARALLEL_DOMAINS ? parseInt(process.env.PARALLEL_DOMAINS, 10) : defaults.parallelDomains),
+        maxRequestsPerMinutePerDomain: cliArgs.maxRequestsPerMinutePerDomain !== undefined ? cliArgs.maxRequestsPerMinutePerDomain :
+                                       (process.env.MAX_REQUESTS_PER_MINUTE_PER_DOMAIN ? parseInt(process.env.MAX_REQUESTS_PER_MINUTE_PER_DOMAIN, 10) : defaults.maxRequestsPerMinutePerDomain),
+        maxConcurrencyPerDomain: cliArgs.maxConcurrencyPerDomain !== undefined ? cliArgs.maxConcurrencyPerDomain :
+                                 (process.env.MAX_CONCURRENCY_PER_DOMAIN ? parseInt(process.env.MAX_CONCURRENCY_PER_DOMAIN, 10) : defaults.maxConcurrencyPerDomain),
+        
+        // Legacy rate limiting options
         maxConcurrency: cliArgs.maxConcurrency !== undefined ? cliArgs.maxConcurrency :
                         (process.env.MAX_CONCURRENCY ? parseInt(process.env.MAX_CONCURRENCY, 10) : defaults.maxConcurrency),
         maxRequestsPerMinute: cliArgs.maxRequestsPerMinute !== undefined ? cliArgs.maxRequestsPerMinute :
@@ -79,15 +94,13 @@ function getConfig() {
         process.exit(1);
     }
     
-    // NOTE: Removed automatic Infinity override for 'catalogs' mode
-    // Users can now control limits via CLI args even when mode is 'catalogs'
-    // Set maxCatalogs or maxApis to 0 for unlimited crawling (for debugging purposes)
-    
-    // Validate numeric values (0 means unlimited)
+    // Validate numeric values (0 means unlimited for some options)
     if ((config.maxCatalogs < 0) || 
         (config.maxApis < 0) || 
-        (config.timeout !== Infinity && config.timeout < 0)) {
-        console.error('Numeric configuration values must be non-negative (use 0 for unlimited)');
+        (config.timeout !== Infinity && config.timeout < 0) ||
+        (config.parallelDomains < 1) ||
+        (config.maxRequestsPerMinutePerDomain < 1)) {
+        console.error('Invalid configuration: parallelDomains and maxRequestsPerMinutePerDomain must be >= 1');
         process.exit(1);
     }
     
