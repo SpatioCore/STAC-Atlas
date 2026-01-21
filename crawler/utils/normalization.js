@@ -65,9 +65,10 @@ export function normalizeCatalog(catalog, index) {
 
 /**
  * Normalizes a collection object using stac-js methods for metadata extraction
+ * Preserves all fields needed for database insertion including summaries, extensions, etc.
  * @param {Object} colObj - Collection object (stac-js or plain object)
  * @param {number} index - Index position
- * @returns {Object} Normalized collection object
+ * @returns {Object} Normalized collection object with all fields for db.js
  */
 export function normalizeCollection(colObj, index) {
     // Get raw data from stac-js object if available
@@ -116,6 +117,20 @@ export function normalizeCollection(colObj, index) {
         selfUrl = selfLink?.href || null;
     }
     
+    // Extract links array (needed for source_url extraction in db.js)
+    let links = null;
+    if (Array.isArray(colObj.links)) {
+        // Convert stac-js link objects to plain objects if needed
+        links = colObj.links.map(l => ({
+            rel: l.rel,
+            href: l.href,
+            type: l.type,
+            title: l.title
+        }));
+    } else if (Array.isArray(rawData?.links)) {
+        links = rawData.links;
+    }
+    
     return {
         index,
         id: colObj.id || rawData?.id || 'Unknown',
@@ -125,7 +140,16 @@ export function normalizeCollection(colObj, index) {
         bbox,
         temporal,
         license: colObj.license || rawData?.license || null,
-        keywords: colObj.keywords || rawData?.keywords || []
+        keywords: colObj.keywords || rawData?.keywords || [],
+        
+        // Additional fields needed for db.js - pass through from raw data
+        links,
+        stac_version: colObj.stac_version || rawData?.stac_version || null,
+        type: colObj.type || rawData?.type || 'Collection',
+        summaries: colObj.summaries || rawData?.summaries || null,
+        stac_extensions: colObj.stac_extensions || rawData?.stac_extensions || [],
+        providers: colObj.providers || rawData?.providers || [],
+        assets: colObj.assets || rawData?.assets || null
     };
 }
 
