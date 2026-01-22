@@ -19,17 +19,17 @@ import globalStats from '../utils/globalStats.js';
 
 /**
  * Batch size for saving collections to database during API crawling
- * Set low (25) for servers with limited RAM (2GB)
+ * Set low (15) for servers with limited RAM
  * @type {number}
  */
-const BATCH_SIZE = 25;
+const BATCH_SIZE = 15;
 
 /**
  * Batch size for clearing apis array to free memory
- * Set low (25) for servers with limited RAM (2GB)
+ * Set low (10) for servers with limited RAM
  * @type {number}
  */
-const API_CLEAR_BATCH_SIZE = 25;
+const API_CLEAR_BATCH_SIZE = 10;
 
 /**
  * Checks if batch size is reached and flushes if necessary
@@ -99,9 +99,12 @@ async function crawlSingleApiDomain(urls, domain, config = {}) {
         
         // Rate limiting
         maxRequestsPerMinute: rateLimits.maxRequestsPerMinute,
-        maxRequestRetries: config.maxRequestRetries || 3,
+        maxRequestRetries: config.maxRequestRetries || 2,
         
-        // High concurrency for throughput
+        // Memory safety: limit total requests per crawl to prevent queue explosion
+        maxRequestsPerCrawl: config.maxRequestsPerCrawl || 500,
+        
+        // Reduced concurrency for memory safety
         maxConcurrency: concurrency,
         
         // Reduce periodic statistics logging (we have our own end statistics)
@@ -396,7 +399,7 @@ async function handleApiRoot({ request, json, crawler, log, indent, results, max
     
     // Also check for child links (nested catalogs)
     if (typeof stacObj.getChildLinks === 'function') {
-        const childLinks = stacObj.getChildLinks();
+        let childLinks = stacObj.getChildLinks();
         
         if (childLinks.length > 0) {
             log.info(`${indent}Found ${childLinks.length} child catalog links`);
@@ -405,6 +408,13 @@ async function handleApiRoot({ request, json, crawler, log, indent, results, max
             if (maxDepth > 0 && nextDepth > maxDepth) {
                 log.warning(`${indent}Skipping ${childLinks.length} child catalogs - max depth (${maxDepth}) reached`);
                 return;
+            }
+            
+            // Memory safety: limit number of child links to prevent exponential growth
+            const maxChildLinks = 20; // Same as catalog crawler default
+            if (childLinks.length > maxChildLinks) {
+                log.warning(`${indent}Limiting child links from ${childLinks.length} to ${maxChildLinks} (memory safety)`);
+                childLinks = childLinks.slice(0, maxChildLinks);
             }
             
             const childRequests = childLinks

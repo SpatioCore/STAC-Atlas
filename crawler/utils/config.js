@@ -42,18 +42,22 @@ function getConfig() {
         maxCatalogs: 10,        // Maximum number of catalogs to crawl
         maxApis: 5,             // Maximum number of APIs to crawl
         timeout: 30000,         // Timeout in milliseconds (30 seconds)
-        maxDepth: 10,           // Maximum recursion depth for nested catalogs (0 = unlimited)
+        maxDepth: 3,            // Maximum recursion depth for nested catalogs (reduced from 10 for memory)
         
         // Parallel crawling options (reduced for 2GB RAM servers)
-        parallelDomains: 2,              // Number of domains to crawl in parallel (reduced from 5)
-        maxRequestsPerMinutePerDomain: 60, // Max requests per minute PER domain (reduced from 120)
-        maxConcurrencyPerDomain: 5,      // Max concurrent requests per domain (reduced from 20)
+        parallelDomains: 1,              // Number of domains to crawl in parallel (reduced to 1 for memory)
+        maxRequestsPerMinutePerDomain: 30, // Max requests per minute PER domain (reduced from 60)
+        maxConcurrencyPerDomain: 3,      // Max concurrent requests per domain (reduced from 5)
+        
+        // Memory safety limits
+        maxRequestsPerCrawl: 500,        // Maximum total requests per domain crawl (prevents queue explosion)
+        maxChildLinksPerCatalog: 20,     // Maximum child links to follow per catalog (prevents exponential growth)
         
         // Legacy rate limiting options (still supported but parallel options are preferred)
-        maxConcurrency: 5,      // Maximum number of concurrent requests (global)
-        maxRequestsPerMinute: 60, // Maximum requests per minute (global)
-        sameDomainDelaySecs: 1, // Delay between requests to the same domain
-        maxRequestRetries: 3    // Maximum number of retries for failed requests
+        maxConcurrency: 3,      // Maximum number of concurrent requests (global) - reduced
+        maxRequestsPerMinute: 30, // Maximum requests per minute (global) - reduced
+        sameDomainDelaySecs: 2, // Delay between requests to the same domain - increased
+        maxRequestRetries: 2    // Maximum number of retries for failed requests - reduced
     };
     
     // Build configuration with precedence: CLI > ENV > Defaults
@@ -75,6 +79,12 @@ function getConfig() {
                                        (process.env.MAX_REQUESTS_PER_MINUTE_PER_DOMAIN ? parseInt(process.env.MAX_REQUESTS_PER_MINUTE_PER_DOMAIN, 10) : defaults.maxRequestsPerMinutePerDomain),
         maxConcurrencyPerDomain: cliArgs.maxConcurrencyPerDomain !== undefined ? cliArgs.maxConcurrencyPerDomain :
                                  (process.env.MAX_CONCURRENCY_PER_DOMAIN ? parseInt(process.env.MAX_CONCURRENCY_PER_DOMAIN, 10) : defaults.maxConcurrencyPerDomain),
+        
+        // Memory safety limits
+        maxRequestsPerCrawl: cliArgs.maxRequestsPerCrawl !== undefined ? cliArgs.maxRequestsPerCrawl :
+                             (process.env.MAX_REQUESTS_PER_CRAWL ? parseInt(process.env.MAX_REQUESTS_PER_CRAWL, 10) : defaults.maxRequestsPerCrawl),
+        maxChildLinksPerCatalog: cliArgs.maxChildLinksPerCatalog !== undefined ? cliArgs.maxChildLinksPerCatalog :
+                                 (process.env.MAX_CHILD_LINKS_PER_CATALOG ? parseInt(process.env.MAX_CHILD_LINKS_PER_CATALOG, 10) : defaults.maxChildLinksPerCatalog),
         
         // Legacy rate limiting options
         maxConcurrency: cliArgs.maxConcurrency !== undefined ? cliArgs.maxConcurrency :
