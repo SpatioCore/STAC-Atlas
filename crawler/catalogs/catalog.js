@@ -61,12 +61,9 @@ async function crawlSingleDomain(catalogs, domain, config = {}) {
         
         // Rate limiting
         maxRequestsPerMinute: rateLimits.maxRequestsPerMinute,
-        maxRequestRetries: config.maxRequestRetries || 2,
+        maxRequestRetries: config.maxRequestRetries || 3,
         
-        // Memory safety: limit total requests per crawl to prevent queue explosion
-        maxRequestsPerCrawl: config.maxRequestsPerCrawl || 500,
-        
-        // Reduced concurrency for memory safety
+        // High concurrency for throughput
         maxConcurrency: concurrency,
         
         // Reduce periodic statistics logging (we have our own end statistics)

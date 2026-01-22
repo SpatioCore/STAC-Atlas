@@ -19,10 +19,10 @@ const BATCH_SIZE = 25;
 /**
  * Batch size for clearing catalogs array to free memory
  * The catalogs array is only used for statistics, so we clear it periodically
- * Set very low (10) for servers with limited RAM
+ * Set low (25) for servers with limited RAM (2GB)
  * @type {number}
  */
-const CATALOG_CLEAR_BATCH_SIZE = 10;
+const CATALOG_CLEAR_BATCH_SIZE = 25;
 
 /**
  * Flushes collected collections to the database and clears the array
@@ -161,7 +161,7 @@ export async function handleCatalog({ request, json, crawler, log, indent, resul
     
     // Extract and enqueue child catalog links using stac-js
     if (stacCatalog && typeof stacCatalog.getChildLinks === 'function') {
-        let childLinks = stacCatalog.getChildLinks();
+        const childLinks = stacCatalog.getChildLinks();
         
         if (childLinks.length > 0) {
             log.info(`${indent}Found ${childLinks.length} child catalog links`);
@@ -172,13 +172,6 @@ export async function handleCatalog({ request, json, crawler, log, indent, resul
                 // Clear memory and return early - don't enqueue children
                 await checkAndFlush(results, log);
                 return;
-            }
-            
-            // Memory safety: limit number of child links to prevent exponential growth
-            const maxChildLinks = config.maxChildLinksPerCatalog || 20;
-            if (childLinks.length > maxChildLinks) {
-                log.warning(`${indent}Limiting child links from ${childLinks.length} to ${maxChildLinks} (memory safety)`);
-                childLinks = childLinks.slice(0, maxChildLinks);
             }
             
             // Log first child link structure for debugging
