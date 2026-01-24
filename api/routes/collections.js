@@ -10,8 +10,6 @@ const { ErrorResponses } = require('../utils/errorResponse');
 
 // helper to map DB row to STAC Collection object
 // the full_json column contains the original STAC Collection Json as crawled but it is needed to set some fields/links correctly
-// TODO(DB-final): full_json is currently used as primary source for STAC fields.
-// Once the DB schema is finalized, replace full_json-based mapping with normalized columns and only use full_json as fallback/debug
 function toStacCollection(row, baseHost) {
   const base =
     row.full_json &&
@@ -48,24 +46,21 @@ function toStacCollection(row, baseHost) {
     delete collection.summaries;
   }
 
-  // TODO(DB-final): extent should come from normalized spatial/temporal columns once finalized.
-  // For now, fallback to DB-derived bbox/interval if full_json does not contain extent.
-  if (!collection.extent) {
-    const hasBbox =
-      row.minx !== null && row.miny !== null && row.maxx !== null && row.maxy !== null;
+  // Build extent strictly from normalized spatial/temporal columns (not full_json)
+  const hasBbox =
+    row.minx !== null && row.miny !== null && row.maxx !== null && row.maxy !== null;
 
-    collection.extent = {
-      spatial: {
-        bbox: hasBbox ? [[row.minx, row.miny, row.maxx, row.maxy]] : [[-180, -90, 180, 90]],
-      },
-      temporal: {
-        interval: [[
-          row.temporal_extend_start ? new Date(row.temporal_extend_start).toISOString() : null,
-          row.temporal_extend_end ? new Date(row.temporal_extend_end).toISOString() : null,
-        ]],
-      },
-    };
-  }
+  collection.extent = {
+    spatial: {
+      bbox: hasBbox ? [[row.minx, row.miny, row.maxx, row.maxy]] : [[-180, -90, 180, 90]],
+    },
+    temporal: {
+      interval: [[
+        row.temporal_extent_start ? new Date(row.temporal_extent_start).toISOString() : null,
+        row.temporal_extent_end ? new Date(row.temporal_extent_end).toISOString() : null,
+      ]],
+    },
+  };
 
   // ensure links exist
   collection.links = [
