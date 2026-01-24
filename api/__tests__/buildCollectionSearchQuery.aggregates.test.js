@@ -11,9 +11,9 @@ describe('buildCollectionSearchQuery - aggregated fields', () => {
     expect(sql).toMatch(/c\.title/);
     expect(sql).toMatch(/c\.description/);
     expect(sql).toMatch(/c\.license/);
-    expect(sql).toMatch(/c\.spatial_extend/);
-    expect(sql).toMatch(/c\.temporal_extend_start/);
-    expect(sql).toMatch(/c\.temporal_extend_end/);
+    expect(sql).toMatch(/c\.spatial_extent/);
+    expect(sql).toMatch(/c\.temporal_extent_start/);
+    expect(sql).toMatch(/c\.temporal_extent_end/);
     expect(sql).toMatch(/c\.created_at/);
     expect(sql).toMatch(/c\.updated_at/);
     expect(sql).toMatch(/c\.is_api/);
@@ -104,20 +104,20 @@ describe('buildCollectionSearchQuery - aggregated fields', () => {
   });
 
   describe('WHERE clauses use collection alias c', () => {
-    test('bbox filter uses c.spatial_extend', () => {
+    test('bbox filter uses c.spatial_extent', () => {
       const bbox = [-10, 40, 10, 50];
       const { sql } = buildCollectionSearchQuery({ bbox, limit: 10, token: 0 });
 
-      expect(sql).toMatch(/c\.spatial_extend/);
-      expect(sql).toMatch(/ST_Intersects\(\s*c\.spatial_extend/);
+      expect(sql).toMatch(/c\.spatial_extent/);
+      expect(sql).toMatch(/ST_Intersects\(\s*c\.spatial_extent/);
     });
 
-    test('datetime filter uses c.temporal_extend_start and c.temporal_extend_end', () => {
+    test('datetime filter uses c.temporal_extent_start and c.temporal_extent_end', () => {
       const datetime = '2020-01-01/2021-12-31';
       const { sql } = buildCollectionSearchQuery({ datetime, limit: 10, token: 0 });
 
-      expect(sql).toMatch(/c\.temporal_extend_end >= \$/);
-      expect(sql).toMatch(/c\.temporal_extend_start <= \$/);
+      expect(sql).toMatch(/c\.temporal_extent_end >= \$/);
+      expect(sql).toMatch(/c\.temporal_extent_start <= \$/);
     });
 
     test('fulltext search uses c.title and c.description', () => {
