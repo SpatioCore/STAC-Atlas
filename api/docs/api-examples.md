@@ -15,13 +15,16 @@ This file shows how to test the main endpoints of the STAC Atlas API using curl.
 
 ## How to Use curl with This API
 
-To access any endpoint, simply use:
+`curl` is a widely used command-line tool for making HTTP requests to web servers and APIs. It is available by default on most Unix-based systems (Linux, macOS) and can be installed on Windows. With `curl`, you can retrieve data, test endpoints, and inspect API responses directly from your terminal.
+
+To interact with this API, open your terminal or command prompt and enter the following command, replacing `<URL>` with the desired endpoint from the list below:
 
 ```bash
 curl "<URL>"
 ```
 
-Replace `<URL>` with the desired endpoint from the list below. For example, to get the landing page, use:
+This will send a GET request to the specified endpoint and print the server's response (usually in JSON format) to your terminal. 
+For example, to retrieve the landing page, use:
 
 ```bash
 curl "http://localhost:3000/"
@@ -52,14 +55,37 @@ Returns a list of collections. You can filter the search with parameters.
 "http://localhost:3000/collections?limit=5&q=landsat"
 
 ### Single Collection
-Returns the metadata of a specific collection (e.g., "vegetation").
+To retrieve the metadata of a specific collection, use the endpoint `/collections/{id}` where `{id}` is the STAC ID string of the desired collection. Replace `{id}` with the actual collection identifier (e.g., `vegetation`).
 
+For example:
 "http://localhost:3000/collections/vegetation"
 
 ### Queryables
 Shows which fields can be used for filtering and sorting.
 
 "http://localhost:3000/queryables"
+
+---
+
+## Common Search Patterns
+
+Here you will find typical use cases for sorting and pagination.
+
+### Sorting
+Sort by different fields, e.g., by creation date or title. 
+Use a minus sign (`-`) before a field name to sort in descending order, or a plus sign (`+`) or no sign for ascending order. 
+For example:
+
+"http://localhost:3000/collections?sortby=-created"
+
+"http://localhost:3000/collections?sortby=title"
+
+### Paging (Page-wise Results)
+Retrieve large result lists page by page. The links in the response help you to navigate.
+
+"http://localhost:3000/collections?limit=10&token=0"
+
+"http://localhost:3000/collections?limit=10&token=10"
 
 ---
 
@@ -99,29 +125,6 @@ CQL2-JSON is machine-readable and especially suitable for complex, nested filter
 - Time interval (T_INTERSECTS):
 
   "http://localhost:3000/collections?filter-lang=cql2-json&filter=%7B%22op%22%3A%22t_intersects%22%2C%22args%22%3A%5B%7B%22property%22%3A%22datetime%22%7D%2C%7B%22interval%22%3A%5B%222020-01-01%22%2C%222025-12-31%22%5D%7D%5D%7D"
-
----
-
-## Common Search Patterns
-
-Here you will find typical use cases for search, pagination, and sorting.
-
-### Paging (Page-wise Results)
-Retrieve large result lists page by page. The links in the response help you to navigate.
-
-"http://localhost:3000/collections?limit=10&token=0"
-
-"http://localhost:3000/collections?limit=10&token=10"
-
-
-### Sorting
-Sort by different fields, e.g., by creation date or title.
-
-"http://localhost:3000/collections?sortby=-created"
-
-"http://localhost:3000/collections?sortby=title"
-
----
 
 ## Advanced Examples
 
