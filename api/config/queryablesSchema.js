@@ -16,15 +16,19 @@ function buildCollectionsQueryablesSchema(baseUrl) {
   const schemaId = `${cleanBase}/collections-queryables`;
 
   // Operator sets based on utils/cql2ToSql.js
-  const OPS_STRING_BASIC = ['=', '<>', 'isNull'];
-  const OPS_STRING_ADV = ['=', '<>', 'in', 'between', 'isNull']; // only if you implement semantics correctly per field
-  const OPS_TEMPORAL = ['t_intersects', 't_before', 't_after', 'between', 'isNull'];
+  const OPS_STRING_BASIC = [...OPS_IN, ...OPS_COMPARE, ...OPS_NULL, 'isNull'];
+  const OPS_STRING_ADV = ['=', '<>', 'in', 'between', 'isNull']; 
+  const OPS_TEMPORAL = ['t_intersects', 't_before', 't_after', ...OPS_COMPARE, 'between', ...OPS_IN, ...OPS_NULL, 'isNull'];
   const OPS_SPATIAL = ['s_intersects', 's_within', 's_contains', 'isNull'];
+  const OPS_COMPARE = ['=', '<>', '<', '<=', '>', '>=', 'between', 'isNull'];
+  const OPS_IN = ['in', 'isNull'];
+  const OPS_NULL = ['isNull'];
+  const OPS_NUMERIC = ['=', '<>', '<', '<=', '>', '>=', 'between', 'in', 'isNull'];
 
   // For keywords/providers/extensions we include them because bid expects them,
   // but filtering semantics must be implemented explicitly (e.g., EXISTS / jsonb operators).
   // Until implemented, we only claim `isNull` as truly safe.
-  const OPS_ARRAY_PLANNED = ['isNull']; // upgrade later to ['in','isNull'] once semantics are implemented
+  const OPS_ARRAY_PLANNED = ['isNull']; // TODO: upgrade later to ['in','isNull'] once semantics are implemented
 
   // Minimal GeoJSON Geometry schema (enough for queryables docs)
   const GEOJSON_GEOMETRY = {
@@ -107,7 +111,7 @@ function buildCollectionsQueryablesSchema(baseUrl) {
           'Providers associated with the collection. Planned semantics: provider name membership filtering (e.g., providers IN (...), matching provider.name).',
         type: 'array',
         items: {
-          type: 'object',
+          type: 'object', 
           properties: {
             name: { type: 'string' }
           },
@@ -158,7 +162,7 @@ function buildCollectionsQueryablesSchema(baseUrl) {
       stac_extensions: {
         title: 'STAC Extensions',
         description:
-          'List of STAC extensions used by the collection (e.g., EO, SAR, Point Cloud). Planned semantics: membership filtering.',
+          'List of STAC extensions used by the collection (e.g., EO, SAR, Point Cloud). Filtering by membership is planned; currently only null-check is guaranteed.',
         type: 'array',
         items: { type: 'string' },
         'x-ogc-operators': OPS_ARRAY_PLANNED,
