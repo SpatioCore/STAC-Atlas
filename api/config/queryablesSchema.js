@@ -16,15 +16,15 @@ function buildCollectionsQueryablesSchema(baseUrl) {
   const schemaId = `${cleanBase}/collections-queryables`;
 
   // Operator sets based on utils/cql2ToSql.js
-  const OPS_STRING_BASIC = [...OPS_IN, ...OPS_COMPARE, ...OPS_NULL, 'isNull'];
-  const OPS_STRING_ADV = ['=', '<>', 'in', 'between', 'isNull']; 
-  const OPS_TEMPORAL = ['t_intersects', 't_before', 't_after', ...OPS_COMPARE, 'between', ...OPS_IN, ...OPS_NULL, 'isNull'];
-  const OPS_SPATIAL = ['s_intersects', 's_within', 's_contains', 'isNull'];
   const OPS_COMPARE = ['=', '<>', '<', '<=', '>', '>=', 'between', 'isNull'];
   const OPS_IN = ['in', 'isNull'];
   const OPS_NULL = ['isNull'];
   const OPS_NUMERIC = ['=', '<>', '<', '<=', '>', '>=', 'between', 'in', 'isNull'];
-
+  const OPS_STRING_BASIC = [...OPS_IN, ...OPS_COMPARE, ...OPS_NULL, 'isNull'];
+  const OPS_STRING_ADV = ['=', '<>', 'in', 'between', 'isNull']; 
+  const OPS_TEMPORAL = ['t_intersects', 't_before', 't_after', ...OPS_COMPARE, 'between', ...OPS_IN, ...OPS_NULL, 'isNull'];
+  const OPS_SPATIAL = ['s_intersects', 's_within', 's_contains', 'isNull'];
+ 
   // For keywords/providers/extensions we include them because bid expects them,
   // but filtering semantics must be implemented explicitly (e.g., EXISTS / jsonb operators).
   // Until implemented, we only claim `isNull` as truly safe.
