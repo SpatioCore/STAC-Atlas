@@ -189,9 +189,9 @@ The following properties can be used in CQL2 filter expressions:
 | `title` | String | Collection title |
 | `description` | String | Collection description |
 | `license` | String | License identifier (e.g., "MIT", "CC-BY-4.0") |
-| `spatial_extend` | Geometry | Spatial bounding box (for spatial operators) |
-| `temporal_extend_start` | Timestamp | Start of temporal extent |
-| `temporal_extend_end` | Timestamp | End of temporal extent |
+| `spatial_extent` | Geometry | Spatial bounding box (for spatial operators) |
+| `temporal_extent_start` | Timestamp | Start of temporal extent |
+| `temporal_extent_end` | Timestamp | End of temporal extent |
 | `created_at` | Timestamp | Creation timestamp |
 | `updated_at` | Timestamp | Last update timestamp |
 | `is_api` | Boolean | Whether collection has an API |

@@ -6,7 +6,7 @@
  * - Explicitly documents supported operators per field (vendor extension)
  *
  * Notes:
- * - Operator lists are expressed via `x-ogc-operators` (explicit contract; non-standard, but clear).
+ * - Operator lists are expressed via `x-ogc-operators`.
  * - Some fields (keywords/providers/stac_extensions) are required by bid, but need explicit SQL semantics
  *   to be fully filterable via CQL2. We keep them queryable but mark limitations honestly.
  */
@@ -119,17 +119,17 @@ function buildCollectionsQueryablesSchema(baseUrl) {
       },
 
       /**
-       * Spatial / Temporal constraints (bbox, datetime, spatial_extend, temporal operators)
+       * Spatial/Temporal constraints (bbox, datetime, spatial_extent, temporal operators)
        */
       'extent.spatial.bbox': {
         title: 'Extent Spatial BBox',
         description:
-          'STAC extent spatial bbox (informational). For CQL2 spatial operators, prefer spatial_extend with GeoJSON geometry literals.',
+          'STAC extent spatial bbox (informational). For CQL2 spatial operators, prefer spatial_extent with GeoJSON geometry literals.',
         type: 'array',
         items: { type: 'number' },
         'x-ogc-operators': OPS_SPATIAL
       },
-      spatial_extend: {
+      spatial_extent: {
         title: 'Spatial Extent Geometry',
         description:
           'Collection spatial extent geometry (used for CQL2 spatial operators s_intersects/s_within/s_contains). Provide GeoJSON geometry literals in the filter.',

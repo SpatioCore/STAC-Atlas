@@ -33,7 +33,7 @@ describe('Database Connection', () => {
       const result = await queryByBBox('collection', [-180, -90, 180, 90]);
       
       if (result.rowCount > 0) {
-        expect(result.rows[0]).toHaveProperty('spatial_extend');
+        expect(result.rows[0]).toHaveProperty('spatial_extent');
         expect(result.rowCount).toBeGreaterThan(0);
       }
     });
@@ -76,7 +76,7 @@ describe('Database Connection', () => {
       expect(result.rows).toBeDefined();
     });
 
-    test('should return spatial_extend column', async () => {
+    test('should return spatial_extent column', async () => {
       const point = {
         type: 'Point',
         coordinates: [0, 0]
@@ -85,7 +85,7 @@ describe('Database Connection', () => {
       const result = await queryByGeometry('collection', point, 'intersects');
       
       if (result.rowCount > 0) {
-        expect(result.rows[0]).toHaveProperty('spatial_extend');
+        expect(result.rows[0]).toHaveProperty('spatial_extent');
       }
     });
 
@@ -131,7 +131,7 @@ describe('Database Connection', () => {
       
       if (result.rowCount > 0) {
         expect(result.rows[0]).toHaveProperty('distance');
-        expect(result.rows[0]).toHaveProperty('spatial_extend');
+        expect(result.rows[0]).toHaveProperty('spatial_extent');
       }
     });
 
