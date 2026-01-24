@@ -45,7 +45,7 @@ router.get('/', (req, res) => {
       },
       {
         rel: 'queryables',
-        href: `${baseUrl}/collection-queryables`, // TODO: Check with Mohr if this is the correct endpoint
+        href: `${baseUrl}/collections-queryables`, //updated path
         type: 'application/schema+json',
         title: 'Queryables for Collections'
       },
