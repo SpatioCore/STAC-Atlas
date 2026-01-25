@@ -1,3 +1,16 @@
+# Disclaimer on Special Characters
+
+When using filter parameters or search queries, special characters (such as spaces, umlauts, or symbols) must be properly URL-encoded. 
+Most browsers and tools like curl handle this automatically. 
+However, if you write URLs by hand, make sure to encode special characters:
+- Space → `%20` (e.g., `Sentinel-2 L2A` → `Sentinel-2%20L2A`)
+- Umlaut (ü) → `%C3%BC` (e.g., `Münster` → `M%C3%BCnster`)
+
+For a complete list of URL-encoded special characters, see:
+https://www.w3schools.com/tags/ref_urlencode.asp
+
+All examples in this documentation use clear, human-readable text for better readability. 
+When copying URLs into a browser or terminal, ensure special characters are encoded as needed.
 
 # STAC Atlas API – Example Requests & Search Patterns
 
@@ -48,6 +61,11 @@ Lists the supported OGC/STAC conformance classes.
 Returns a list of all collections.
 
 "http://localhost:3000/collections"
+
+### Limit the number of results
+Returns only the specified number of collections (e.g., 1 result):
+
+"http://localhost:3000/collections?limit=1"
 
 ### Collections (with parameters)
 Returns a list of collections. You can filter the search with parameters.
@@ -112,25 +130,27 @@ For a complete list of all supported CQL2 operators and filter options in this A
 
 ### CQL2-Text
 CQL2-Text is a human-readable format for filter expressions.
+
 - License filter:
   
-  "http://localhost:3000/collections?filter=license%20%3D%20'MIT'"
-  
+  "http://localhost:3000/collections?filter=license='MIT'"
+
 - Title exactly "Sentinel-2 L2A":
 
-  "http://localhost:3000/collections?filter=title%20%3D%20'Sentinel-2%20L2A'"
+  "http://localhost:3000/collections?filter=title='Sentinel-2 L2A'"
 
 - Title is one of several:
 
-  "http://localhost:3000/collections?filter=title%20IN%20('Sentinel-2%20L2A','CHELSA%20Climatologies')"
+  "http://localhost:3000/collections?filter=title IN ('Sentinel-2 L2A','CHELSA Climatologies')"
 
 - Combined filters:
 
-  "http://localhost:3000/collections?filter=license%20%3D%20'MIT'%20AND%20id%20%3E%2010"
+  "http://localhost:3000/collections?filter=license='MIT' AND id>10"
 
 - Multiple licenses (OR):
 
-  "http://localhost:3000/collections?filter=license%20%3D%20'CC-BY-4.0'%20OR%20license%20%3D%20'MIT'"
+  "http://localhost:3000/collections?filter=license='CC-BY-4.0' OR license='MIT'"
+
 
 
 ### CQL2-JSON
@@ -141,25 +161,15 @@ However, for complex or deeply nested filters (especially with geo-objects), CQL
 
 - Bounding Box (S_INTERSECTS):
 
-  "http://localhost:3000/collections?filter-lang=cql2-json&filter=%7B%22op%22%3A%22s_intersects%22%2C%22args%22%3A%5B%7B%22property%22%3A%22spatial_extend%22%7D%2C%7B%22type%22%3A%22Polygon%22%2C%22coordinates%22%3A%5B%5B%5B7%2C51%5D%2C%5B8%2C51%5D%2C%5B8%2C52%5D%2C%5B7%2C52%5D%2C%5B7%2C51%5D%5D%5D%7D%5D%7D"
+  "http://localhost:3000/collections?filter-lang=cql2-json&filter={"op":"s_intersects","args":[{"property":"spatial_extend"},{"type":"Polygon","coordinates":[[[7,51],[8,51],[8,52],[7,52],[7,51]]]}]}"
 
 - Time interval (T_INTERSECTS):
 
-  "http://localhost:3000/collections?filter-lang=cql2-json&filter=%7B%22op%22%3A%22t_intersects%22%2C%22args%22%3A%5B%7B%22property%22%3A%22datetime%22%7D%2C%7B%22interval%22%3A%5B%222020-01-01%22%2C%222025-12-31%22%5D%7D%5D%7D"
+  "http://localhost:3000/collections?filter-lang=cql2-json&filter={"op":"t_intersects","args":[{"property":"datetime"},{"interval":["2020-01-01","2025-12-31"]}]}"
 
-## Advanced Examples
+- Combined spatial and temporal filter:
 
-- CQL2-JSON: Combined spatial and temporal filter
-
-  "http://localhost:3000/collections?filter-lang=cql2-json&filter=%7B%22op%22%3A%22and%22%2C%22args%22%3A%5B%7B%22op%22%3A%22s_intersects%22%2C%22args%22%3A%5B%7B%22property%22%3A%22spatial_extend%22%7D%2C%7B%22type%22%3A%22Polygon%22%2C%22coordinates%22%3A%5B%5B%5B7%2C51%5D%2C%5B8%2C51%5D%2C%5B8%2C52%5D%2C%5B7%2C52%5D%2C%5B7%2C51%5D%5D%5D%7D%5D%7D%2C%7B%22op%22%3A%22t_intersects%22%2C%22args%22%3A%5B%7B%22property%22%3A%22datetime%22%7D%2C%7B%22interval%22%3A%5B%222020-01-01%22%2C%222025-12-31%22%5D%7D%5D%7D%5D%7D"
-
-- Free text search with special characters (Münster):
-
-  "http://localhost:3000/collections?q=M%C3%BCnster"
-
-- Limit the number of results:
-
-  "http://localhost:3000/collections?limit=1"
+  "http://localhost:3000/collections?filter-lang=cql2-json&filter={"op":"and","args":[{"op":"s_intersects","args":[{"property":"spatial_extend"},{"type":"Polygon","coordinates":[[[7,51],[8,51],[8,52],[7,52],[7,51]]]}]},{"op":"t_intersects","args":[{"property":"datetime"},{"interval":["2020-01-01","2025-12-31"]}]}]}"
 
 ## Example of a successful collection search
 
