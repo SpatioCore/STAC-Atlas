@@ -15,7 +15,7 @@ const { rateLimitMiddleware } = require('./middleware/rateLimit');
 const indexRouter = require('./routes/index');
 const conformanceRouter = require('./routes/conformance');
 const collectionsRouter = require('./routes/collections');
-const queryablesRouter = require('./routes/collections-queryables');
+const queryablesRouter = require('./routes/queryables');
 
 const app = express();
 
