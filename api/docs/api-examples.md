@@ -75,7 +75,6 @@ Returns a list of collections. You can filter the search with parameters.
 ### Single Collection
 To retrieve the metadata of a specific collection, use the endpoint `/collections/{id}` where `{id}` is the STAC ID string of the desired collection. Replace `{id}` with the actual collection identifier (e.g., `vegetation`).
 
-For example:
 "http://localhost:3000/collections/vegetation"
 
 ### Queryables
