@@ -124,9 +124,8 @@ describe('buildCollectionSearchQuery - aggregated fields', () => {
       const q = 'satellite';
       const { sql } = buildCollectionSearchQuery({ q, limit: 10, token: 0 });
 
-      expect(sql).toMatch(/coalesce\(c\.title,''\)/);
-      expect(sql).toMatch(/coalesce\(c\.description,''\)/);
-      expect(sql).toMatch(/to_tsvector\('simple', coalesce\(c\.title,''\) \|\| ' ' \|\| coalesce\(c\.description,''\)\)/);
+      expect(sql).toMatch(/c\.search_vector\s*@@\s*plainto_tsquery\('simple', \$1\)/);
+      expect(sql).toMatch(/ts_rank_cd\(c\.search_vector,\s*plainto_tsquery\('simple', \$1\)\)\s+AS\s+rank/);
     });
   });
 
