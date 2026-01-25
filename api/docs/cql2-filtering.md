@@ -108,7 +108,7 @@ Spatial operators compare geometry properties against GeoJSON geometries. These 
 {
   "op": "s_intersects",
   "args": [
-    { "property": "spatial_extend" },
+    { "property": "spatial_extent" },
     {
       "type": "Polygon",
       "coordinates": [[[7, 51], [8, 51], [8, 52], [7, 52], [7, 51]]]
@@ -119,7 +119,7 @@ Spatial operators compare geometry properties against GeoJSON geometries. These 
 
 **HTTP Request:**
 ```bash
-GET /collections?filter-lang=cql2-json&filter={"op":"s_intersects","args":[{"property":"spatial_extend"},{"type":"Polygon","coordinates":[[[7,51],[8,51],[8,52],[7,52],[7,51]]]}]}
+GET /collections?filter-lang=cql2-json&filter={"op":"s_intersects","args":[{"property":"spatial_extent"},{"type":"Polygon","coordinates":[[[7,51],[8,51],[8,52],[7,52],[7,51]]]}]}
 ```
 
 **Note:** Spatial operators are primarily used with CQL2-JSON encoding due to the complexity of GeoJSON geometry literals.
@@ -212,8 +212,8 @@ The following properties can be used in CQL2 filter expressions:
 
 | Alias | Maps To |
 |-------|---------|
-| `datetime` | `temporal_extend_start` / `temporal_extend_end` |
-| `temporal_extend` | `temporal_extend_start` / `temporal_extend_end` |
+| `datetime` | `temporal_extent_start` / `temporal_extent_end` |
+| `temporal_extent` | `temporal_extent_start` / `temporal_extent_end` |
 | `created` | `created_at` |
 | `updated` | `updated_at` |
 | `collection` | `id` |
@@ -353,7 +353,7 @@ WHERE c.license = $1
 Spatial operators use PostGIS functions with ST_GeomFromGeoJSON for geometry parsing:
 
 ```sql
-ST_Intersects(c.spatial_extend, ST_GeomFromGeoJSON($1))
+ST_Intersects(c.spatial_extent, ST_GeomFromGeoJSON($1))
 ```
 
 ---
