@@ -82,13 +82,13 @@ describe('STAC API Core Endpoints', () => {
 
       it('should include required link relations', async () => {
       const response = await request(app).get('/collections').expect(200);
-	  const rels = response.body.links.map(l => l.rel);
-		  
-	  expect(rels).toContain('self');
-	  expect(rels).toContain('root');
-	  expect(rels).toContain('parent');
-  });
-  });
+      const rels = response.body.links.map(l => l.rel);
+        
+      expect(rels).toContain('self');
+      expect(rels).toContain('root');
+      expect(rels).toContain('parent');
+    });
+    });
 
   describe('GET /collections-queryables', () => {
     it('should return queryables schema', async () => {
