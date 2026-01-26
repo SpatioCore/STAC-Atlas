@@ -173,8 +173,6 @@ function mapProperty(propName) {
         'is_api': 'c.is_api',
         'is_active': 'c.is_active',
         
-        // map datetime to temporal_extent for collections
-        'datetime': null,
 
         // Common aliases
         'created': 'c.created_at',
