@@ -233,22 +233,12 @@ router.get('/:id', validateCollectionId, async (req, res, next) => {
   try {
     const { id } = req.params;
 
-// Numeric: use numeric filter
-const numericId = Number(id);
-const isNumericId = Number.isFinite(numericId) && String(numericId) === String(id);
-
 // Build params depending on id type
 const queryParams = {
   limit: 1,
   token: 0,
+  id: id
 };
-
-if (isNumericId) {
-  queryParams.id = numericId;
-} else {
-  // STAC Collection IDs are strings use string filter
-  queryParams.collectionId = id;
-}
 
 const { sql, values } = buildCollectionSearchQuery(queryParams);
 

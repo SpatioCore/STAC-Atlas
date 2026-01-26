@@ -88,7 +88,6 @@ function buildCollectionSearchQuery(params) {
     sortby,
     limit,
     token,
-    collectionId,
     cqlFilter
   } = params;
 
@@ -104,8 +103,8 @@ function buildCollectionSearchQuery(params) {
   // distinguish collection columns from aggregated relation data (keywords, providers, etc.).
   let selectPart = `
     SELECT
-      c.id,
       c.stac_version,
+      c.stac_id,
       c.type,
       c.title,
       c.description,
@@ -135,15 +134,9 @@ function buildCollectionSearchQuery(params) {
   let i = 1;
 
   if (id !== undefined && id !== null) {
-    where.push(`c.id = $${i}`);
+    where.push(`c.stac_id = $${i}`);
     values.push(id);
     i++;
-  }
-
-  if (collectionId !== undefined && collectionId !== null && collectionId !== '') {
-    where.push(`c.full_json->>'id' = $${i}`);
-    values.push(collectionId);
-    i += 1;
   }
 
   // Full-text search using weighted tsvector across title (weight A) and description (weight B).
@@ -333,17 +326,17 @@ function buildCollectionSearchQuery(params) {
   //
   // Behaviour summary:
   // - `sortby` provided → use that (with 'c.' prefix for collection columns)
-  // - no `sortby` & `q` present → order by `rank DESC, c.id ASC` so higher relevance comes first
-  // - no `sortby` & no `q` → order by `c.id ASC` (legacy default)
+  // - no `sortby` & `q` present → order by `rank DESC, c.stac_id ASC` so higher relevance comes first
+  // - no `sortby` & no `q` → order by `c.stac_id ASC` (legacy default)
   //
   // Note: sortby.field is validated against a whitelist in the calling code; only collection
   // table columns are allowed for sorting (not aggregated fields like keywords/providers).
   if (sortby) {
     sql += ` ORDER BY c.${sortby.field} ${sortby.direction}`;
   } else if (q) {
-    sql += ` ORDER BY rank DESC, c.id ASC`;
+    sql += ` ORDER BY rank DESC, c.stac_id ASC`;
   } else {
-    sql += ` ORDER BY c.id ASC`;
+    sql += ` ORDER BY c.stac_id ASC`;
   }
 
   // Pagination (only add if limit is provided)
