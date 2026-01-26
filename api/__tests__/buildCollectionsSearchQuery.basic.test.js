@@ -5,7 +5,7 @@ describe('buildCollectionSearchQuery - basic cases', () => {
     const { sql, values } = buildCollectionSearchQuery({ limit: 10, token: 0 });
 
     expect(sql).toMatch(/FROM collection c/);
-    expect(sql).toMatch(/ORDER BY c\.id ASC/);
+    expect(sql).toMatch(/ORDER BY c\.stac_id ASC/);
     // there should be LIMIT and OFFSET placeholders
     expect(sql).toMatch(/LIMIT \$1 OFFSET \$2/);
     expect(Array.isArray(values)).toBe(true);

@@ -274,7 +274,7 @@ describe('CQL2 Filter Integration Tests', () => {
       if (result.rows.length > 0) {
         const row = result.rows[0];
         // Core fields
-        expect(row).toHaveProperty('id');
+        expect(row).toHaveProperty('stac_id');
         expect(row).toHaveProperty('title');
         expect(row).toHaveProperty('license');
         // Aggregated fields

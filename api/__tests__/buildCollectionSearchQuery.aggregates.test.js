@@ -130,10 +130,10 @@ describe('buildCollectionSearchQuery - aggregated fields', () => {
   });
 
   describe('ORDER BY uses collection alias c', () => {
-    test('default ORDER BY uses c.id', () => {
+    test('default ORDER BY uses c.stac_id', () => {
       const { sql } = buildCollectionSearchQuery({ limit: 10, token: 0 });
 
-      expect(sql).toMatch(/ORDER BY c\.id ASC/);
+      expect(sql).toMatch(/ORDER BY c\.stac_id ASC/);
     });
 
     test('sortby parameter uses c. prefix', () => {
@@ -143,11 +143,11 @@ describe('buildCollectionSearchQuery - aggregated fields', () => {
       expect(sql).toMatch(/ORDER BY c\.title DESC/);
     });
 
-    test('fulltext search with rank orders by rank DESC, c.id ASC', () => {
+    test('fulltext search with rank orders by rank DESC, c.stac_id ASC', () => {
       const q = 'satellite';
       const { sql } = buildCollectionSearchQuery({ q, limit: 10, token: 0 });
 
-      expect(sql).toMatch(/ORDER BY rank DESC, c\.id ASC/);
+      expect(sql).toMatch(/ORDER BY rank DESC, c\.stac_id ASC/);
     });
   });
 
