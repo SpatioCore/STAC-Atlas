@@ -270,7 +270,6 @@ jobs:
             --conformance core \
             --conformance collections \
             --collection 1 \
-            --verbose | tee stac-validator-output.txt
 
       - name: Upload validator output
         uses: actions/upload-artifact@v4
