@@ -9,47 +9,23 @@ const { cql2ToSql } = require('../utils/cql2ToSql');
 const { ErrorResponses } = require('../utils/errorResponse');
 
 // helper to map DB row to STAC Collection object
-// the full_json column contains the original STAC Collection Json as crawled but it is needed to set some fields/links correctly
+// Takes row data 1:1 and only rebuilds extent in correct format
 function toStacCollection(row, baseHost) {
-  const base =
-    row.full_json &&
-    typeof row.full_json === 'object' &&
-    !Array.isArray(row.full_json)
-      ? row.full_json
-      : {};
+  // Use row directly - it already contains all fields from the query
+  const collection = { ...row };
 
-  const id = base.id ?? String(row.id);
+  // Remove internal DB fields that shouldn't be in the API response
+  delete collection.minx;
+  delete collection.miny;
+  delete collection.maxx;
+  delete collection.maxy;
+  delete collection.temporal_extent_start;
+  delete collection.temporal_extent_end;
+  delete collection.spatial_extent;
 
-  const collection = {
-    // merge full_json first to override/normalize below
-    ...base,
-    type: 'Collection',
-    stac_version: base.stac_version ?? row.stac_version ?? '1.1.0',
-    id,
-    title: base.title ?? row.title ?? id,
-    description: base.description ?? row.description ?? '',
-    license: base.license ?? row.license ?? 'proprietary',
-  };
-
-  // assets must be an object/dict if present
-  if (collection.assets === null || collection.assets === undefined) {
-    delete collection.assets;
-  } else if (Array.isArray(collection.assets)) {
-    delete collection.assets;
-  } else if (typeof collection.assets !== 'object') {
-    delete collection.assets;
-  }
-
-  if (collection.summaries === null || collection.summaries === undefined) {
-    delete collection.summaries;
-  } else if (Array.isArray(collection.summaries) || typeof collection.summaries !== 'object') {
-    delete collection.summaries;
-  }
-
-  // Build extent strictly from normalized spatial/temporal columns (not full_json)
-  const hasBbox =
-    row.minx !== null && row.miny !== null && row.maxx !== null && row.maxy !== null;
-
+  // STAC Spec Compliance:Build extent from the DB columns (before we deleted them)
+  const hasBbox = row.minx !== null && row.miny !== null && row.maxx !== null && row.maxy !== null;
+  
   collection.extent = {
     spatial: {
       bbox: hasBbox ? [[row.minx, row.miny, row.maxx, row.maxy]] : [[-180, -90, 180, 90]],
@@ -62,12 +38,119 @@ function toStacCollection(row, baseHost) {
     },
   };
 
-  // ensure links exist
-  collection.links = [
-    { rel: 'self', href: `${baseHost}/collections/${encodeURIComponent(id)}`, type: 'application/json' },
-    { rel: 'parent', href: `${baseHost}`, type: 'application/json' },
-    { rel: 'root', href: `${baseHost}`, type: 'application/json' }
-  ];
+  // STAC Spec Compliance: stac_extensions should be an array of strings
+  if (collection.stac_extensions === null || collection.stac_extensions === undefined) {
+    collection.stac_extensions = [];
+  } else if (typeof collection.stac_extensions === 'string') {
+    collection.stac_extensions = collection.stac_extensions.split(',').map(ext => ext.trim());
+  }
+
+  // STAC Spec Compliance: API-Validator expects 'id' field for collections
+  collection.id = row.stac_id;
+
+  // STAC Spec Compliance: In case description is null, set to empty string for STAC compliance
+  if (collection.description === null || collection.description === undefined) {
+    collection.description = '';
+  }
+
+  // STAC Spec Compliance: Ensure keywords is an array, not null
+  if (collection.keywords === null || collection.keywords === undefined) {
+    collection.keywords = [];
+  }
+
+  // STAC Spec Compliance: Ensure license is a string
+  if (collection.license === null || collection.license === undefined || collection.license === '') {
+    collection.license = 'other'; // TODO: Decide on default license policy
+  }
+
+  // STAC Spec Compliance: Ensure providers.roles is always an array
+  if (Array.isArray(collection.providers)) {
+    collection.providers = collection.providers.map(provider => {
+      // If roles is a string, split on comma and convert to array
+      if (typeof provider.roles === 'string') {
+        provider.roles = provider.roles.split(',').map(r => r.trim());
+      }
+      // If roles is null/undefined, set to empty array
+      if (!Array.isArray(provider.roles)) {
+        provider.roles = [];
+      }
+      return provider;
+    });
+  } 
+    // Ensure providers is not null
+    else if (collection.providers === null || collection.providers === undefined) {
+    collection.providers = [];
+  }
+
+  // STAC Spec Compliance: Ensure summaries is an object, not null
+  if (collection.summaries === null || collection.summaries === undefined) {
+    collection.summaries = {};
+  } else if (typeof collection.summaries === 'object' && !Array.isArray(collection.summaries)) {
+    // Parse JSON string values into actual arrays
+    Object.keys(collection.summaries).forEach(key => {
+      const value = collection.summaries[key];
+      // If the value is a JSON string, parse it
+      if (typeof value === 'string') {
+        try {
+          collection.summaries[key] = JSON.parse(value);
+        } catch (e) {
+          // If parsing fails, leave as is
+        }
+      }
+    });
+  }
+
+  // STAC Spec Compliance: Ensure assets is an object, not an array or null
+  if (collection.assets === null || collection.assets === undefined) {
+    collection.assets = {};
+  } else if (Array.isArray(collection.assets)) {
+    const assetsObject = {};
+    collection.assets.forEach((asset, index) => {
+      // Use asset.name as key, or fallback to asset_{index}
+      const key = asset.name || `asset_${index}`;
+      // Remove non-STAC fields from the asset
+      const { name, metadata, collection_roles, ...cleanAsset } = asset;
+      // Remove type field if it's null
+      if (cleanAsset.type === null || cleanAsset.type === undefined) {
+        delete cleanAsset.type;
+      }
+      assetsObject[key] = cleanAsset;
+    });
+    collection.assets = assetsObject;
+  } else if (typeof collection.assets === 'object') {
+    // Clean up existing object-format assets
+    Object.keys(collection.assets).forEach(key => {
+      const asset = collection.assets[key];
+      // Remove non-STAC fields
+      delete asset.metadata;
+      delete asset.collection_roles;
+      // Remove type field if it's null
+      if (asset.type === null || asset.type === undefined) {
+        delete asset.type;
+      }
+    });
+  }
+
+  // Add Links incase a baseHost is provided
+  if (baseHost !== undefined) {
+    collection.links = [
+      {
+        rel: "self",
+        href: `${baseHost}/collections/${row.stac_id}`,
+        title: 'The collection itself'
+      },
+      {
+        rel: "root",
+        href: `${baseHost}`,
+        title: 'STAC Atlas Landing Page'
+      },
+      {
+        rel: "parent",
+        href: `${baseHost}/collections`,
+        title: 'STAC Collections on STAC Atlas'
+      }
+    ];
+  };
 
   return collection;
 }
@@ -267,11 +350,11 @@ const rows = await runQuery(sql, values);
     //   not extract or persist them as a separate links column yet.
     //   In the future we might want to parse those links and merge them here.
     const links = [
-      { rel: 'self', href: selfHref, type: 'application/json' },
-      { rel: 'root', href: rootHref, type: 'application/json' },
-      { rel: 'parent', href: rootHref, type: 'application/json' }
+      { rel: 'self', href: selfHref, type: 'application/json', title: 'The collection itself' },
+      { rel: 'root', href: rootHref, type: 'application/json', title: 'STAC Atlas Landing Page' },
+      { rel: 'parent', href: `${rootHref}/collections`, type: 'application/json', title: 'STAC Collections on STAC Atlas' }
     ];
-   const collection_id = toStacCollection(row, baseHost);
+   const collection_id = toStacCollection(row);
     // Return the collection with a normalized `links` array.
     // The rest of the attributes (id, title, extent, full_json, …) come directly
     // from the query builder / database.
