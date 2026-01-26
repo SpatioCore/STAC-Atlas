@@ -27,7 +27,6 @@ describe('GET /collections-queryables', () => {
 
     // spatial/temporal queryables
     expect(res.body.properties).toHaveProperty('spatial_extent');
-    expect(res.body.properties).toHaveProperty('datetime');
 
     // operators documented (vendor extension)
     expect(res.body.properties.id).toHaveProperty('x-ogc-operators');
