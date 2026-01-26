@@ -131,6 +131,17 @@ export function normalizeCollection(colObj, index) {
         links = rawData.links;
     }
     
+    // Determine the type using isCatalog/isCollection methods if available
+    let type = colObj.type || rawData?.type || null;
+    if (!type) {
+        // Use stac-js methods to determine type
+        if (typeof colObj.isCatalog === 'function' && colObj.isCatalog()) {
+            type = 'Catalog';
+        } else if (typeof colObj.isCollection === 'function' && colObj.isCollection()) {
+            type = 'Collection';
+        }
+    }
+    
     return {
         index,
         id: colObj.id || rawData?.id || 'Unknown',
@@ -145,7 +156,7 @@ export function normalizeCollection(colObj, index) {
         // Additional fields needed for db.js - pass through from raw data
         links,
         stac_version: colObj.stac_version || rawData?.stac_version || null,
-        type: colObj.type || rawData?.type || 'Collection',
+        type: type,
         summaries: colObj.summaries || rawData?.summaries || null,
         stac_extensions: colObj.stac_extensions || rawData?.stac_extensions || [],
         providers: colObj.providers || rawData?.providers || [],

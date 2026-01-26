@@ -229,7 +229,7 @@ async function _insertOrUpdateCollectionInternal(collection) {
         [
           stacId,
           collection.stac_version || null,
-          collection.type || 'Collection',
+          collection.type || null,
           collection.description || null,
           collection.license || null,
           spatialExtent,
@@ -238,7 +238,6 @@ async function _insertOrUpdateCollectionInternal(collection) {
           false, // is_api - will be determined by crawler
           true, // is_active
           JSON.stringify(collection),
-          sourceUrl,
           collectionId
         ]
       );
@@ -255,7 +254,7 @@ async function _insertOrUpdateCollectionInternal(collection) {
         [
           stacId,
           collection.stac_version || null,
-          collection.type || 'Collection',
+          collection.type || null,
           collectionTitle,
           collection.description || null,
           collection.license || null,
