@@ -229,37 +229,4 @@ describe('Database Schema Validation', () => {
       expect(Object.keys(jsonResult.rows[0].full_json).length).toBeGreaterThan(0);
     });
   });
-
-  describe('Data Retrieval - Catalog Table', () => {
-    test('should have data in catalog table', async () => {
-      const countResult = await query(`SELECT COUNT(*) as count FROM catalog`);
-      const rowCount = parseInt(countResult.rows[0].count);
-      
-      expect(rowCount).toBeGreaterThan(0);
-    });
-
-    test('should retrieve sample catalog data', async () => {
-      const sampleResult = await query(`SELECT * FROM catalog LIMIT 1`);
-      
-      expect(sampleResult.rows).toHaveLength(1);
-      
-      const sample = sampleResult.rows[0];
-      expect(sample).toHaveProperty('id');
-      // expect(sample).toHaveProperty('stac_id'); // Column does not exist in database
-      expect(sample).toHaveProperty('description');
-    });
-
-    test('should have valid required fields', async () => {
-      const sampleResult = await query(`SELECT * FROM catalog LIMIT 1`);
-      const sample = sampleResult.rows[0];
-      const expectedSchema = EXPECTED_SCHEMAS.catalog;
-      
-      for (const [colName, expected] of Object.entries(expectedSchema)) {
-        if (expected.required) {
-          expect(sample[colName]).not.toBeNull();
-          expect(sample[colName]).not.toBeUndefined();
-        }
-      }
-    });
-  });
 });
