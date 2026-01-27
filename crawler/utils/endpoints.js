@@ -15,8 +15,9 @@
  * @param {Object} crawler - Crawlee crawler instance
  * @param {Object} log - Logger
  * @param {string} indent - Indentation for logging
+ * @param {string} catalogSlug - Slug of the source catalog for unique ID generation
  */
-export async function tryCollectionEndpoints(stacCatalog, baseUrl, catalogId, depth, crawler, log, indent) {
+export async function tryCollectionEndpoints(stacCatalog, baseUrl, catalogId, depth, crawler, log, indent, catalogSlug = null) {
     let collectionUrl = null;
 
     // Try to find collection endpoint from STAC links (proper STAC discovery)
@@ -78,6 +79,7 @@ export async function tryCollectionEndpoints(stacCatalog, baseUrl, catalogId, de
         userData: {
             catalogUrl: baseUrl,
             catalogId,
+            catalogSlug,
             depth
         }
     }]);

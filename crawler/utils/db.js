@@ -318,11 +318,24 @@ async function _insertOrUpdateCollectionInternal(collection) {
 
     // Insert or update collection
     const collectionTitle = collection.title || collection.id || 'Unnamed Collection';
-    const stacId = collection.id || null;
     
-    // Extract source URL from links (prefer 'self', fallback to 'root')
+    // Construct unique stac_id from sourceSlug and collection id
+    // Format: {sourceSlug}_{collection_id} for uniqueness across different sources
+    let stacId = null;
+    if (collection.sourceSlug && collection.id) {
+      stacId = `${collection.sourceSlug}_${collection.id}`;
+    } else if (collection.id) {
+      stacId = collection.id;
+    }
+    
+    // Extract source URL - prefer crawledUrl (the actual absolute URL the collection was fetched from)
+    // Fall back to links only if crawledUrl is not available
     let sourceUrl = null;
-    if (collection.links && Array.isArray(collection.links)) {
+    if (collection.crawledUrl) {
+      // Use the absolute URL from the crawler (most reliable)
+      sourceUrl = collection.crawledUrl;
+    } else if (collection.links && Array.isArray(collection.links)) {
+      // Fallback to self/root links (may be relative URLs)
       const selfLink = collection.links.find(link => link.rel === 'self');
       const rootLink = collection.links.find(link => link.rel === 'root');
       sourceUrl = selfLink?.href || rootLink?.href || null;
@@ -356,6 +369,10 @@ async function _insertOrUpdateCollectionInternal(collection) {
       }
     }
     
+    // Use originalJson if available (from normalizeCollection), otherwise use the collection object
+    // This ensures the full original STAC JSON is stored, not the normalized version
+    const fullJsonData = collection.originalJson || collection;
+    
     let collectionId;
     if (existingCollection.rows.length > 0) {
       // Update existing collection
@@ -372,9 +389,10 @@ async function _insertOrUpdateCollectionInternal(collection) {
           temporal_extent_end = $8,
           is_api = $9,
           is_active = $10,
-          full_json = $11,
+          source_url = $11,
+          full_json = $12,
           updated_at = now()
-         WHERE id = $12`,
+         WHERE id = $13`,
         [
           stacId,
           collection.stac_version || null,
@@ -386,19 +404,25 @@ async function _insertOrUpdateCollectionInternal(collection) {
           temporalEnd,
           false, // is_api - will be determined by crawler
           true, // is_active
-          JSON.stringify(collection),
+          sourceUrl,
+          JSON.stringify(fullJsonData),
           collectionId
         ]
       );
     } else {
-      // Insert new collection
+      // Insert new collection - updated_at defaults to now() (same as created_at)
+      // since we know the data is current as of this crawl
       const collectionResult = await client.query(
         `INSERT INTO collection (
           stac_id, stac_version, type, title, description, license,
           spatial_extent, temporal_extent_start, temporal_extent_end,
+<<<<<<< HEAD
           is_api, is_active, full_json, source_url, updated_at
+=======
+          is_api, is_active, source_url, full_json
+>>>>>>> origin/dev-crawler-humam
         )
-        VALUES ($1, $2, $3, $4, $5, $6, ST_GeomFromEWKT($7), $8, $9, $10, $11, $12, now())
+        VALUES ($1, $2, $3, $4, $5, $6, ST_GeomFromEWKT($7), $8, $9, $10, $11, $12, $13)
         RETURNING id`,
         [
           stacId,
@@ -412,8 +436,8 @@ async function _insertOrUpdateCollectionInternal(collection) {
           temporalEnd,
           false, // is_api - will be determined by crawler
           true, // is_active
-          JSON.stringify(collection),
-          sourceUrl
+          sourceUrl,
+          JSON.stringify(fullJsonData)
         ]
       );
       collectionId = collectionResult.rows[0].id;
@@ -423,7 +447,7 @@ async function _insertOrUpdateCollectionInternal(collection) {
     if (collection.summaries && typeof collection.summaries === 'object') {
       await client.query('DELETE FROM collection_summaries WHERE collection_id = $1', [collectionId]);
       for (const [name, value] of Object.entries(collection.summaries)) {
-        await insertSummary(client, collectionId, name, value, sourceUrl);
+        await insertSummary(client, collectionId, name, value);
       }
     }
 
@@ -531,7 +555,7 @@ async function insertStacExtensions(client, parentId, extensions, type) {
 /**
  * Helper function to insert collection summaries
  */
-async function insertSummary(client, collectionId, name, value, sourceUrl) {
+async function insertSummary(client, collectionId, name, value) {
   let kind = 'unknown';
   let rangeMin = null;
   let rangeMax = null;
@@ -556,8 +580,8 @@ async function insertSummary(client, collectionId, name, value, sourceUrl) {
   }
 
   await client.query(
-    'INSERT INTO collection_summaries (collection_id, name, kind, source_url, range_min, range_max, set_value, json_schema) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
-    [collectionId, name, kind, sourceUrl, rangeMin, rangeMax, setValue, jsonSchema]
+    'INSERT INTO collection_summaries (collection_id, name, kind, range_min, range_max, set_value, json_schema) VALUES ($1, $2, $3, $4, $5, $6, $7)',
+    [collectionId, name, kind, rangeMin, rangeMax, setValue, jsonSchema]
   );
 }
 
