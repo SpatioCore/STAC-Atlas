@@ -41,11 +41,12 @@ export function deriveCategories(catalog) {
 export function normalizeCatalog(catalog, index) {
     return {
         index,
-        id: catalog.id,
+        id: catalog.slug || catalog.id?.toString() || `catalog-${index}`, // Use slug as STAC id (string), fallback to numeric id as string
         url: catalog.url,
         slug: catalog.slug,
         title: catalog.title,
         summary: catalog.summary,
+        description: catalog.summary, // Map summary to description for database
         access: catalog.access,
         created: catalog.created,
         updated: catalog.updated,
@@ -53,6 +54,9 @@ export function normalizeCatalog(catalog, index) {
         isApi: catalog.isApi,
         accessInfo: catalog.accessInfo,
         categories: deriveCategories(catalog),
+        keywords: deriveCategories(catalog), // Map categories to keywords for database
+        type: 'Catalog', // Explicitly set type
+        links: catalog.url ? [{ rel: 'self', href: catalog.url }] : [], // Create links array for db.js
         // Preserve any additional dynamic properties
         ...Object.fromEntries(
             Object.entries(catalog).filter(([key]) => 

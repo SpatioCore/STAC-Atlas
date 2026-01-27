@@ -64,7 +64,8 @@ export const crawler = async () => {
         let catalogsSaved = 0;
         let catalogsFailed = 0;
         
-        for (const catalog of response.data) {
+        // Use normalized catalogs instead of raw response.data
+        for (const catalog of catalogs) {
             try {
                 const catalogId = await db.insertOrUpdateCatalog(catalog);
                 console.log(`Saved catalog: ${catalog.title || catalog.id} (DB ID: ${catalogId})`);

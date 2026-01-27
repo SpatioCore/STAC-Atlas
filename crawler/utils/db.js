@@ -51,19 +51,168 @@ async function initDb() {
 }
 
 /**
- * Process a catalog for traversal only - catalogs are not saved to database
- * Only collections are saved. Catalogs are only used to traverse deeper into the tree.
+ * Insert or update a catalog in the database with deadlock retry logic
+ * Catalogs are stored in the collection table with type='Catalog'
  * @param {Object} catalog - STAC catalog object
- * @returns {Promise<null>} always returns null (no catalog saved)
+ * @param {number} maxRetries - Maximum number of retry attempts for deadlocks (default: 3)
+ * @returns {Promise<number|null>} collection table ID or null
  */
-async function insertOrUpdateCatalog(catalog) {
+async function insertOrUpdateCatalog(catalog, maxRetries = 3) {
   if (!catalog || typeof catalog !== 'object') return null;
   
-  // Catalogs are not saved to database - only used for tree traversal
-  // Only collections will be saved
-  console.log(`Skipping catalog save (used for traversal only): ${catalog.title || catalog.id}`);
+  let lastError;
   
-  return null;
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      return await _insertOrUpdateCatalogInternal(catalog);
+    } catch (error) {
+      lastError = error;
+      
+      if (isDeadlockError(error) && attempt < maxRetries) {
+        // Exponential backoff: 100ms, 200ms, 400ms, ...
+        const delayMs = 100 * Math.pow(2, attempt - 1) + Math.random() * 50;
+        console.warn(`WARN  [DB] Deadlock detected for catalog "${catalog.title || catalog.id}", retrying in ${Math.round(delayMs)}ms (attempt ${attempt}/${maxRetries})`);
+        await sleep(delayMs);
+        continue;
+      }
+      
+      // Not a deadlock or max retries reached, throw the error
+      throw error;
+    }
+  }
+  
+  // Should not reach here, but just in case
+  throw lastError;
+}
+
+/**
+ * Internal implementation of insertOrUpdateCatalog
+ * Stores catalog in the collection table with type='Catalog'
+ * @param {Object} catalog - STAC catalog object
+ * @returns {Promise<number|null>} collection table ID or null
+ */
+async function _insertOrUpdateCatalogInternal(catalog) {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    const catalogTitle = catalog.title || catalog.id || 'Unnamed Catalog';
+    const stacId = catalog.id || null;
+    
+    // Extract source URL from links (prefer 'self', fallback to 'root')
+    let sourceUrl = null;
+    if (catalog.links && Array.isArray(catalog.links)) {
+      const selfLink = catalog.links.find(link => link.rel === 'self');
+      const rootLink = catalog.links.find(link => link.rel === 'root');
+      sourceUrl = selfLink?.href || rootLink?.href || null;
+    }
+    
+    // Check if catalog with same stac_id and type='Catalog' already exists
+    let existingCatalog;
+    if (stacId && sourceUrl) {
+      // Match by stac_id + source_url + type
+      existingCatalog = await client.query(
+        'SELECT id FROM collection WHERE stac_id = $1 AND source_url = $2 AND type = $3',
+        [stacId, sourceUrl, 'Catalog']
+      );
+    }
+    
+    // Fallback: match by title and type='Catalog'
+    if (!existingCatalog || existingCatalog.rows.length === 0) {
+      if (stacId) {
+        existingCatalog = await client.query(
+          'SELECT id FROM collection WHERE stac_id = $1 AND title = $2 AND type = $3',
+          [stacId, catalogTitle, 'Catalog']
+        );
+      } else {
+        existingCatalog = await client.query(
+          'SELECT id FROM collection WHERE title = $1 AND type = $2',
+          [catalogTitle, 'Catalog']
+        );
+      }
+    }
+    
+    let catalogId;
+    if (existingCatalog.rows.length > 0) {
+      // Update existing catalog
+      catalogId = existingCatalog.rows[0].id;
+      await client.query(
+        `UPDATE collection SET 
+          stac_id = $1,
+          stac_version = $2,
+          type = $3,
+          description = $4,
+          source_url = $5,
+          full_json = $6,
+          updated_at = now()
+         WHERE id = $7`,
+        [
+          stacId,
+          catalog.stac_version || null,
+          'Catalog',
+          catalog.description || null,
+          sourceUrl,
+          JSON.stringify(catalog),
+          catalogId
+        ]
+      );
+    } else {
+      // Insert new catalog into collection table
+      const catalogResult = await client.query(
+        `INSERT INTO collection (
+          stac_id, stac_version, type, title, description, source_url,
+          is_api, is_active, full_json, updated_at
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, now())
+        RETURNING id`,
+        [
+          stacId,
+          catalog.stac_version || null,
+          'Catalog',
+          catalogTitle,
+          catalog.description || null,
+          sourceUrl,
+          false, // is_api
+          true, // is_active
+          JSON.stringify(catalog)
+        ]
+      );
+      catalogId = catalogResult.rows[0].id;
+    }
+
+    // Insert keywords
+    if (catalog.keywords && Array.isArray(catalog.keywords)) {
+      await insertKeywords(client, catalogId, catalog.keywords, 'collection');
+    }
+
+    // Insert STAC extensions
+    if (catalog.stac_extensions && Array.isArray(catalog.stac_extensions)) {
+      await insertStacExtensions(client, catalogId, catalog.stac_extensions, 'collection');
+    }
+
+    // Update crawl log (using collection crawl log)
+    await client.query(
+      'DELETE FROM crawllog_collection WHERE collection_id = $1',
+      [catalogId]
+    );
+    await client.query(
+      'INSERT INTO crawllog_collection (collection_id, last_crawled) VALUES ($1, now())',
+      [catalogId]
+    );
+
+    await client.query('COMMIT');
+    console.log(`Saved catalog as collection: ${catalogTitle} (ID: ${catalogId}, type: Catalog)`);
+    return catalogId;
+  } catch (error) {
+    await client.query('ROLLBACK');
+    // Only log non-deadlock errors here, deadlocks are handled by retry wrapper
+    if (!isDeadlockError(error)) {
+      console.error('Error inserting catalog:', error.message);
+    }
+    throw error;
+  } finally {
+    client.release();
+  }
 }
 
 /**
