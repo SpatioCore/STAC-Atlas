@@ -107,9 +107,14 @@ async function _insertOrUpdateCatalogInternal(catalog) {
       stacId = catalog.id;
     }
     
-    // Extract source URL from links (prefer 'self', fallback to 'root')
+    // Extract source URL - prefer crawledUrl (the actual absolute URL the catalog was fetched from)
+    // Fall back to links only if crawledUrl is not available
     let sourceUrl = null;
-    if (catalog.links && Array.isArray(catalog.links)) {
+    if (catalog.crawledUrl) {
+      // Use the absolute URL from the crawler (most reliable)
+      sourceUrl = catalog.crawledUrl;
+    } else if (catalog.links && Array.isArray(catalog.links)) {
+      // Fallback to self/root links (may be relative URLs)
       const selfLink = catalog.links.find(link => link.rel === 'self');
       const rootLink = catalog.links.find(link => link.rel === 'root');
       sourceUrl = selfLink?.href || rootLink?.href || null;
