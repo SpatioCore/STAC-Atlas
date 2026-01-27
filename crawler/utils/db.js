@@ -90,10 +90,11 @@ async function insertOrUpdateCatalog(catalog) {
       );
       console.log(`Updated catalog: ${catalogTitle} (id: ${catalogId})`);
     } else {
-      // Insert new catalog - updated_at stays NULL until next crawl
+      // Insert new catalog - updated_at defaults to now() (same as created_at)
+      // since we know the data is current as of this crawl
       const catalogResult = await client.query(
-        `INSERT INTO catalog (stac_version, type, title, description, updated_at)
-         VALUES ($1, $2, $3, $4, NULL)
+        `INSERT INTO catalog (stac_version, type, title, description)
+         VALUES ($1, $2, $3, $4)
          RETURNING id`,
         [
           catalog.stac_version || null,
@@ -360,14 +361,15 @@ async function _insertOrUpdateCollectionInternal(collection) {
         ]
       );
     } else {
-      // Insert new collection - updated_at stays NULL until next crawl
+      // Insert new collection - updated_at defaults to now() (same as created_at)
+      // since we know the data is current as of this crawl
       const collectionResult = await client.query(
         `INSERT INTO collection (
           stac_id, stac_version, type, title, description, license,
           spatial_extent, temporal_extent_start, temporal_extent_end,
-          is_api, is_active, source_url, full_json, updated_at
+          is_api, is_active, source_url, full_json
         )
-        VALUES ($1, $2, $3, $4, $5, $6, ST_GeomFromEWKT($7), $8, $9, $10, $11, $12, $13, NULL)
+        VALUES ($1, $2, $3, $4, $5, $6, ST_GeomFromEWKT($7), $8, $9, $10, $11, $12, $13)
         RETURNING id`,
         [
           stacId,
