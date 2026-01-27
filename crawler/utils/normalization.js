@@ -47,6 +47,7 @@ export function normalizeCatalog(catalog, index) {
         title: catalog.title,
         summary: catalog.summary,
         description: catalog.summary, // Map summary to description for database
+        stac_version: catalog.stac_version || null, // Include stac_version if available
         access: catalog.access,
         created: catalog.created,
         updated: catalog.updated,
@@ -61,7 +62,7 @@ export function normalizeCatalog(catalog, index) {
         ...Object.fromEntries(
             Object.entries(catalog).filter(([key]) => 
                 !['id', 'url', 'slug', 'title', 'summary', 'access', 'created', 
-                  'updated', 'isPrivate', 'isApi', 'accessInfo'].includes(key)
+                  'updated', 'isPrivate', 'isApi', 'accessInfo', 'stac_version'].includes(key)
             )
         )
     };

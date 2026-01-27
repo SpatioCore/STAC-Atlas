@@ -147,6 +147,7 @@ export async function handleCatalog({ request, json, crawler, log, indent, resul
         try {
             await db.insertOrUpdateCatalog({
                 id: stacCatalog.id,
+                sourceSlug: catalogSlug, // Add sourceSlug for unique stac_id generation
                 title: stacCatalog.title || catalogId,
                 description: stacCatalog.description,
                 stac_version: stacCatalog.stac_version,

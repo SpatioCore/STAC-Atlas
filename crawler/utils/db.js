@@ -97,7 +97,15 @@ async function _insertOrUpdateCatalogInternal(catalog) {
     await client.query('BEGIN');
 
     const catalogTitle = catalog.title || catalog.id || 'Unnamed Catalog';
-    const stacId = catalog.id || null;
+    
+    // Construct unique stac_id from sourceSlug and catalog id
+    // Format: {sourceSlug}_{catalog_id} for uniqueness across different sources
+    let stacId = null;
+    if (catalog.sourceSlug && catalog.id) {
+      stacId = `${catalog.sourceSlug}_${catalog.id}`;
+    } else if (catalog.id) {
+      stacId = catalog.id;
+    }
     
     // Extract source URL from links (prefer 'self', fallback to 'root')
     let sourceUrl = null;
@@ -416,11 +424,7 @@ async function _insertOrUpdateCollectionInternal(collection) {
         `INSERT INTO collection (
           stac_id, stac_version, type, title, description, license,
           spatial_extent, temporal_extent_start, temporal_extent_end,
-<<<<<<< HEAD
-          is_api, is_active, full_json, source_url, updated_at
-=======
-          is_api, is_active, source_url, full_json
->>>>>>> origin/dev-crawler-humam
+          is_api, is_active, full_json, source_url
         )
         VALUES ($1, $2, $3, $4, $5, $6, ST_GeomFromEWKT($7), $8, $9, $10, $11, $12, $13)
         RETURNING id`,
