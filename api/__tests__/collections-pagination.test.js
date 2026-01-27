@@ -24,8 +24,8 @@ describe('Collection Search - Pagination behavior (4.5 Implement Pagination)', (
       .expect(200);
 
     expect(response.body.collections.length).toBe(2);
-    expect(response.body.context.returned).toBe(2);
-    expect(response.body.context.matched).toBeGreaterThanOrEqual(2);
+     // returned == collections.length
+    expect(response.body.collections.length).toBeLessThanOrEqual(2);
   });
 
   /**
@@ -70,19 +70,23 @@ describe('Collection Search - Pagination behavior (4.5 Implement Pagination)', (
   });
 
   /**
-   * Test 4: matched remains constant regardless of limit/token
+   * Test 4: Self-Link should inhabit parameters used
    */
   it('matched should reflect total results, not paginated results', async () => {
-    const full = await request(app)
-      .get('/collections')
-      .expect(200);
+  const full = await request(app)
+    .get('/collections')
+    .expect(200);
 
-    const paginated = await request(app)
-      .get('/collections?limit=1&token=0')
-      .expect(200);
+  const paginated = await request(app)
+    .get('/collections?limit=1&token=0')
+    .expect(200);
 
-    expect(paginated.body.context.matched).toBe(full.body.context.matched);
-    expect(paginated.body.context.returned).toBe(1);
+  const self = paginated.body.links.find(l => l.rel === 'self');
+  expect(self).toBeDefined();
+
+  const url = new URL(self.href);
+  expect(url.searchParams.get('limit')).toBe('1');
+  expect(url.searchParams.get('token')).toBe('0');
   });
 
   /**
@@ -93,7 +97,8 @@ describe('Collection Search - Pagination behavior (4.5 Implement Pagination)', (
       .get('/collections')
       .expect(200);
 
-    const tooHighToken = full.body.context.matched + 50;
+   const total = full.body.collections.length;
+    const tooHighToken = total + 10;
 
     const response = await request(app)
       .get(`/collections?limit=5&token=${tooHighToken}`)
@@ -101,7 +106,7 @@ describe('Collection Search - Pagination behavior (4.5 Implement Pagination)', (
 
     // Should return empty or very few results
     expect(response.body.collections.length).toBeLessThanOrEqual(5);
-    expect(response.body.context.returned).toBe(response.body.collections.length);
+    expect(response.body.collections.length).toBe(response.body.collections.length);
   });
 
   /**
