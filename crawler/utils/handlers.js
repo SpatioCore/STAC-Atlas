@@ -141,10 +141,27 @@ export async function handleCatalog({ request, json, crawler, log, indent, resul
         depth
     });
     
+    // Save catalog to database (only for actual Catalogs, not Collections)
+    const isCollection = typeof stacCatalog.isCollection === 'function' && stacCatalog.isCollection();
+    if (!isCollection) {
+        try {
+            await db.insertOrUpdateCatalog({
+                id: stacCatalog.id,
+                title: stacCatalog.title || catalogId,
+                description: stacCatalog.description,
+                stac_version: stacCatalog.stac_version,
+                type: stacCatalog.type || 'Catalog',
+                keywords: stacCatalog.keywords,
+                stac_extensions: stacCatalog.stac_extensions,
+                links: stacCatalog.links
+            });
+        } catch (err) {
+            log.warning(`${indent}Failed to save catalog ${catalogId} to database: ${err.message}`);
+        }
+    }
+    
     // If this is a STAC Collection (not a catalog), extract and store it
     // Collections don't have /collections endpoints, so we skip tryCollectionEndpoints for them
-    const isCollection = typeof stacCatalog.isCollection === 'function' && stacCatalog.isCollection();
-    
     if (isCollection) {
         const collection = normalizeCollection(stacCatalog, results.collections.length);
         // Add the catalog slug to the collection for unique stac_id generation
