@@ -166,6 +166,8 @@ export async function handleCatalog({ request, json, crawler, log, indent, resul
         const collection = normalizeCollection(stacCatalog, results.collections.length);
         // Add the catalog slug to the collection for unique stac_id generation
         collection.sourceSlug = catalogSlug;
+        // Store the actual crawled URL as the source URL (not relative links from the JSON)
+        collection.crawledUrl = request.url;
         results.collections.push(collection);
         results.stats.collectionsFound++;
         log.info(`${indent}Extracted collection: ${collection.id} - ${collection.title}`);
@@ -339,11 +341,29 @@ export async function handleCollections({ request, json, crawler, log, indent, r
     if (collectionsData.length > 0) {
         log.info(`${indent}Found ${collectionsData.length} collections for catalog ${catalogId}`);
         
+        // Get base URL for constructing absolute collection URLs
+        // Remove trailing /collections from the request URL to get the API base
+        const baseUrl = request.url.replace(/\/collections\/?$/, '');
+        
         // Normalize and store collections
         const collections = collectionsData.map((colObj, index) => {
             const collection = normalizeCollection(colObj, index);
             // Add the catalog slug to the collection for unique stac_id generation
             collection.sourceSlug = catalogSlug;
+            
+            // Store the absolute URL as crawledUrl
+            // Use stac-js getAbsoluteUrl() if available, otherwise construct from base + id
+            if (typeof colObj.getAbsoluteUrl === 'function') {
+                try {
+                    collection.crawledUrl = colObj.getAbsoluteUrl();
+                } catch {
+                    // Fallback to constructing URL from base
+                    collection.crawledUrl = `${baseUrl}/collections/${collection.id}`;
+                }
+            } else {
+                collection.crawledUrl = `${baseUrl}/collections/${collection.id}`;
+            }
+            
             return collection;
         });
         

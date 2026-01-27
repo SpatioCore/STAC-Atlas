@@ -278,9 +278,14 @@ async function _insertOrUpdateCollectionInternal(collection) {
       stacId = collection.id;
     }
     
-    // Extract source URL from links (prefer 'self', fallback to 'root')
+    // Extract source URL - prefer crawledUrl (the actual absolute URL the collection was fetched from)
+    // Fall back to links only if crawledUrl is not available
     let sourceUrl = null;
-    if (collection.links && Array.isArray(collection.links)) {
+    if (collection.crawledUrl) {
+      // Use the absolute URL from the crawler (most reliable)
+      sourceUrl = collection.crawledUrl;
+    } else if (collection.links && Array.isArray(collection.links)) {
+      // Fallback to self/root links (may be relative URLs)
       const selfLink = collection.links.find(link => link.rel === 'self');
       const rootLink = collection.links.find(link => link.rel === 'root');
       sourceUrl = selfLink?.href || rootLink?.href || null;
