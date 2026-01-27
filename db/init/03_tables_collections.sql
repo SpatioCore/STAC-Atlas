@@ -6,11 +6,12 @@
 CREATE TABLE collection (
     id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     stac_version TEXT,
-    stac_id TEXT,
+    stac_id TEXT UNIQUE,
     type TEXT,
     title TEXT,
     description TEXT,
     license TEXT,
+    source_url TEXT,
     created_at TIMESTAMP DEFAULT now(),
     updated_at TIMESTAMP DEFAULT now(),
 
@@ -33,7 +34,6 @@ CREATE TABLE collection_summaries (
     collection_id INTEGER REFERENCES collection(id) ON DELETE CASCADE,
     name TEXT,
     kind TEXT,
-    source_url TEXT,
     range_min NUMERIC,
     range_max NUMERIC,
     set_value TEXT,
