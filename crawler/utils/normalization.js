@@ -121,12 +121,15 @@ export function normalizeCollection(colObj, index) {
     let links = null;
     if (Array.isArray(colObj.links)) {
         // Convert stac-js link objects to plain objects if needed
-        links = colObj.links.map(l => ({
-            rel: l.rel,
-            href: l.href,
-            type: l.type,
-            title: l.title
-        }));
+        // Filter out null/undefined and ensure at least rel or href exists
+        links = colObj.links
+            .filter(l => l && (l.rel || l.href))
+            .map(l => ({
+                rel: l.rel || undefined,
+                href: l.href || undefined,
+                type: l.type || undefined,
+                title: l.title || undefined
+            }));
     } else if (Array.isArray(rawData?.links)) {
         links = rawData.links;
     }
