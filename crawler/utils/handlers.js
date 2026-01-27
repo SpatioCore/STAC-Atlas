@@ -102,6 +102,7 @@ async function checkAndFlush(results, log) {
 export async function handleCatalog({ request, json, crawler, log, indent, results, config = {} }) {
     const depth = request.userData?.depth || 0;
     const catalogId = request.userData?.catalogId || 'unknown';
+    const catalogSlug = request.userData?.catalogSlug || null;
     const maxDepth = config.maxDepth || 0; // 0 = unlimited
     
     log.info(`${indent}Processing catalog: ${catalogId} (depth: ${depth}${maxDepth > 0 ? `/${maxDepth}` : ''})`);
@@ -146,6 +147,8 @@ export async function handleCatalog({ request, json, crawler, log, indent, resul
     
     if (isCollection) {
         const collection = normalizeCollection(stacCatalog, results.collections.length);
+        // Add the catalog slug to the collection for unique stac_id generation
+        collection.sourceSlug = catalogSlug;
         results.collections.push(collection);
         results.stats.collectionsFound++;
         log.info(`${indent}Extracted collection: ${collection.id} - ${collection.title}`);
@@ -156,7 +159,7 @@ export async function handleCatalog({ request, json, crawler, log, indent, resul
         // Only try /collections endpoint for Catalogs, not Collections
         // Static STAC catalogs don't have /collections endpoints - they use rel="child" links
         // STAC APIs have /collections endpoints and advertise them via rel="data" or rel="collections"
-        await tryCollectionEndpoints(stacCatalog, request.url, catalogId, depth, crawler, log, indent);
+        await tryCollectionEndpoints(stacCatalog, request.url, catalogId, depth, crawler, log, indent, catalogSlug);
     }
     
     // Extract and enqueue child catalog links using stac-js
@@ -234,7 +237,8 @@ export async function handleCatalog({ request, json, crawler, log, indent, resul
                         userData: {
                             depth: depth + 1,
                             catalogId: linkTitle,
-                            parentId: catalogId
+                            parentId: catalogId,
+                            catalogSlug: catalogSlug
                         }
                     };
                 })
@@ -278,6 +282,7 @@ export async function handleCatalog({ request, json, crawler, log, indent, resul
  */
 export async function handleCollections({ request, json, crawler, log, indent, results }) {
     const catalogId = request.userData?.catalogId || 'unknown';
+    const catalogSlug = request.userData?.catalogSlug || null;
     
     // Parse response with stac-js
     // Note: create(data, migrate, updateVersionNumber) - second param is boolean, not URL
@@ -318,9 +323,12 @@ export async function handleCollections({ request, json, crawler, log, indent, r
         log.info(`${indent}Found ${collectionsData.length} collections for catalog ${catalogId}`);
         
         // Normalize and store collections
-        const collections = collectionsData.map((colObj, index) => 
-            normalizeCollection(colObj, index)
-        );
+        const collections = collectionsData.map((colObj, index) => {
+            const collection = normalizeCollection(colObj, index);
+            // Add the catalog slug to the collection for unique stac_id generation
+            collection.sourceSlug = catalogSlug;
+            return collection;
+        });
         
         results.collections.push(...collections);
         results.stats.collectionsFound += collections.length;

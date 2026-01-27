@@ -53,12 +53,12 @@ async function checkAndFlushApi(results, log) {
 /**
  * Creates and runs a single Crawlee HttpCrawler for a specific domain
  * @async
- * @param {Array<string>} urls - Array of API URLs for this domain
+ * @param {Array<Object>} apis - Array of API objects with url, slug, and title for this domain
  * @param {string} domain - The domain being crawled
  * @param {Object} config - Configuration object
  * @returns {Promise<Object>} Crawl results with collections and statistics
  */
-async function crawlSingleApiDomain(urls, domain, config = {}) {
+async function crawlSingleApiDomain(apis, domain, config = {}) {
     // Set unique storage directory for this crawler to avoid conflicts
     const safeDomain = domain.replace(/[^a-zA-Z0-9]/g, '_');
     const storageDir = `/tmp/crawlee-api-${safeDomain}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -174,12 +174,13 @@ async function crawlSingleApiDomain(urls, domain, config = {}) {
     });
 
     // Seed the crawler with initial API requests
-    const initialRequests = urls.map((url, index) => ({
-        url: url,
+    const initialRequests = apis.map((api, index) => ({
+        url: api.url,
         label: 'API_ROOT',
         userData: {
             apiId: `${domain}-api-${index}`,
-            apiUrl: url,
+            apiUrl: api.url,
+            apiSlug: api.slug,
             depth: 0
         }
     }));
@@ -219,13 +220,13 @@ async function crawlSingleApiDomain(urls, domain, config = {}) {
  * Crawls STAC APIs to retrieve collection information without fetching items.
  * Groups APIs by domain and crawls multiple domains simultaneously.
  * 
- * @param {string[]} urls - Array of API URLs to crawl
+ * @param {Array<Object>} apis - Array of API objects with url, slug, and title
  * @param {boolean} isApi - Boolean flag indicating if the URLs are APIs
  * @param {Object} config - Configuration object with timeout settings
  * @returns {Promise<Object>} Results object with collections array and statistics
  */
-async function crawlApis(urls, isApi, config = {}) {
-    if (!isApi || !Array.isArray(urls) || urls.length === 0) {
+async function crawlApis(apis, isApi, config = {}) {
+    if (!isApi || !Array.isArray(apis) || apis.length === 0) {
         return {
             collections: [],
             stats: {
@@ -240,15 +241,8 @@ async function crawlApis(urls, isApi, config = {}) {
         };
     }
 
-    // Convert URLs to objects for groupByDomain
-    const urlObjects = urls.map(url => ({ url }));
-    const domainMap = groupByDomain(urlObjects);
-    
-    // Convert back to URL arrays per domain
-    const domainUrlMap = new Map();
-    for (const [domain, objs] of domainMap.entries()) {
-        domainUrlMap.set(domain, objs.map(o => o.url));
-    }
+    // Group API objects by domain (keeps slug intact)
+    const domainMap = groupByDomain(apis);
     
     // Log domain distribution
     logDomainStats(domainMap, 'APIs');
@@ -263,12 +257,12 @@ async function crawlApis(urls, isApi, config = {}) {
     console.log(`Theoretical max throughput: ${parallelDomains * maxRequestsPerMinutePerDomain} req/min across all domains`);
     console.log(`============================================\n`);
     
-    // Create tasks for each domain
-    const domainTasks = Array.from(domainUrlMap.entries()).map(([domain, domainUrls]) => {
-        return () => crawlSingleApiDomain(domainUrls, domain, config);
+    // Create tasks for each domain (pass full API objects including slug)
+    const domainTasks = Array.from(domainMap.entries()).map(([domain, domainApis]) => {
+        return () => crawlSingleApiDomain(domainApis, domain, config);
     });
     
-    console.log(`Starting parallel API crawl of ${domainUrlMap.size} domains (${parallelDomains} at a time)...\n`);
+    console.log(`Starting parallel API crawl of ${domainMap.size} domains (${parallelDomains} at a time)...\n`);
     
     // Track total runtime for throughput calculation
     const crawlStartTime = Date.now();
@@ -295,7 +289,7 @@ async function crawlApis(urls, isApi, config = {}) {
         : 0;
     
     console.log('\n=== API Crawl Statistics ===');
-    console.log(`   Domains Processed: ${domainUrlMap.size}`);
+    console.log(`   Domains Processed: ${domainMap.size}`);
     console.log(`   Total Runtime: ${Math.round(totalRuntimeMs / 1000)}s`);
     console.log(`   Total Requests: ${aggregatedStats.totalRequests}`);
     console.log(`   Requests/Min (actual): ${requestsPerMinute}`);
@@ -324,6 +318,7 @@ async function crawlApis(urls, isApi, config = {}) {
 async function handleApiRoot({ request, json, crawler, log, indent, results, maxDepth = 10 }) {
     const apiId = request.userData?.apiId || 'unknown';
     const apiUrl = request.userData?.apiUrl || request.url;
+    const apiSlug = request.userData?.apiSlug || null;
     const depth = request.userData?.depth || 0;
     
     log.info(`${indent}Processing API: ${apiId} at ${apiUrl} (depth: ${depth})`);
@@ -358,6 +353,8 @@ async function handleApiRoot({ request, json, crawler, log, indent, results, max
     // If this is a STAC Collection directly, extract and store it
     if (typeof stacObj.isCollection === 'function' && stacObj.isCollection()) {
         const collection = normalizeCollection(stacObj, results.collections.length);
+        // Add the API slug to the collection for unique stac_id generation
+        collection.sourceSlug = apiSlug;
         results.collections.push(collection);
         results.stats.collectionsFound++;
         log.info(`${indent}Extracted collection: ${collection.id} - ${collection.title}`);
@@ -390,7 +387,8 @@ async function handleApiRoot({ request, json, crawler, log, indent, results, max
         label: 'API_COLLECTIONS',
         userData: {
             apiId: apiId,
-            apiUrl: apiUrl
+            apiUrl: apiUrl,
+            catalogSlug: apiSlug  // Use catalogSlug for compatibility with handleCollections
         }
     }]);
     
@@ -454,6 +452,8 @@ async function handleApiRoot({ request, json, crawler, log, indent, results, max
                         userData: {
                             apiId: `${apiId}-child-${idx}`,
                             apiUrl: apiUrl,
+                            apiSlug: apiSlug,
+                            catalogSlug: apiSlug,  // Use catalogSlug for compatibility with handleCollections
                             parentId: apiId,
                             depth: nextDepth
                         }
@@ -478,6 +478,7 @@ async function handleApiRoot({ request, json, crawler, log, indent, results, max
  */
 async function handleApiCollection({ request, json, crawler, log, indent, results }) {
     const apiId = request.userData?.apiId || 'unknown';
+    const apiSlug = request.userData?.apiSlug || request.userData?.catalogSlug || null;
     
     let stacObj;
     try {
@@ -485,6 +486,8 @@ async function handleApiCollection({ request, json, crawler, log, indent, result
         
         if (typeof stacObj.isCollection === 'function' && stacObj.isCollection()) {
             const collection = normalizeCollection(stacObj, results.collections.length);
+            // Add the API slug to the collection for unique stac_id generation
+            collection.sourceSlug = apiSlug;
             results.collections.push(collection);
             results.stats.collectionsFound++;
             log.info(`${indent}Extracted collection: ${collection.id} - ${collection.title}`);

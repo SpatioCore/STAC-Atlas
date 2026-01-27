@@ -142,7 +142,8 @@ async function crawlSingleDomain(catalogs, domain, config = {}) {
         userData: {
             depth: 0,
             catalogId: catalog.id,
-            catalogTitle: catalog.title
+            catalogTitle: catalog.title,
+            catalogSlug: catalog.slug
         }
     }));
 

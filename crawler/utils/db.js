@@ -169,7 +169,15 @@ async function _insertOrUpdateCollectionInternal(collection) {
 
     // Insert or update collection
     const collectionTitle = collection.title || collection.id || 'Unnamed Collection';
-    const stacId = collection.id || null;
+    
+    // Construct unique stac_id from sourceSlug and collection id
+    // Format: {sourceSlug}_{collection_id} for uniqueness across different sources
+    let stacId = null;
+    if (collection.sourceSlug && collection.id) {
+      stacId = `${collection.sourceSlug}_${collection.id}`;
+    } else if (collection.id) {
+      stacId = collection.id;
+    }
     
     // Extract source URL from links (prefer 'self', fallback to 'root')
     let sourceUrl = null;

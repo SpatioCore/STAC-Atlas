@@ -121,12 +121,13 @@ export const crawler = async () => {
         // Crawl APIs if mode is 'apis' or 'both'
         if (config.mode === 'apis' || config.mode === 'both') {
             console.log('\nCrawling APIs...');
-            const apiUrls = realApis.map(cat => cat.url);
+            // Pass full API objects (including slug) instead of just URLs
+            const apiObjects = realApis.map(cat => ({ url: cat.url, slug: cat.slug, title: cat.title }));
                 
-            if (apiUrls.length > 0) {
+            if (apiObjects.length > 0) {
                 // Note: MAX_APIS limit is for debugging purposes only
                 // Set maxApis to 0 or use --max-apis 0 for unlimited API crawling
-                const apisToProcess = config.maxApis === 0 ? apiUrls : apiUrls.slice(0, config.maxApis);
+                const apisToProcess = config.maxApis === 0 ? apiObjects : apiObjects.slice(0, config.maxApis);
                 console.log(`Found ${realApis.length} real APIs. Processing ${apisToProcess.length} (max: ${config.maxApis === 0 ? 'unlimited' : config.maxApis})...`);
                 
                 try {
