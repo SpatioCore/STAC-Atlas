@@ -314,6 +314,10 @@ async function _insertOrUpdateCollectionInternal(collection) {
       }
     }
     
+    // Use originalJson if available (from normalizeCollection), otherwise use the collection object
+    // This ensures the full original STAC JSON is stored, not the normalized version
+    const fullJsonData = collection.originalJson || collection;
+    
     let collectionId;
     if (existingCollection.rows.length > 0) {
       // Update existing collection
@@ -344,7 +348,7 @@ async function _insertOrUpdateCollectionInternal(collection) {
           temporalEnd,
           false, // is_api - will be determined by crawler
           true, // is_active
-          JSON.stringify(collection),
+          JSON.stringify(fullJsonData),
           collectionId
         ]
       );
@@ -370,7 +374,7 @@ async function _insertOrUpdateCollectionInternal(collection) {
           temporalEnd,
           false, // is_api - will be determined by crawler
           true, // is_active
-          JSON.stringify(collection)
+          JSON.stringify(fullJsonData)
         ]
       );
       collectionId = collectionResult.rows[0].id;

@@ -149,7 +149,11 @@ export function normalizeCollection(colObj, index) {
         summaries: colObj.summaries || rawData?.summaries || null,
         stac_extensions: colObj.stac_extensions || rawData?.stac_extensions || [],
         providers: colObj.providers || rawData?.providers || [],
-        assets: colObj.assets || rawData?.assets || null
+        assets: colObj.assets || rawData?.assets || null,
+        
+        // Preserve the original STAC JSON for full_json storage in database
+        // This ensures nothing is lost during normalization
+        originalJson: rawData
     };
 }
 
