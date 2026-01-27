@@ -75,6 +75,18 @@ export function normalizeCollection(colObj, index) {
     // stac-js stores the original data in toJSON() or we can access it directly
     const rawData = typeof colObj.toJSON === 'function' ? colObj.toJSON() : colObj;
     
+    // Determine the STAC type using stac-js methods if available
+    // This is more reliable than trusting the type field in the JSON
+    let stacType = null;
+    if (typeof colObj.isCollection === 'function' && colObj.isCollection()) {
+        stacType = 'Collection';
+    } else if (typeof colObj.isCatalog === 'function' && colObj.isCatalog()) {
+        stacType = 'Catalog';
+    } else {
+        // Fallback to the type field in the data, or default to 'Collection'
+        stacType = colObj.type || rawData?.type || 'Collection';
+    }
+    
     // Extract bbox: try stac-js method first, then fallback to raw data
     let bbox = null;
     if (typeof colObj.getBoundingBox === 'function') {
@@ -145,7 +157,7 @@ export function normalizeCollection(colObj, index) {
         // Additional fields needed for db.js - pass through from raw data
         links,
         stac_version: colObj.stac_version || rawData?.stac_version || null,
-        type: colObj.type || rawData?.type || 'Collection',
+        type: stacType,
         summaries: colObj.summaries || rawData?.summaries || null,
         stac_extensions: colObj.stac_extensions || rawData?.stac_extensions || [],
         providers: colObj.providers || rawData?.providers || [],
