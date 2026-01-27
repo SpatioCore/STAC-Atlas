@@ -18,6 +18,7 @@ CREATE TABLE catalog (
 CREATE TABLE catalog_links (
     id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     catalog_id INTEGER REFERENCES catalog(id) ON DELETE CASCADE,
+    source_url TEXT,
     rel TEXT,
     href TEXT,
     type TEXT,
@@ -104,4 +105,3 @@ $$ LANGUAGE plpgsql;
 
 -- NOTE: The trigger for catalog_keywords is defined in 06_triggers.sql
 -- because it depends on the catalog_keywords table which is created there
-

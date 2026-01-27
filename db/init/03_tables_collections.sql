@@ -6,7 +6,7 @@
 CREATE TABLE collection (
     id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     stac_version TEXT,
-    stac_id INTEGER,
+    stac_id TEXT,
     type TEXT,
     title TEXT,
     description TEXT,
@@ -33,6 +33,7 @@ CREATE TABLE collection_summaries (
     collection_id INTEGER REFERENCES collection(id) ON DELETE CASCADE,
     name TEXT,
     kind TEXT,
+    source_url TEXT,
     range_min NUMERIC,
     range_max NUMERIC,
     set_value TEXT,
@@ -123,4 +124,4 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- NOTE: The trigger for collection_keywords is defined in 06_triggers.sql
--- because it depends on the collection_keywords table which is created there
+-- because it depends on the catalog_keywords table which is created there
