@@ -43,7 +43,7 @@ describe('Database Schema Verification', () => {
       ['title', 'text'],
       ['description', 'text'],
       ['license', 'text'],
-      ['spatial_extend', 'USER-DEFINED'],
+      ['spatial_extent', 'USER-DEFINED'],
       ['full_json', 'jsonb'],
       ['is_active', 'boolean'],
       ['is_api', 'boolean']
@@ -59,16 +59,16 @@ describe('Database Schema Verification', () => {
       expect(parseInt(stat.total_rows)).toBeGreaterThanOrEqual(0);
       
       // If table has data, check that non-spatial columns have data
-      if (parseInt(stat.total_rows) > 0 && colName !== 'spatial_extend') {
+      if (parseInt(stat.total_rows) > 0 && colName !== 'spatial_extent') {
         expect(parseInt(stat.non_null_count)).toBeGreaterThan(0);
       }
     });
 
-    test('should have valid geometry type in spatial_extend if data exists', async () => {
+    test('should have valid geometry type in spatial_extent if data exists', async () => {
       const geomType = await query(`
-        SELECT ST_GeometryType(spatial_extend) as geom_type 
+        SELECT ST_GeometryType(spatial_extent) as geom_type 
         FROM collection 
-        WHERE spatial_extend IS NOT NULL 
+        WHERE spatial_extent IS NOT NULL 
         LIMIT 1
       `);
       
@@ -265,7 +265,7 @@ async function verifyTableSchema(tableName, displayName) {
           console.log(`  └─ ${stat.non_null_count}/${stat.total_rows} rows (${percentNonNull}% filled)`);
           
           // Sample a value to verify data format
-          if (colName !== 'spatial_extend') { // Skip geometry for display
+          if (colName !== 'spatial_extent') { // Skip geometry for display
             const sample = await query(`
               SELECT ${colName} 
               FROM ${tableName}

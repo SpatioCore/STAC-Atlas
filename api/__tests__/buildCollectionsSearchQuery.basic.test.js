@@ -5,7 +5,7 @@ describe('buildCollectionSearchQuery - basic cases', () => {
     const { sql, values } = buildCollectionSearchQuery({ limit: 10, token: 0 });
 
     expect(sql).toMatch(/FROM collection c/);
-    expect(sql).toMatch(/ORDER BY c\.id ASC/);
+    expect(sql).toMatch(/ORDER BY c\.stac_id ASC/);
     // there should be LIMIT and OFFSET placeholders
     expect(sql).toMatch(/LIMIT \$1 OFFSET \$2/);
     expect(Array.isArray(values)).toBe(true);
@@ -30,8 +30,8 @@ describe('buildCollectionSearchQuery - basic cases', () => {
     const datetime = '2020-01-01/2021-12-31';
     const { sql, values } = buildCollectionSearchQuery({ datetime, limit: 10, token: 0 });
 
-    expect(sql).toMatch(/c\.temporal_extend_end >= \$1/); // TODO: Adjust naming to temporal_extent_end, when DB names are updated
-    expect(sql).toMatch(/c\.temporal_extend_start <= \$2/); // TODO: Adjust naming to temporal_extent_start, when DB names are updated
+    expect(sql).toMatch(/c\.temporal_extent_end >= \$1/);
+    expect(sql).toMatch(/c\.temporal_extent_start <= \$2/);
     // values order: start, end, limit, token
     expect(values[0]).toBe('2020-01-01');
     expect(values[1]).toBe('2021-12-31');

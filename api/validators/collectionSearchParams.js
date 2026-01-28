@@ -199,7 +199,7 @@ function validateSortby(sortby) {
   // Map API field names to database column names
   const fieldMapping = {
     'title': 'title',
-    'id': 'id',
+    'id': 'stac_id',
     'license': 'license',
     'created': 'created_at',
     'updated': 'updated_at'

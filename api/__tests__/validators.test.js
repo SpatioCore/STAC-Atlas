@@ -304,13 +304,13 @@ describe('Collection Search Parameter Validators', () => {
     it('should default to ascending without prefix', () => {
       const result = validateSortby('id');
       expect(result.valid).toBe(true);
-      expect(result.normalized).toEqual({ field: 'id', direction: 'ASC' });
+      expect(result.normalized).toEqual({ field: 'stac_id', direction: 'ASC' });
     });
 
     it('should accept all allowed fields', () => {
       const fieldMapping = {
         'title': 'title',
-        'id': 'id',
+        'id': 'stac_id',
         'license': 'license',
         'created': 'created_at',
         'updated': 'updated_at'

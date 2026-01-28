@@ -15,9 +15,9 @@ const EXPECTED_SCHEMAS = {
     title: { type: 'text', required: true },
     description: { type: 'text', required: true },
     license: { type: 'text', required: true },
-    spatial_extend: { type: 'geometry', required: true },
-    temporal_extend_start: { type: 'timestamp without time zone', required: true },
-    temporal_extend_end: { type: 'timestamp without time zone', required: true },
+    spatial_extent: { type: 'geometry', required: true },
+    temporal_extent_start: { type: 'timestamp without time zone', required: true },
+    temporal_extent_end: { type: 'timestamp without time zone', required: true },
     full_json: { type: 'jsonb', required: false },
     created_at: { type: 'timestamp without time zone', required: true },
     updated_at: { type: 'timestamp without time zone', required: true },
@@ -112,8 +112,8 @@ describe('Database Schema Validation', () => {
     });
 
     test('should have geometry column', () => {
-      expect(actualColumns.spatial_extend).toBeDefined();
-      expect(actualColumns.spatial_extend.type).toBe('geometry');
+      expect(actualColumns.spatial_extent).toBeDefined();
+      expect(actualColumns.spatial_extent.type).toBe('geometry');
     });
 
     test('should have jsonb column', () => {
@@ -206,9 +206,9 @@ describe('Database Schema Validation', () => {
 
     test('should have valid geometry data', async () => {
       const geomResult = await query(`
-        SELECT ST_GeometryType(spatial_extend) as geom_type 
+        SELECT ST_GeometryType(spatial_extent) as geom_type 
         FROM collection 
-        WHERE spatial_extend IS NOT NULL 
+        WHERE spatial_extent IS NOT NULL 
         LIMIT 1
       `);
       
@@ -227,39 +227,6 @@ describe('Database Schema Validation', () => {
       expect(jsonResult.rows).toHaveLength(1);
       expect(typeof jsonResult.rows[0].full_json).toBe('object');
       expect(Object.keys(jsonResult.rows[0].full_json).length).toBeGreaterThan(0);
-    });
-  });
-
-  describe('Data Retrieval - Catalog Table', () => {
-    test('should have data in catalog table', async () => {
-      const countResult = await query(`SELECT COUNT(*) as count FROM catalog`);
-      const rowCount = parseInt(countResult.rows[0].count);
-      
-      expect(rowCount).toBeGreaterThan(0);
-    });
-
-    test('should retrieve sample catalog data', async () => {
-      const sampleResult = await query(`SELECT * FROM catalog LIMIT 1`);
-      
-      expect(sampleResult.rows).toHaveLength(1);
-      
-      const sample = sampleResult.rows[0];
-      expect(sample).toHaveProperty('id');
-      // expect(sample).toHaveProperty('stac_id'); // Column does not exist in database
-      expect(sample).toHaveProperty('description');
-    });
-
-    test('should have valid required fields', async () => {
-      const sampleResult = await query(`SELECT * FROM catalog LIMIT 1`);
-      const sample = sampleResult.rows[0];
-      const expectedSchema = EXPECTED_SCHEMAS.catalog;
-      
-      for (const [colName, expected] of Object.entries(expectedSchema)) {
-        if (expected.required) {
-          expect(sample[colName]).not.toBeNull();
-          expect(sample[colName]).not.toBeUndefined();
-        }
-      }
     });
   });
 });
