@@ -4,6 +4,7 @@
  */
 
 import create from 'stac-js';
+import validate from 'stac-node-validator';
 import { normalizeCollection } from './normalization.js';
 import { tryCollectionEndpoints } from './endpoints.js';
 import db from './db.js';
@@ -15,6 +16,74 @@ import db from './db.js';
  * @type {number}
  */
 const BATCH_SIZE = 25;
+
+/**
+ * Validates STAC structure using stac-node-validator before attempting migration
+ * @async
+ * @param {Object} json - JSON object to validate
+ * @param {Object} log - Logger instance
+ * @param {string} indent - Indentation for logging
+ * @returns {Promise<Object>} Validation result with valid flag, errors, and warnings
+ */
+async function validateStacStructure(json, log, indent = '') {
+    if (!json || typeof json !== 'object') {
+        return { 
+            valid: false, 
+            error: 'Invalid JSON: null or not an object',
+            errors: ['Invalid JSON structure']
+        };
+    }
+    
+    try {
+        // Use stac-node-validator for full STAC spec validation
+        const result = await validate(json);
+        
+        if (result.valid) {
+            log.debug(`${indent}STAC validation passed (version: ${result.version}, type: ${result.type})`);
+            return { valid: true, version: result.version, type: result.type };
+        } else {
+            // Collect all validation errors
+            const errors = [];
+            
+            // Core schema errors
+            if (result.results.core && result.results.core.length > 0) {
+                errors.push(...result.results.core.map(err => 
+                    `${err.instancePath || 'root'}: ${err.message}`
+                ));
+            }
+            
+            // Extension errors
+            if (result.results.extensions) {
+                Object.entries(result.results.extensions).forEach(([ext, extErrors]) => {
+                    if (extErrors.length > 0) {
+                        errors.push(...extErrors.map(err => 
+                            `[${ext}] ${err.instancePath || 'root'}: ${err.message}`
+                        ));
+                    }
+                });
+            }
+            
+            // Custom validation errors
+            if (result.results.custom && result.results.custom.length > 0) {
+                errors.push(...result.results.custom.map(err => err.message || String(err)));
+            }
+            
+            return {
+                valid: false,
+                error: `STAC validation failed with ${errors.length} error(s)`,
+                errors: errors.slice(0, 5), // Limit to first 5 errors for logging
+                totalErrors: errors.length
+            };
+        }
+    } catch (validationError) {
+        // If validator itself fails, return error
+        return {
+            valid: false,
+            error: `Validator error: ${validationError.message}`,
+            errors: [validationError.message]
+        };
+    }
+}
 
 /**
  * Batch size for clearing catalogs array to free memory
@@ -107,15 +176,20 @@ export async function handleCatalog({ request, json, crawler, log, indent, resul
     
     log.info(`${indent}Processing catalog: ${catalogId} (depth: ${depth}${maxDepth > 0 ? `/${maxDepth}` : ''})`);
     
-    // Defensive check: ensure json is valid before passing to stac-js
-    if (!json || typeof json !== 'object') {
-        log.warning(`${indent}Invalid JSON response for catalog ${catalogId} at ${request.url}`);
-        throw new Error('Invalid JSON response: null or not an object');
+    
+    // Validate STAC structure before attempting migration
+    const validation = validateStacStructure(json);
+    if (!validation.valid) {
+        log.warning(`${indent}Pre-validation failed for catalog ${catalogId} at ${request.url}`);
+        log.warning(`${indent}Validation error: ${validation.error}`);
+        log.debug(`${indent}Response preview: ${JSON.stringify(json).substring(0, 200)}...`);
+        results.stats.nonCompliant++;
+        throw new Error(`STAC pre-validation failed: ${validation.error}`);
     }
     
-    // Validate with stac-js
-    // Note: create(data, migrate, updateVersionNumber) - second param is boolean, not URL
-    // Using migrate=false to avoid issues with stac-migrate and newer STAC versions
+    // Migrate and validate with stac-js
+    // Note: create(data, migrate, updateVersionNumber) - second param enables migration
+    // Migration will upgrade older STAC versions (>= 0.6.0) to latest version (1.1.0)
     let stacCatalog;
     try {
         stacCatalog = create(json, true);
@@ -303,13 +377,27 @@ export async function handleCollections({ request, json, crawler, log, indent, r
     const catalogId = request.userData?.catalogId || 'unknown';
     const catalogSlug = request.userData?.catalogSlug || null;
     
-    // Parse response with stac-js
-    // Note: create(data, migrate, updateVersionNumber) - second param is boolean, not URL
+    // Validate STAC structure before attempting migration using stac-node-validator
+    const validation = await validateStacStructure(json, log, indent);
+    if (!validation.valid) {
+        log.warning(`${indent}STAC validation failed for collections at ${request.url}`);
+        log.warning(`${indent}Error: ${validation.error}`);
+        if (validation.errors && validation.errors.length > 0) {
+            validation.errors.forEach((err, idx) => {
+                log.warning(`${indent}  [${idx + 1}] ${err}`);
+            });
+        }
+        results.stats.nonCompliant++;
+        return;
+    }
+    
+    // Parse and migrate response with stac-js
     let stacObj;
     try {
         stacObj = create(json, true);
     } catch (parseError) {
-        log.warning(`${indent}Skipping non-compliant STAC collections at ${request.url}`);
+        log.warning(`${indent}Migration failed for collections at ${request.url}: ${parseError.message}`);
+        results.stats.nonCompliant++;
         return;
     }
     
