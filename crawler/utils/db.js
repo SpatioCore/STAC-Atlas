@@ -253,7 +253,7 @@ async function _insertOrUpdateCollectionInternal(collection) {
           spatialExtent,
           temporalStart,
           temporalEnd,
-          false, // is_api - will be determined by crawler
+          collection.is_api !== undefined ? collection.is_api : false, // is_api - set by crawler
           true, // is_active
           sourceUrl,
           JSON.stringify(fullJsonData),
@@ -267,7 +267,7 @@ async function _insertOrUpdateCollectionInternal(collection) {
         `INSERT INTO collection (
           stac_id, stac_version, type, title, description, license,
           spatial_extent, temporal_extent_start, temporal_extent_end,
-          is_api, is_active, full_json, source_url
+          is_api, is_active, source_url, full_json
         )
         VALUES ($1, $2, $3, $4, $5, $6, ST_GeomFromEWKT($7), $8, $9, $10, $11, $12, $13)
         RETURNING id`,
@@ -281,7 +281,7 @@ async function _insertOrUpdateCollectionInternal(collection) {
           spatialExtent,
           temporalStart,
           temporalEnd,
-          false, // is_api - will be determined by crawler
+          collection.is_api !== undefined ? collection.is_api : false, // is_api - set by crawler
           true, // is_active
           sourceUrl,
           JSON.stringify(fullJsonData)

@@ -170,6 +170,8 @@ export async function handleCatalog({ request, json, crawler, log, indent, resul
         collection.sourceSlug = catalogSlug;
         // Store the actual crawled URL as the source URL (not relative links from the JSON)
         collection.crawledUrl = request.url;
+        // Mark as non-API collection (from static catalog)
+        collection.is_api = false;
         results.collections.push(collection);
         results.stats.collectionsFound++;
         log.info(`${indent}Extracted collection: ${collection.id} - ${collection.title}`);
@@ -300,8 +302,9 @@ export async function handleCatalog({ request, json, crawler, log, indent, resul
  * @param {Object} context.log - Logger instance
  * @param {string} context.indent - Indentation for logging
  * @param {Object} context.results - Results object to store data
+ * @param {boolean} context.isApi - Whether this is an API collections endpoint (default: false)
  */
-export async function handleCollections({ request, json, crawler, log, indent, results }) {
+export async function handleCollections({ request, json, crawler, log, indent, results, isApi = false }) {
     const catalogId = request.userData?.catalogId || 'unknown';
     const catalogSlug = request.userData?.catalogSlug || null;
     
@@ -366,7 +369,10 @@ export async function handleCollections({ request, json, crawler, log, indent, r
                 }
             } else {
                 collection.crawledUrl = `${baseUrl}/collections/${collection.id}`;
-            } 
+            }
+            
+            // Mark collection as API or static catalog based on context
+            collection.is_api = isApi;
             
             return collection;
         });
