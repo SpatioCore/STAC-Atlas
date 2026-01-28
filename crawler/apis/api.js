@@ -505,5 +505,8 @@ async function handleApiCollection({ request, json, crawler, log, indent, result
 }
 
 export {
-    crawlApis
+    crawlApis,
+    checkAndFlushApi,
+    BATCH_SIZE,
+    API_CLEAR_BATCH_SIZE
 };

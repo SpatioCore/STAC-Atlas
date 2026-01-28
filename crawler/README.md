@@ -120,6 +120,43 @@ npm run docker:compose:up
 npm run docker:compose:down
 ```
 
+## Testing
+
+### Running Tests
+
+Run the complete test suite:
+```bash
+npm test
+```
+
+Run tests in watch mode during development:
+```bash
+npm run test:watch
+```
+
+Run tests with coverage report:
+```bash
+npm test -- --coverage
+```
+
+### Test Structure
+
+The test suite covers utility functions with **110 tests** across three modules:
+
+- **`normalization.test.js`** (46 tests) - Tests for catalog and collection normalization
+  - Coverage: 91% statements, 92% branches
+  - Tests `deriveCategories()`, `normalizeCatalog()`, `normalizeCollection()`, `processCatalogs()`
+
+- **`parallel.test.js`** (53 tests) - Tests for parallel execution utilities
+  - Coverage: 100% statements, 100% branches
+  - Tests `getDomain()`, `groupByDomain()`, `createDomainBatches()`, `aggregateStats()`, `executeWithConcurrency()`, `calculateRateLimits()`, `logDomainStats()`
+
+- **`api.test.js`** (29 tests) - Tests for API crawling utilities
+  - Tests batch management, URL validation, STAC API response structures
+  - Uses real STAC API endpoints (Microsoft Planetary Computer, Element 84, USGS, NASA CMR)
+
+All tests use **real STAC domain names and collection IDs** from production STAC APIs for realistic testing.
+
 ## Examples
 
 ### Example 1: Quick API Test
