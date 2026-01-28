@@ -253,7 +253,7 @@ async function _insertOrUpdateCollectionInternal(collection) {
           spatialExtent,
           temporalStart,
           temporalEnd,
-          false, // is_api - will be determined by crawler
+          collection.is_api !== undefined ? collection.is_api : false, // is_api - set by crawler
           true, // is_active
           sourceUrl,
           JSON.stringify(fullJsonData),
@@ -281,7 +281,7 @@ async function _insertOrUpdateCollectionInternal(collection) {
           spatialExtent,
           temporalStart,
           temporalEnd,
-          false, // is_api - will be determined by crawler
+          collection.is_api !== undefined ? collection.is_api : false, // is_api - set by crawler
           true, // is_active
           sourceUrl,
           JSON.stringify(fullJsonData)

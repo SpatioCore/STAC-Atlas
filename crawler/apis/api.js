@@ -133,7 +133,7 @@ async function crawlSingleApiDomain(apis, domain, config = {}) {
                 if (request.label === 'API_ROOT') {
                     await handleApiRoot({ request, json, crawler, log, indent, results, maxDepth });
                 } else if (request.label === 'API_COLLECTIONS') {
-                    await handleCollections({ request, json, crawler, log, indent, results });
+                    await handleCollections({ request, json, crawler, log, indent, results, isApi: true });
                 } else if (request.label === 'API_COLLECTION') {
                     await handleApiCollection({ request, json, crawler, log, indent, results });
                 }
@@ -355,6 +355,8 @@ async function handleApiRoot({ request, json, crawler, log, indent, results, max
         const collection = normalizeCollection(stacObj, results.collections.length);
         // Add the API slug to the collection for unique stac_id generation
         collection.sourceSlug = apiSlug;
+        // Mark as API collection
+        collection.is_api = true;
         results.collections.push(collection);
         results.stats.collectionsFound++;
         log.info(`${indent}Extracted collection: ${collection.id} - ${collection.title}`);
@@ -488,6 +490,8 @@ async function handleApiCollection({ request, json, crawler, log, indent, result
             const collection = normalizeCollection(stacObj, results.collections.length);
             // Add the API slug to the collection for unique stac_id generation
             collection.sourceSlug = apiSlug;
+            // Mark as API collection
+            collection.is_api = true;
             results.collections.push(collection);
             results.stats.collectionsFound++;
             log.info(`${indent}Extracted collection: ${collection.id} - ${collection.title}`);
