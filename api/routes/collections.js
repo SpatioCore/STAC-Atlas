@@ -12,124 +12,19 @@ const { ErrorResponses } = require('../utils/errorResponse');
 // Takes row data 1:1 and only rebuilds extent in correct format
 function toStacCollection(row, baseHost) {
   // Use row directly - it already contains all fields from the query
-  const collection = { ...row };
+  // const collection = { ...row };
+  const collection = { ...row.full_json };
 
-  // Remove internal DB fields that shouldn't be in the API response
-  delete collection.minx;
-  delete collection.miny;
-  delete collection.maxx;
-  delete collection.maxy;
-  delete collection.temporal_extent_start;
-  delete collection.temporal_extent_end;
-  delete collection.spatial_extent;
+  // Save original id, source_stac_id and links from Full JSON into another 
+  collection.source_id = collection.id;
+  collection.source_links = collection.links;
 
-  // STAC Spec Compliance:Build extent from the DB columns (before we deleted them)
-  const hasBbox = row.minx !== null && row.miny !== null && row.maxx !== null && row.maxy !== null;
-  
-  collection.extent = {
-    spatial: {
-      bbox: hasBbox ? [[row.minx, row.miny, row.maxx, row.maxy]] : [[-180, -90, 180, 90]],
-    },
-    temporal: {
-      interval: [[
-        row.temporal_extent_start ? new Date(row.temporal_extent_start).toISOString() : null,
-        row.temporal_extent_end ? new Date(row.temporal_extent_end).toISOString() : null,
-      ]],
-    },
-  };
+  // Add source_url as new field
+  collection.source_url = row.source_url;
 
-  // STAC Spec Compliance: stac_extensions should be an array of strings
-  if (collection.stac_extensions === null || collection.stac_extensions === undefined) {
-    collection.stac_extensions = [];
-  } else if (typeof collection.stac_extensions === 'string') {
-    collection.stac_extensions = collection.stac_extensions.split(',').map(ext => ext.trim());
-  }
-
-  // STAC Spec Compliance: API-Validator expects 'id' field for collections
+  // Overwrite id and links with correct values from DB row
   collection.id = row.stac_id;
-
-  // STAC Spec Compliance: In case description is null, set to empty string for STAC compliance
-  if (collection.description === null || collection.description === undefined) {
-    collection.description = '';
-  }
-
-  // STAC Spec Compliance: Ensure keywords is an array, not null
-  if (collection.keywords === null || collection.keywords === undefined) {
-    collection.keywords = [];
-  }
-
-  // STAC Spec Compliance: Ensure license is a string
-  if (collection.license === null || collection.license === undefined || collection.license === '') {
-    collection.license = 'other'; // TODO: Decide on default license policy
-  }
-
-  // STAC Spec Compliance: Ensure providers.roles is always an array
-  if (Array.isArray(collection.providers)) {
-    collection.providers = collection.providers.map(provider => {
-      // If roles is a string, split on comma and convert to array
-      if (typeof provider.roles === 'string') {
-        provider.roles = provider.roles.split(',').map(r => r.trim());
-      }
-      // If roles is null/undefined, set to empty array
-      if (!Array.isArray(provider.roles)) {
-        provider.roles = [];
-      }
-      return provider;
-    });
-  } 
-    // Ensure providers is not null
-    else if (collection.providers === null || collection.providers === undefined) {
-    collection.providers = [];
-  }
-
-  // STAC Spec Compliance: Ensure summaries is an object, not null
-  if (collection.summaries === null || collection.summaries === undefined) {
-    collection.summaries = {};
-  } else if (typeof collection.summaries === 'object' && !Array.isArray(collection.summaries)) {
-    // Parse JSON string values into actual arrays
-    Object.keys(collection.summaries).forEach(key => {
-      const value = collection.summaries[key];
-      // If the value is a JSON string, parse it
-      if (typeof value === 'string') {
-        try {
-          collection.summaries[key] = JSON.parse(value);
-        } catch (e) {
-          // If parsing fails, leave as is
-        }
-      }
-    });
-  }
-
-  // STAC Spec Compliance: Ensure assets is an object, not an array or null
-  if (collection.assets === null || collection.assets === undefined) {
-    collection.assets = {};
-  } else if (Array.isArray(collection.assets)) {
-    const assetsObject = {};
-    collection.assets.forEach((asset, index) => {
-      // Use asset.name as key, or fallback to asset_{index}
-      const key = asset.name || `asset_${index}`;
-      // Remove non-STAC fields from the asset
-      const { name, metadata, collection_roles, ...cleanAsset } = asset;
-      // Remove type field if it's null
-      if (cleanAsset.type === null || cleanAsset.type === undefined) {
-        delete cleanAsset.type;
-      }
-      assetsObject[key] = cleanAsset;
-    });
-    collection.assets = assetsObject;
-  } else if (typeof collection.assets === 'object') {
-    // Clean up existing object-format assets
-    Object.keys(collection.assets).forEach(key => {
-      const asset = collection.assets[key];
-      // Remove non-STAC fields
-      delete asset.metadata;
-      delete asset.collection_roles;
-      // Remove type field if it's null
-      if (asset.type === null || asset.type === undefined) {
-        delete asset.type;
-      }
-    });
-  }
+  collection.stac_id = row.stac_id;
 
   // Add Links incase a baseHost is provided
   if (baseHost !== undefined) {
@@ -137,7 +32,7 @@ function toStacCollection(row, baseHost) {
       {
         rel: "self",
         href: `${baseHost}/collections/${row.stac_id}`,
-        title: 'The collection itself'
+        title: 'The Collection itself'
       },
       {
         rel: "root",

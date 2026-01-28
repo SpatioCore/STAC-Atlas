@@ -105,6 +105,7 @@ function buildCollectionSearchQuery(params) {
     SELECT
       c.stac_version,
       c.stac_id,
+      c.source_url,
       c.type,
       c.title,
       c.description,

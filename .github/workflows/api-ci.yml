@@ -269,7 +269,7 @@ jobs:
             --root-url "http://localhost:3000/" \
             --conformance core \
             --conformance collections \
-            --collection 1 \
+            --collection africa-agriculture-adaptation-atlas_extreme_hazard_risk_annual \
 
       - name: Upload validator output
         uses: actions/upload-artifact@v4
