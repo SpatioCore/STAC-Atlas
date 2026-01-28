@@ -20,6 +20,7 @@ CREATE TABLE collection (
 
     is_api BOOLEAN DEFAULT FALSE,
     is_active BOOLEAN DEFAULT TRUE,
+    is_valid BOOLEAN DEFAULT TRUE,
 
     full_json JSONB,
     search_vector tsvector
