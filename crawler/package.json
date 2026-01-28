@@ -20,7 +20,8 @@
     "axios": "^1.13.2",
     "crawlee": "^3.15.3",
     "dotenv": "^17.2.3",
-    "stac-js": "^0.1.9"
+    "stac-js": "^0.1.9",
+    "stac-node-validator": "^2.0.0-rc.1"
   },
   "devDependencies": {
     "jest": "^29.7.0"
