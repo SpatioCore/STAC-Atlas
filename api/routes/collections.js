@@ -9,7 +9,6 @@ const { cql2ToSql } = require('../utils/cql2ToSql');
 const { ErrorResponses } = require('../utils/errorResponse');
 
 // helper to map DB row to STAC Collection object
-// Takes row data 1:1 and only rebuilds extent in correct format
 function toStacCollection(row, baseHost) {
   // Use full_json as base and then add some additional fields from DB
   const collection = { ...row.full_json };
