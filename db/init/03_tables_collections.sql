@@ -64,6 +64,7 @@ CREATE TABLE assets (
 CREATE TABLE crawllog_collection (
     id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     collection_id INTEGER REFERENCES collection(id) ON DELETE CASCADE,
+    source_url TEXT,
     last_crawled TIMESTAMP
 );
 

@@ -399,10 +399,11 @@ Protokolliert die Zeitpunkte der letzten Crawling-Vorgänge für jeden Katalog.
 | Spalte       | Beschreibung / Inhalt                    | Datentyp / Format |
 |---------------|------------------------------------------|-------------------|
 | **id**        | Eindeutige ID des Crawlvorgangs          | integer (PK)      |
-| collection_id | Referenz auf `collection.id`             | integer (FK)      |
+| collection_id | Referenz auf `collection.id` (optional)  | integer (FK)      |
+| source_url    | Quell-URL der Collection                 | text              |
 | last_crawled  | Zeitpunkt des letzten Crawls             | timestamp         |
 
-Analog zur vorherigen Tabelle dient `crawllog_collection` der Nachverfolgung der Crawling-Zyklen für Collections.  
+Protokolliert die Zeitpunkte der letzten Crawling-Vorgänge für jede Collection. Falls die Collection noch nicht in der `collection`-Tabelle existiert, kann sie über die `source_url` identifiziert werden.
 
 ---
 

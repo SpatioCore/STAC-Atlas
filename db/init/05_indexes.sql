@@ -42,6 +42,7 @@ CREATE INDEX idx_collection_providers_collection ON collection_providers (collec
 CREATE INDEX idx_collection_assets_collection ON collection_assets (collection_id);
 
 CREATE INDEX idx_crawllog_collection_last ON crawllog_collection (last_crawled);
+CREATE INDEX idx_crawllog_collection_source_url ON crawllog_collection (source_url);
 
 -- ========================================
 -- PROVIDER & ASSET INDEXES
