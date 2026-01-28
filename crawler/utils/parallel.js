@@ -115,6 +115,8 @@ export async function executeWithConcurrency(tasks, concurrency, onProgress = nu
                 const result = await tasks[currentIndex]();
                 results[currentIndex] = result;
             } catch (error) {
+                console.error(`[executeWithConcurrency] Task ${currentIndex} failed: ${error.message}`);
+                console.error(error.stack);
                 results[currentIndex] = { error: error.message, stats: {} };
             }
             

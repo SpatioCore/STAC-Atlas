@@ -102,6 +102,7 @@ async function checkAndFlush(results, log) {
 export async function handleCatalog({ request, json, crawler, log, indent, results, config = {} }) {
     const depth = request.userData?.depth || 0;
     const catalogId = request.userData?.catalogId || 'unknown';
+    const catalogSlug = request.userData?.catalogSlug || null;
     const maxDepth = config.maxDepth || 0; // 0 = unlimited
     
     log.info(`${indent}Processing catalog: ${catalogId} (depth: ${depth}${maxDepth > 0 ? `/${maxDepth}` : ''})`);
@@ -140,12 +141,33 @@ export async function handleCatalog({ request, json, crawler, log, indent, resul
         depth
     });
     
+    // Save catalog to database (only for actual Catalogs, not Collections)
+    const isCollection = typeof stacCatalog.isCollection === 'function' && stacCatalog.isCollection();
+    if (!isCollection) {
+        try {
+            await db.insertOrUpdateCatalog({
+                id: stacCatalog.id,
+                title: stacCatalog.title || catalogId,
+                description: stacCatalog.description,
+                stac_version: stacCatalog.stac_version,
+                type: stacCatalog.type || 'Catalog',
+                keywords: stacCatalog.keywords,
+                stac_extensions: stacCatalog.stac_extensions,
+                links: stacCatalog.links
+            });
+        } catch (err) {
+            log.warning(`${indent}Failed to save catalog ${catalogId} to database: ${err.message}`);
+        }
+    }
+    
     // If this is a STAC Collection (not a catalog), extract and store it
     // Collections don't have /collections endpoints, so we skip tryCollectionEndpoints for them
-    const isCollection = typeof stacCatalog.isCollection === 'function' && stacCatalog.isCollection();
-    
     if (isCollection) {
         const collection = normalizeCollection(stacCatalog, results.collections.length);
+        // Add the catalog slug to the collection for unique stac_id generation
+        collection.sourceSlug = catalogSlug;
+        // Store the actual crawled URL as the source URL (not relative links from the JSON)
+        collection.crawledUrl = request.url;
         results.collections.push(collection);
         results.stats.collectionsFound++;
         log.info(`${indent}Extracted collection: ${collection.id} - ${collection.title}`);
@@ -156,7 +178,7 @@ export async function handleCatalog({ request, json, crawler, log, indent, resul
         // Only try /collections endpoint for Catalogs, not Collections
         // Static STAC catalogs don't have /collections endpoints - they use rel="child" links
         // STAC APIs have /collections endpoints and advertise them via rel="data" or rel="collections"
-        await tryCollectionEndpoints(stacCatalog, request.url, catalogId, depth, crawler, log, indent);
+        await tryCollectionEndpoints(stacCatalog, request.url, catalogId, depth, crawler, log, indent, catalogSlug);
     }
     
     // Extract and enqueue child catalog links using stac-js
@@ -234,7 +256,8 @@ export async function handleCatalog({ request, json, crawler, log, indent, resul
                         userData: {
                             depth: depth + 1,
                             catalogId: linkTitle,
-                            parentId: catalogId
+                            parentId: catalogId,
+                            catalogSlug: catalogSlug
                         }
                     };
                 })
@@ -278,6 +301,7 @@ export async function handleCatalog({ request, json, crawler, log, indent, resul
  */
 export async function handleCollections({ request, json, crawler, log, indent, results }) {
     const catalogId = request.userData?.catalogId || 'unknown';
+    const catalogSlug = request.userData?.catalogSlug || null;
     
     // Parse response with stac-js
     // Note: create(data, migrate, updateVersionNumber) - second param is boolean, not URL
@@ -317,10 +341,31 @@ export async function handleCollections({ request, json, crawler, log, indent, r
     if (collectionsData.length > 0) {
         log.info(`${indent}Found ${collectionsData.length} collections for catalog ${catalogId}`);
         
+        // Get base URL for constructing absolute collection URLs
+        // Remove trailing /collections from the request URL to get the API base
+        const baseUrl = request.url.replace(/\/collections\/?$/, '');
+        
         // Normalize and store collections
-        const collections = collectionsData.map((colObj, index) => 
-            normalizeCollection(colObj, index)
-        );
+        const collections = collectionsData.map((colObj, index) => {
+            const collection = normalizeCollection(colObj, index);
+            // Add the catalog slug to the collection for unique stac_id generation
+            collection.sourceSlug = catalogSlug;
+            
+            // Store the absolute URL as crawledUrl
+            // Use stac-js getAbsoluteUrl() if available, otherwise construct from base + id
+            if (typeof colObj.getAbsoluteUrl === 'function') {
+                try {
+                    collection.crawledUrl = colObj.getAbsoluteUrl();
+                } catch {
+                    // Fallback to constructing URL from base
+                    collection.crawledUrl = `${baseUrl}/collections/${collection.id}`;
+                }
+            } else {
+                collection.crawledUrl = `${baseUrl}/collections/${collection.id}`;
+            }
+            
+            return collection;
+        });
         
         results.collections.push(...collections);
         results.stats.collectionsFound += collections.length;

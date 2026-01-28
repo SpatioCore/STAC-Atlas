@@ -51,19 +51,119 @@ async function initDb() {
 }
 
 /**
- * Process a catalog for traversal only - catalogs are not saved to database
- * Only collections are saved. Catalogs are only used to traverse deeper into the tree.
+ * Insert or update a catalog in the database
  * @param {Object} catalog - STAC catalog object
- * @returns {Promise<null>} always returns null (no catalog saved)
+ * @returns {Promise<number|null>} catalog ID or null if invalid input
  */
 async function insertOrUpdateCatalog(catalog) {
   if (!catalog || typeof catalog !== 'object') return null;
   
-  // Catalogs are not saved to database - only used for tree traversal
-  // Only collections will be saved
-  console.log(`Skipping catalog save (used for traversal only): ${catalog.title || catalog.id}`);
-  
-  return null;
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    
+    const catalogTitle = catalog.title || catalog.id || 'Unnamed Catalog';
+    
+    // Check if catalog with same title already exists
+    const existingCatalog = await client.query(
+      'SELECT id FROM catalog WHERE title = $1',
+      [catalogTitle]
+    );
+    
+    let catalogId;
+    if (existingCatalog.rows.length > 0) {
+      // Update existing catalog - set updated_at when crawled
+      catalogId = existingCatalog.rows[0].id;
+      await client.query(
+        `UPDATE catalog SET 
+          stac_version = $1,
+          type = $2,
+          description = $3,
+          updated_at = now()
+         WHERE id = $4`,
+        [
+          catalog.stac_version || null,
+          catalog.type || 'Catalog',
+          catalog.description || null,
+          catalogId
+        ]
+      );
+      console.log(`Updated catalog: ${catalogTitle} (id: ${catalogId})`);
+    } else {
+      // Insert new catalog - updated_at defaults to now() (same as created_at)
+      // since we know the data is current as of this crawl
+      const catalogResult = await client.query(
+        `INSERT INTO catalog (stac_version, type, title, description)
+         VALUES ($1, $2, $3, $4)
+         RETURNING id`,
+        [
+          catalog.stac_version || null,
+          catalog.type || 'Catalog',
+          catalogTitle,
+          catalog.description || null
+        ]
+      );
+      catalogId = catalogResult.rows[0].id;
+      console.log(`Inserted new catalog: ${catalogTitle} (id: ${catalogId})`);
+    }
+    
+    // Insert keywords if present
+    if (catalog.keywords && Array.isArray(catalog.keywords)) {
+      await insertKeywords(client, catalogId, catalog.keywords, 'catalog');
+    }
+    
+    // Insert STAC extensions if present
+    if (catalog.stac_extensions && Array.isArray(catalog.stac_extensions)) {
+      await insertStacExtensions(client, catalogId, catalog.stac_extensions, 'catalog');
+    }
+    
+    // Insert catalog links if present
+    if (catalog.links && Array.isArray(catalog.links)) {
+      // Extract source URL from links (prefer 'self', fallback to 'root')
+      const selfLink = catalog.links.find(link => link.rel === 'self');
+      const rootLink = catalog.links.find(link => link.rel === 'root');
+      const sourceUrl = selfLink?.href || rootLink?.href || null;
+      
+      // Delete existing links for this catalog
+      await client.query('DELETE FROM catalog_links WHERE catalog_id = $1', [catalogId]);
+      
+      // Insert new links
+      for (const link of catalog.links) {
+        if (!link.href) continue;
+        await client.query(
+          `INSERT INTO catalog_links (catalog_id, source_url, rel, href, type, title)
+           VALUES ($1, $2, $3, $4, $5, $6)`,
+          [
+            catalogId,
+            sourceUrl,
+            link.rel || null,
+            link.href,
+            link.type || null,
+            link.title || null
+          ]
+        );
+      }
+    }
+    
+    // Update crawl log
+    await client.query(
+      'DELETE FROM crawllog_catalog WHERE catalog_id = $1',
+      [catalogId]
+    );
+    await client.query(
+      'INSERT INTO crawllog_catalog (catalog_id, last_crawled) VALUES ($1, now())',
+      [catalogId]
+    );
+    
+    await client.query('COMMIT');
+    return catalogId;
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('Error inserting catalog:', error.message);
+    throw error;
+  } finally {
+    client.release();
+  }
 }
 
 /**
@@ -169,11 +269,24 @@ async function _insertOrUpdateCollectionInternal(collection) {
 
     // Insert or update collection
     const collectionTitle = collection.title || collection.id || 'Unnamed Collection';
-    const stacId = collection.id || null;
     
-    // Extract source URL from links (prefer 'self', fallback to 'root')
+    // Construct unique stac_id from sourceSlug and collection id
+    // Format: {sourceSlug}_{collection_id} for uniqueness across different sources
+    let stacId = null;
+    if (collection.sourceSlug && collection.id) {
+      stacId = `${collection.sourceSlug}_${collection.id}`;
+    } else if (collection.id) {
+      stacId = collection.id;
+    }
+    
+    // Extract source URL - prefer crawledUrl (the actual absolute URL the collection was fetched from)
+    // Fall back to links only if crawledUrl is not available
     let sourceUrl = null;
-    if (collection.links && Array.isArray(collection.links)) {
+    if (collection.crawledUrl) {
+      // Use the absolute URL from the crawler (most reliable)
+      sourceUrl = collection.crawledUrl;
+    } else if (collection.links && Array.isArray(collection.links)) {
+      // Fallback to self/root links (may be relative URLs)
       const selfLink = collection.links.find(link => link.rel === 'self');
       const rootLink = collection.links.find(link => link.rel === 'root');
       sourceUrl = selfLink?.href || rootLink?.href || null;
@@ -207,6 +320,10 @@ async function _insertOrUpdateCollectionInternal(collection) {
       }
     }
     
+    // Use originalJson if available (from normalizeCollection), otherwise use the collection object
+    // This ensures the full original STAC JSON is stored, not the normalized version
+    const fullJsonData = collection.originalJson || collection;
+    
     let collectionId;
     if (existingCollection.rows.length > 0) {
       // Update existing collection
@@ -223,9 +340,10 @@ async function _insertOrUpdateCollectionInternal(collection) {
           temporal_extent_end = $8,
           is_api = $9,
           is_active = $10,
-          full_json = $11,
+          source_url = $11,
+          full_json = $12,
           updated_at = now()
-         WHERE id = $12`,
+         WHERE id = $13`,
         [
           stacId,
           collection.stac_version || null,
@@ -237,19 +355,21 @@ async function _insertOrUpdateCollectionInternal(collection) {
           temporalEnd,
           false, // is_api - will be determined by crawler
           true, // is_active
-          JSON.stringify(collection),
+          sourceUrl,
+          JSON.stringify(fullJsonData),
           collectionId
         ]
       );
     } else {
-      // Insert new collection
+      // Insert new collection - updated_at defaults to now() (same as created_at)
+      // since we know the data is current as of this crawl
       const collectionResult = await client.query(
         `INSERT INTO collection (
           stac_id, stac_version, type, title, description, license,
           spatial_extent, temporal_extent_start, temporal_extent_end,
-          is_api, is_active, full_json, updated_at
+          is_api, is_active, source_url, full_json
         )
-        VALUES ($1, $2, $3, $4, $5, $6, ST_GeomFromEWKT($7), $8, $9, $10, $11, $12, now())
+        VALUES ($1, $2, $3, $4, $5, $6, ST_GeomFromEWKT($7), $8, $9, $10, $11, $12, $13)
         RETURNING id`,
         [
           stacId,
@@ -263,7 +383,8 @@ async function _insertOrUpdateCollectionInternal(collection) {
           temporalEnd,
           false, // is_api - will be determined by crawler
           true, // is_active
-          JSON.stringify(collection)
+          sourceUrl,
+          JSON.stringify(fullJsonData)
         ]
       );
       collectionId = collectionResult.rows[0].id;
@@ -273,7 +394,7 @@ async function _insertOrUpdateCollectionInternal(collection) {
     if (collection.summaries && typeof collection.summaries === 'object') {
       await client.query('DELETE FROM collection_summaries WHERE collection_id = $1', [collectionId]);
       for (const [name, value] of Object.entries(collection.summaries)) {
-        await insertSummary(client, collectionId, name, value, sourceUrl);
+        await insertSummary(client, collectionId, name, value);
       }
     }
 
@@ -381,7 +502,7 @@ async function insertStacExtensions(client, parentId, extensions, type) {
 /**
  * Helper function to insert collection summaries
  */
-async function insertSummary(client, collectionId, name, value, sourceUrl) {
+async function insertSummary(client, collectionId, name, value) {
   let kind = 'unknown';
   let rangeMin = null;
   let rangeMax = null;
@@ -406,8 +527,8 @@ async function insertSummary(client, collectionId, name, value, sourceUrl) {
   }
 
   await client.query(
-    'INSERT INTO collection_summaries (collection_id, name, kind, source_url, range_min, range_max, set_value, json_schema) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
-    [collectionId, name, kind, sourceUrl, rangeMin, rangeMax, setValue, jsonSchema]
+    'INSERT INTO collection_summaries (collection_id, name, kind, range_min, range_max, set_value, json_schema) VALUES ($1, $2, $3, $4, $5, $6, $7)',
+    [collectionId, name, kind, rangeMin, rangeMax, setValue, jsonSchema]
   );
 }
 

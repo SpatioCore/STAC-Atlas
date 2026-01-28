@@ -10,6 +10,7 @@ import { crawlApis } from './apis/api.js';
 import { getConfig, isStaticCatalogUrl } from './utils/config.js';
 import { formatDuration } from './utils/time.js';
 import db from './utils/db.js';
+import globalStats from './utils/globalStats.js';
 
 /**
  * URL of the STAC Index API endpoint
@@ -87,6 +88,10 @@ export const crawler = async () => {
         console.log(`  Static Catalogs (mismarked as APIs): ${staticCatalogs.length}`);
         console.log(`  Real APIs: ${realApis.length}\n`);
         
+        // Start global statistics tracking (no periodic logging, only final stats)
+        const totalItems = [...regularCatalogs, ...staticCatalogs, ...realApis].length;
+        globalStats.start(totalItems);
+        
         // Crawl catalogs if mode is 'catalogs' or 'both'
         if (config.mode === 'catalogs' || config.mode === 'both') {
             console.log('\nCrawling collections and nested catalogs with Crawlee...\n');
@@ -116,21 +121,17 @@ export const crawler = async () => {
         // Crawl APIs if mode is 'apis' or 'both'
         if (config.mode === 'apis' || config.mode === 'both') {
             console.log('\nCrawling APIs...');
-            const apiUrls = realApis.map(cat => cat.url);
+            // Pass full API objects (including slug) instead of just URLs
+            const apiObjects = realApis.map(cat => ({ url: cat.url, slug: cat.slug, title: cat.title }));
                 
-            if (apiUrls.length > 0) {
+            if (apiObjects.length > 0) {
                 // Note: MAX_APIS limit is for debugging purposes only
                 // Set maxApis to 0 or use --max-apis 0 for unlimited API crawling
-                const apisToProcess = config.maxApis === 0 ? apiUrls : apiUrls.slice(0, config.maxApis);
+                const apisToProcess = config.maxApis === 0 ? apiObjects : apiObjects.slice(0, config.maxApis);
                 console.log(`Found ${realApis.length} real APIs. Processing ${apisToProcess.length} (max: ${config.maxApis === 0 ? 'unlimited' : config.maxApis})...`);
                 
                 try {
-                    const apiResults = await crawlApis(apisToProcess, true, config);
-                    // Collections are now saved to DB during the crawl (batch flushing)
-                    console.log(`\nAPI Crawl Complete:`);
-                    console.log(`   Collections Found: ${apiResults.stats.collectionsFound}`);
-                    console.log(`   Collections Saved: ${apiResults.stats.collectionsSaved}`);
-                    console.log(`   Collections Failed: ${apiResults.stats.collectionsFailed}`);
+                    await crawlApis(apisToProcess, true, config);
                 } catch (error) {
                     console.error(`Failed to crawl APIs: ${error.message}`);
                 }
@@ -147,6 +148,9 @@ export const crawler = async () => {
             crawlError = true;
         }
     } finally {
+        // Stop global statistics tracking and log final stats
+        globalStats.stop();
+        
         // Close database connection
         if (!dbError) {
             try {

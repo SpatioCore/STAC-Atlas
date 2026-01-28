@@ -13,6 +13,7 @@ import {
     calculateRateLimits,
     logDomainStats 
 } from '../utils/parallel.js';
+import globalStats from '../utils/globalStats.js';
 
 /**
  * Creates and runs a single Crawlee HttpCrawler for a specific domain
@@ -23,7 +24,10 @@ import {
  * @returns {Promise<Object>} Crawl results with collections and statistics
  */
 async function crawlSingleDomain(catalogs, domain, config = {}) {
-    // Use in-memory storage to avoid file lock race conditions under high concurrency
+    // Set unique storage directory for this crawler to avoid conflicts
+    const safeDomain = domain.replace(/[^a-zA-Z0-9]/g, '_');
+    const storageDir = `/tmp/crawlee-catalog-${safeDomain}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    Configuration.getGlobalConfig().set('storageDir', storageDir);
     Configuration.getGlobalConfig().set('persistStorage', false);
     
     const timeoutSecs = config.timeout && config.timeout !== Infinity 
@@ -62,11 +66,17 @@ async function crawlSingleDomain(catalogs, domain, config = {}) {
         // High concurrency for throughput
         maxConcurrency: concurrency,
         
+        // Reduce periodic statistics logging (we have our own end statistics)
+        statisticsOptions: {
+            logIntervalSecs: 60,
+        },
+        
         // Accept additional MIME types (some STAC endpoints return JSON with incorrect Content-Type)
         additionalMimeTypes: ['application/geo+json', 'text/plain', 'binary/octet-stream', 'application/octet-stream'],
         
         async requestHandler({ request, json, body, crawler, log }) {
             results.stats.totalRequests++;
+            globalStats.increment('totalRequests');
             const depth = request.userData?.depth || 0;
             const indent = '  '.repeat(depth);
             
@@ -90,6 +100,7 @@ async function crawlSingleDomain(catalogs, domain, config = {}) {
                 }
                 
                 results.stats.successfulRequests++;
+                globalStats.increment('successfulRequests');
             } catch (error) {
                 log.error(`${indent}Error handling ${request.label} at ${request.url}: ${error.message}`);
                 throw error;
@@ -98,6 +109,7 @@ async function crawlSingleDomain(catalogs, domain, config = {}) {
         
         async failedRequestHandler({ request, error, log }) {
             results.stats.failedRequests++;
+            globalStats.increment('failedRequests');
             const depth = request.userData?.depth || 0;
             const indent = '  '.repeat(depth);
             const catalogId = request.userData?.catalogId || 'unknown';
@@ -106,6 +118,7 @@ async function crawlSingleDomain(catalogs, domain, config = {}) {
                 log.info(`${indent}[STAC VALIDATION FAILED] ${catalogId} at ${request.url}`);
                 log.info(`${indent}   Reason: ${error.message}`);
                 results.stats.nonCompliant++;
+                globalStats.increment('nonCompliant');
             } else if (error.message.includes('timeout')) {
                 log.warning(`${indent}[TIMEOUT] ${catalogId} at ${request.url}`);
             } else if (error.message.includes('ENOTFOUND') || error.message.includes('ECONNREFUSED')) {
@@ -129,11 +142,15 @@ async function crawlSingleDomain(catalogs, domain, config = {}) {
         userData: {
             depth: 0,
             catalogId: catalog.id,
-            catalogTitle: catalog.title
+            catalogTitle: catalog.title,
+            catalogSlug: catalog.slug
         }
     }));
 
     await crawler.addRequests(initialRequests);
+    
+    // Register domain as active in global stats
+    globalStats.domainStarted(domain);
     
     console.log(`  [${domain}] Starting: ${initialRequests.length} catalogs, max ${rateLimits.maxRequestsPerMinute} req/min, ${concurrency} concurrent`);
     await crawler.run();
@@ -142,6 +159,16 @@ async function crawlSingleDomain(catalogs, domain, config = {}) {
     const finalFlush = await flushCollectionsToDb(results, crawleeLog, true);
     results.stats.collectionsSaved += finalFlush.saved;
     results.stats.collectionsFailed += finalFlush.failed;
+    
+    // Update global stats with final counts
+    globalStats.increment('collectionsSaved', results.stats.collectionsSaved);
+    globalStats.increment('collectionsFailed', results.stats.collectionsFailed);
+    globalStats.increment('collectionsFound', results.stats.collectionsFound);
+    globalStats.increment('catalogsProcessed', results.stats.catalogsProcessed);
+    globalStats.increment('stacCompliant', results.stats.stacCompliant);
+    
+    // Register domain as completed
+    globalStats.domainCompleted(domain);
     
     // Clear catalogs array to free memory
     results.catalogs.length = 0;
@@ -183,6 +210,9 @@ async function crawlCatalogs(initialCatalogs, config = {}) {
     
     console.log(`Starting parallel crawl of ${domainMap.size} domains (${parallelDomains} at a time)...\n`);
     
+    // Track total runtime for throughput calculation
+    const crawlStartTime = Date.now();
+    
     // Execute with concurrency limit
     const allResults = await executeWithConcurrency(
         domainTasks, 
@@ -192,12 +222,23 @@ async function crawlCatalogs(initialCatalogs, config = {}) {
         }
     );
     
+    const crawlEndTime = Date.now();
+    const totalRuntimeMs = crawlEndTime - crawlStartTime;
+    const totalRuntimeMinutes = totalRuntimeMs / 60000;
+    
     // Aggregate all statistics
     const aggregatedStats = aggregateStats(allResults);
     
-    console.log('\n=== Parallel Crawl Statistics ===');
+    // Calculate actual throughput
+    const requestsPerMinute = totalRuntimeMinutes > 0 
+        ? Math.round(aggregatedStats.totalRequests / totalRuntimeMinutes) 
+        : 0;
+    
+    console.log('\n=== Catalog Crawl Statistics ===');
     console.log(`   Domains Processed: ${domainMap.size}`);
+    console.log(`   Total Runtime: ${Math.round(totalRuntimeMs / 1000)}s`);
     console.log(`   Total Requests: ${aggregatedStats.totalRequests}`);
+    console.log(`   Requests/Min (actual): ${requestsPerMinute}`);
     console.log(`   Successful: ${aggregatedStats.successfulRequests}`);
     console.log(`   Failed: ${aggregatedStats.failedRequests}`);
     console.log(`   STAC Compliant: ${aggregatedStats.stacCompliant}`);
@@ -206,7 +247,7 @@ async function crawlCatalogs(initialCatalogs, config = {}) {
     console.log(`   Collections Found: ${aggregatedStats.collectionsFound}`);
     console.log(`   Collections Saved to DB: ${aggregatedStats.collectionsSaved}`);
     console.log(`   Collections Failed: ${aggregatedStats.collectionsFailed}`);
-    console.log('=================================\n');
+    console.log('=========================================\n');
 
     return {
         collections: [],
