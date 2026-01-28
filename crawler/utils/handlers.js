@@ -145,13 +145,10 @@ export async function handleCatalog({ request, json, crawler, log, indent, resul
     const isCollection = typeof stacCatalog.isCollection === 'function' && stacCatalog.isCollection();
     if (!isCollection) {
         try {
-            // Ensure crawledUrl is absolute
-            const crawledUrl = request.url.startsWith('http') ? request.url : null;
+            
             
             await db.insertOrUpdateCatalog({
                 id: stacCatalog.id,
-                sourceSlug: catalogSlug, // Add sourceSlug for unique stac_id generation
-                crawledUrl: crawledUrl, // Store the actual URL where this catalog was crawled from (only if absolute)
                 title: stacCatalog.title || catalogId,
                 description: stacCatalog.description,
                 stac_version: stacCatalog.stac_version,
@@ -172,8 +169,7 @@ export async function handleCatalog({ request, json, crawler, log, indent, resul
         // Add the catalog slug to the collection for unique stac_id generation
         collection.sourceSlug = catalogSlug;
         // Store the actual crawled URL as the source URL (not relative links from the JSON)
-        // Only store if it's an absolute URL
-        collection.crawledUrl = request.url.startsWith('http') ? request.url : null;
+        collection.crawledUrl = request.url;
         results.collections.push(collection);
         results.stats.collectionsFound++;
         log.info(`${indent}Extracted collection: ${collection.id} - ${collection.title}`);
@@ -349,10 +345,8 @@ export async function handleCollections({ request, json, crawler, log, indent, r
         
         // Get base URL for constructing absolute collection URLs
         // Remove trailing /collections from the request URL to get the API base
-        // Only use if request.url is absolute
-        const baseUrl = request.url.startsWith('http') 
-            ? request.url.replace(/\/collections\/?$/, '') 
-            : null;
+        const baseUrl = request.url.replace(/\/collections\/?$/, '');
+
         
         // Normalize and store collections
         const collections = collectionsData.map((colObj, index) => {
@@ -360,21 +354,19 @@ export async function handleCollections({ request, json, crawler, log, indent, r
             // Add the catalog slug to the collection for unique stac_id generation
             collection.sourceSlug = catalogSlug;
             
-            // Store the absolute URL as crawledUrl (only if we have a valid base URL)
+            // Store the absolute URL as crawledUrl
             // Use stac-js getAbsoluteUrl() if available, otherwise construct from base + id
             if (typeof colObj.getAbsoluteUrl === 'function') {
                 try {
-                    const absoluteUrl = colObj.getAbsoluteUrl();
-                    collection.crawledUrl = absoluteUrl?.startsWith('http') ? absoluteUrl : null;
+                    collection.crawledUrl = colObj.getAbsoluteUrl();
+
                 } catch {
                     // Fallback to constructing URL from base
-                    collection.crawledUrl = baseUrl ? `${baseUrl}/collections/${collection.id}` : null;
+                    collection.crawledUrl = `${baseUrl}/collections/${collection.id}`;
                 }
-            } else if (baseUrl) {
-                collection.crawledUrl = `${baseUrl}/collections/${collection.id}`;
             } else {
-                collection.crawledUrl = null;
-            }
+                collection.crawledUrl = `${baseUrl}/collections/${collection.id}`;
+            } 
             
             return collection;
         });

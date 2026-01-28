@@ -41,13 +41,11 @@ export function deriveCategories(catalog) {
 export function normalizeCatalog(catalog, index) {
     return {
         index,
-        id: catalog.slug || catalog.id?.toString() || `catalog-${index}`, // Use slug as STAC id (string), fallback to numeric id as string
+        id: catalog.id,
         url: catalog.url,
         slug: catalog.slug,
         title: catalog.title,
         summary: catalog.summary,
-        description: catalog.summary, // Map summary to description for database
-        stac_version: catalog.stac_version || null, // Include stac_version if available
         access: catalog.access,
         created: catalog.created,
         updated: catalog.updated,
@@ -55,9 +53,6 @@ export function normalizeCatalog(catalog, index) {
         isApi: catalog.isApi,
         accessInfo: catalog.accessInfo,
         categories: deriveCategories(catalog),
-        keywords: deriveCategories(catalog), // Map categories to keywords for database
-        type: 'Catalog', // Explicitly set type
-        links: catalog.url ? [{ rel: 'self', href: catalog.url }] : [], // Create links array for db.js
         // Preserve any additional dynamic properties
         ...Object.fromEntries(
             Object.entries(catalog).filter(([key]) => 
@@ -151,16 +146,7 @@ export function normalizeCollection(colObj, index) {
         links = rawData.links;
     }
     
-    // Determine the type using isCatalog/isCollection methods if available
-    let type = colObj.type || rawData?.type || null;
-    if (!type) {
-        // Use stac-js methods to determine type
-        if (typeof colObj.isCatalog === 'function' && colObj.isCatalog()) {
-            type = 'Catalog';
-        } else if (typeof colObj.isCollection === 'function' && colObj.isCollection()) {
-            type = 'Collection';
-        }
-    }
+    
     
     return {
         index,
