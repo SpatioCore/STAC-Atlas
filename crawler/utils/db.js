@@ -274,7 +274,7 @@ async function _insertOrUpdateCollectionInternal(collection) {
         [
           stacId,
           collection.stac_version || null,
-          collection.type || null,
+          collection.type || 'Collection',
           collectionTitle,
           collection.description || null,
           collection.license || null,
