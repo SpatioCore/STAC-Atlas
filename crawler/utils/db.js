@@ -51,119 +51,19 @@ async function initDb() {
 }
 
 /**
- * Insert or update a catalog in the database
+ * Process a catalog for traversal only - catalogs are not saved to database
+ * Only collections are saved. Catalogs are only used to traverse deeper into the tree.
  * @param {Object} catalog - STAC catalog object
- * @returns {Promise<number|null>} catalog ID or null if invalid input
+ * @returns {Promise<null>} always returns null (no catalog saved)
  */
 async function insertOrUpdateCatalog(catalog) {
   if (!catalog || typeof catalog !== 'object') return null;
   
-  const client = await pool.connect();
-  try {
-    await client.query('BEGIN');
-    
-    const catalogTitle = catalog.title || catalog.id || 'Unnamed Catalog';
-    
-    // Check if catalog with same title already exists
-    const existingCatalog = await client.query(
-      'SELECT id FROM catalog WHERE title = $1',
-      [catalogTitle]
-    );
-    
-    let catalogId;
-    if (existingCatalog.rows.length > 0) {
-      // Update existing catalog - set updated_at when crawled
-      catalogId = existingCatalog.rows[0].id;
-      await client.query(
-        `UPDATE catalog SET 
-          stac_version = $1,
-          type = $2,
-          description = $3,
-          updated_at = now()
-         WHERE id = $4`,
-        [
-          catalog.stac_version || null,
-          catalog.type || 'Catalog',
-          catalog.description || null,
-          catalogId
-        ]
-      );
-      console.log(`Updated catalog: ${catalogTitle} (id: ${catalogId})`);
-    } else {
-      // Insert new catalog - updated_at defaults to now() (same as created_at)
-      // since we know the data is current as of this crawl
-      const catalogResult = await client.query(
-        `INSERT INTO catalog (stac_version, type, title, description)
-         VALUES ($1, $2, $3, $4)
-         RETURNING id`,
-        [
-          catalog.stac_version || null,
-          catalog.type || 'Catalog',
-          catalogTitle,
-          catalog.description || null
-        ]
-      );
-      catalogId = catalogResult.rows[0].id;
-      console.log(`Inserted new catalog: ${catalogTitle} (id: ${catalogId})`);
-    }
-    
-    // Insert keywords if present
-    if (catalog.keywords && Array.isArray(catalog.keywords)) {
-      await insertKeywords(client, catalogId, catalog.keywords, 'catalog');
-    }
-    
-    // Insert STAC extensions if present
-    if (catalog.stac_extensions && Array.isArray(catalog.stac_extensions)) {
-      await insertStacExtensions(client, catalogId, catalog.stac_extensions, 'catalog');
-    }
-    
-    // Insert catalog links if present
-    if (catalog.links && Array.isArray(catalog.links)) {
-      // Extract source URL from links (prefer 'self', fallback to 'root')
-      const selfLink = catalog.links.find(link => link.rel === 'self');
-      const rootLink = catalog.links.find(link => link.rel === 'root');
-      const sourceUrl = selfLink?.href || rootLink?.href || null;
-      
-      // Delete existing links for this catalog
-      await client.query('DELETE FROM catalog_links WHERE catalog_id = $1', [catalogId]);
-      
-      // Insert new links
-      for (const link of catalog.links) {
-        if (!link.href) continue;
-        await client.query(
-          `INSERT INTO catalog_links (catalog_id, source_url, rel, href, type, title)
-           VALUES ($1, $2, $3, $4, $5, $6)`,
-          [
-            catalogId,
-            sourceUrl,
-            link.rel || null,
-            link.href,
-            link.type || null,
-            link.title || null
-          ]
-        );
-      }
-    }
-    
-    // Update crawl log
-    await client.query(
-      'DELETE FROM crawllog_catalog WHERE catalog_id = $1',
-      [catalogId]
-    );
-    await client.query(
-      'INSERT INTO crawllog_catalog (catalog_id, last_crawled) VALUES ($1, now())',
-      [catalogId]
-    );
-    
-    await client.query('COMMIT');
-    return catalogId;
-  } catch (error) {
-    await client.query('ROLLBACK');
-    console.error('Error inserting catalog:', error.message);
-    throw error;
-  } finally {
-    client.release();
-  }
+  // Catalogs are not saved to database - only used for tree traversal
+  // Only collections will be saved
+  console.log(`Skipping catalog save (used for traversal only): ${catalog.title || catalog.id}`);
+  
+  return null;
 }
 
 /**

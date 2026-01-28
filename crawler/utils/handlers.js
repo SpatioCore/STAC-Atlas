@@ -219,6 +219,8 @@ export async function handleCatalog({ request, json, crawler, log, indent, resul
     const isCollection = typeof stacCatalog.isCollection === 'function' && stacCatalog.isCollection();
     if (!isCollection) {
         try {
+            
+            
             await db.insertOrUpdateCatalog({
                 id: stacCatalog.id,
                 title: stacCatalog.title || catalogId,
@@ -432,6 +434,7 @@ export async function handleCollections({ request, json, crawler, log, indent, r
         // Get base URL for constructing absolute collection URLs
         // Remove trailing /collections from the request URL to get the API base
         const baseUrl = request.url.replace(/\/collections\/?$/, '');
+
         
         // Normalize and store collections
         const collections = collectionsData.map((colObj, index) => {
@@ -444,13 +447,14 @@ export async function handleCollections({ request, json, crawler, log, indent, r
             if (typeof colObj.getAbsoluteUrl === 'function') {
                 try {
                     collection.crawledUrl = colObj.getAbsoluteUrl();
+
                 } catch {
                     // Fallback to constructing URL from base
                     collection.crawledUrl = `${baseUrl}/collections/${collection.id}`;
                 }
             } else {
                 collection.crawledUrl = `${baseUrl}/collections/${collection.id}`;
-            }
+            } 
             
             return collection;
         });
