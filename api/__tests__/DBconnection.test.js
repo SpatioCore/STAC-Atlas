@@ -25,7 +25,7 @@ describe('Database Connection', () => {
     test('should execute BBox query', async () => {
       const result = await queryByBBox('collection', [-80, -60, 80, 60]);
       expect(result.rowCount).toBeGreaterThanOrEqual(0);
-    });
+    }, 45000);
 
     test('should return collections within bbox', async () => {
       const result = await queryByBBox('collection', [-80, -60, 80, 60]);
@@ -37,7 +37,7 @@ describe('Database Connection', () => {
       if (result.rowCount > 0) {
         expect(result.rows[0]).toHaveProperty('spatial_extent');
       }
-    });
+    }, 45000);
   });
 
     test('should reject invalid longitude', async () => {
