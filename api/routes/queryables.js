@@ -1,92 +1,46 @@
 const express = require('express');
 const router = express.Router();
 
+const { buildCollectionsQueryablesSchema } = require('../config/queryablesSchema');
+
 /**
  * GET /collections-queryables
- * Returns the list of queryable properties for collections
+ * Returns the queryables schema for STAC Collections
+ * Conforms to OGC API Features Part 3 (Filtering) and STAC API Filter Extension
  */
 router.get('/', (req, res) => {
-  res.json({
-    $schema: 'https://json-schema.org/draft/2019-09/schema',
-    $id: `${req.protocol}://${req.get('host')}/collections-queryables`,
-    type: 'object',
-    title: 'STAC Atlas Collections Queryables',
-    description: 'Queryable properties for STAC Collection Search',
-    properties: {
-      id: {
-        title: 'Collection ID',
-        type: 'string'
+  const baseUrl = `${req.protocol}://${req.get('host')}`;
+  const selfUrl = `${baseUrl}/collections-queryables`;
+  const schema = buildCollectionsQueryablesSchema(baseUrl);
+
+  // Add required links for STAC/OGC conformance
+  const response = {
+    ...schema,
+    links: [
+      {
+        rel: 'self',
+        href: selfUrl,
+        type: 'application/schema+json',
+        title: 'This queryables document'
       },
-      title: {
-        title: 'Collection Title',
-        type: 'string'
+      {
+        rel: 'root',
+        href: baseUrl,
+        type: 'application/json',
+        title: 'STAC Atlas Landing Page'
       },
-      description: {
-        title: 'Collection Description',
-        type: 'string'
-      },
-      keywords: {
-        title: 'Keywords',
-        type: 'array',
-        items: {
-          type: 'string'
-        }
-      },
-      license: {
-        title: 'License',
-        type: 'string'
-      },
-      providers: {
-        title: 'Providers',
-        type: 'array',
-        items: {
-          type: 'object',
-          properties: {
-            name: {
-              type: 'string'
-            }
-          }
-        }
-      },
-      'extent.spatial.bbox': {
-        title: 'Spatial Extent (Bounding Box)',
-        type: 'array',
-        items: {
-          type: 'number'
-        }
-      },
-      'extent.temporal.interval': {
-        title: 'Temporal Extent',
-        type: 'array'
-      },
-      doi: {
-        title: 'DOI',
-        type: 'string'
-      },
-      'summaries.platform': {
-        title: 'Platform',
-        type: 'array',
-        items: {
-          type: 'string'
-        }
-      },
-      'summaries.constellation': {
-        title: 'Constellation',
-        type: 'array',
-        items: {
-          type: 'string'
-        }
-      },
-      'summaries.gsd': {
-        title: 'Ground Sample Distance',
-        type: 'number'
-      },
-      'summaries.processing:level': {
-        title: 'Processing Level',
-        type: 'string'
+      {
+        rel: 'parent',
+        href: baseUrl,
+        type: 'application/json',
+        title: 'STAC Atlas Landing Page'
       }
-    }
-  });
+    ]
+  };
+
+  // Set proper media type for queryables schema
+  res.setHeader('Content-Type', 'application/schema+json');
+  res.json(response);
 });
 
 module.exports = router;

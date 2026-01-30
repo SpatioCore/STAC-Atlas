@@ -9,6 +9,7 @@ on:
       - main
     paths:
       - 'api/**'
+      - 'db/**'
       - '.github/workflows/api-ci.yml'
   pull_request:
     branches:
@@ -17,6 +18,7 @@ on:
       - main
     paths:
       - 'api/**'
+      - 'db/**'
       - '.github/workflows/api-ci.yml'
 
 jobs:
@@ -267,8 +269,7 @@ jobs:
             --root-url "http://localhost:3000/" \
             --conformance core \
             --conformance collections \
-            --collection 1 \
-            --verbose | tee stac-validator-output.txt
+            --collection africa-agriculture-adaptation-atlas_extreme_hazard_risk_annual \
 
       - name: Upload validator output
         uses: actions/upload-artifact@v4

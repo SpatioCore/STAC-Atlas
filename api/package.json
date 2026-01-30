@@ -29,6 +29,7 @@
     "express-rate-limit": "^8.2.1",
     "morgan": "^1.10.1",
     "pg": "^8.16.3",
+    "serve-favicon": "^2.5.1",
     "swagger-ui-express": "^5.0.1",
     "winston": "^3.17.0",
     "yamljs": "^0.3.0"

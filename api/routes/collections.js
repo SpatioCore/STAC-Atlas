@@ -9,70 +9,43 @@ const { cql2ToSql } = require('../utils/cql2ToSql');
 const { ErrorResponses } = require('../utils/errorResponse');
 
 // helper to map DB row to STAC Collection object
-// the full_json column contains the original STAC Collection Json as crawled but it is needed to set some fields/links correctly
-// TODO(DB-final): full_json is currently used as primary source for STAC fields.
-// Once the DB schema is finalized, replace full_json-based mapping with normalized columns and only use full_json as fallback/debug
 function toStacCollection(row, baseHost) {
-  const base =
-    row.full_json &&
-    typeof row.full_json === 'object' &&
-    !Array.isArray(row.full_json)
-      ? row.full_json
-      : {};
+  // Use full_json as base and then add some additional fields from DB
+  const collection = { ...row.full_json };
 
-  const id = base.id ?? String(row.id);
+  // Save original id, source_stac_id and links from Full JSON into another 
+  collection.source_id = collection.id;
+  collection.source_links = collection.links;
 
-  const collection = {
-    // merge full_json first to override/normalize below
-    ...base,
-    type: 'Collection',
-    stac_version: base.stac_version ?? row.stac_version ?? '1.1.0',
-    id,
-    title: base.title ?? row.title ?? id,
-    description: base.description ?? row.description ?? '',
-    license: base.license ?? row.license ?? 'proprietary',
+  // Add source_url as new field
+  collection.source_url = row.source_url;
+
+  // Overwrite id and links with correct values from DB row
+  collection.id = row.stac_id;
+  collection.stac_id = row.stac_id;
+
+  // TODO: Add is_active, is_api, last_crawled fields if needed
+
+  // Add Links incase a baseHost is provided
+  if (baseHost !== undefined) {
+    collection.links = [
+      {
+        rel: "self",
+        href: `${baseHost}/collections/${row.stac_id}`,
+        title: 'The Collection itself'
+      },
+      {
+        rel: "root",
+        href: `${baseHost}`,
+        title: 'STAC Atlas Landing Page'
+      },
+      {
+        rel: "parent",
+        href: `${baseHost}/collections`,
+        title: 'STAC Collections on STAC Atlas'
+      }
+    ];
   };
-
-  // assets must be an object/dict if present
-  if (collection.assets === null || collection.assets === undefined) {
-    delete collection.assets;
-  } else if (Array.isArray(collection.assets)) {
-    delete collection.assets;
-  } else if (typeof collection.assets !== 'object') {
-    delete collection.assets;
-  }
-
-  if (collection.summaries === null || collection.summaries === undefined) {
-    delete collection.summaries;
-  } else if (Array.isArray(collection.summaries) || typeof collection.summaries !== 'object') {
-    delete collection.summaries;
-  }
-
-  // TODO(DB-final): extent should come from normalized spatial/temporal columns once finalized.
-  // For now, fallback to DB-derived bbox/interval if full_json does not contain extent.
-  if (!collection.extent) {
-    const hasBbox =
-      row.minx !== null && row.miny !== null && row.maxx !== null && row.maxy !== null;
-
-    collection.extent = {
-      spatial: {
-        bbox: hasBbox ? [[row.minx, row.miny, row.maxx, row.maxy]] : [[-180, -90, 180, 90]],
-      },
-      temporal: {
-        interval: [[
-          row.temporal_extend_start ? new Date(row.temporal_extend_start).toISOString() : null,
-          row.temporal_extend_end ? new Date(row.temporal_extend_end).toISOString() : null,
-        ]],
-      },
-    };
-  }
-
-  // ensure links exist
-  collection.links = [
-    { rel: 'self', href: `${baseHost}/collections/${encodeURIComponent(id)}`, type: 'application/json' },
-    { rel: 'parent', href: `${baseHost}`, type: 'application/json' },
-    { rel: 'root', href: `${baseHost}`, type: 'application/json' }
-  ];
 
   return collection;
 }
@@ -238,22 +211,12 @@ router.get('/:id', validateCollectionId, async (req, res, next) => {
   try {
     const { id } = req.params;
 
-// Numeric: use numeric filter
-const numericId = Number(id);
-const isNumericId = Number.isFinite(numericId) && String(numericId) === String(id);
-
 // Build params depending on id type
 const queryParams = {
   limit: 1,
   token: 0,
+  id: id
 };
-
-if (isNumericId) {
-  queryParams.id = numericId;
-} else {
-  // STAC Collection IDs are strings use string filter
-  queryParams.collectionId = id;
-}
 
 const { sql, values } = buildCollectionSearchQuery(queryParams);
 
@@ -282,11 +245,11 @@ const rows = await runQuery(sql, values);
     //   not extract or persist them as a separate links column yet.
     //   In the future we might want to parse those links and merge them here.
     const links = [
-      { rel: 'self', href: selfHref, type: 'application/json' },
-      { rel: 'root', href: rootHref, type: 'application/json' },
-      { rel: 'parent', href: rootHref, type: 'application/json' }
+      { rel: 'self', href: selfHref, type: 'application/json', title: 'The collection itself' },
+      { rel: 'root', href: rootHref, type: 'application/json', title: 'STAC Atlas Landing Page' },
+      { rel: 'parent', href: `${rootHref}/collections`, type: 'application/json', title: 'STAC Collections on STAC Atlas' }
     ];
-   const collection_id = toStacCollection(row, baseHost);
+   const collection_id = toStacCollection(row);
     // Return the collection with a normalized `links` array.
     // The rest of the attributes (id, title, extent, full_json, …) come directly
     // from the query builder / database.

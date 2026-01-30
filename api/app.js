@@ -3,6 +3,7 @@ const express = require('express');
 const swaggerUi = require('swagger-ui-express');
 const YAML = require('yamljs');
 const path = require('path');
+const favicon = require('serve-favicon');
 
 // Import middleware
 const { requestIdMiddleware } = require('./middleware/requestId');
@@ -24,6 +25,9 @@ app.use(requestIdMiddleware);
 
 // HTTP request/response logging (after request ID)
 app.use(httpLogger);
+
+// Favicon middleware
+app.use(favicon(path.join(__dirname, 'favicon.ico')));
 
 // Global rate limiting middleware
 // Limits each IP to 1000 requests per 15 minutes
@@ -66,7 +70,7 @@ app.use((req, res, next) => {
 app.use('/', indexRouter);
 app.use('/conformance', conformanceRouter);
 app.use('/collections', collectionsRouter);
-app.use('/queryables', queryablesRouter);
+app.use('/collections-queryables', queryablesRouter);
 
 // 404 handler - must be after all routes
 app.use((req, res, next) => {
