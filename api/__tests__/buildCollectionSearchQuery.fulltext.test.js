@@ -13,7 +13,7 @@ describe('buildCollectionSearchQuery - full-text search and ranking', () => {
     expect(sql).toMatch(/AS rank/);
 
     // Ordering defaults to rank DESC when q present and no sortby
-    expect(sql).toMatch(/ORDER BY rank DESC, c\.id ASC/);
+    expect(sql).toMatch(/ORDER BY rank DESC, c\.stac_id ASC/);
 
     // values: [q, limit, token]
     expect(values[0]).toBe('forest');

@@ -72,7 +72,7 @@ app.use((req, res, next) => {
 app.use('/', indexRouter);
 app.use('/conformance', conformanceRouter);
 app.use('/collections', collectionsRouter);
-app.use('/queryables', queryablesRouter);
+app.use('/collections-queryables', queryablesRouter);
 
 // 404 handler - must be after all routes
 app.use((req, res, next) => {
