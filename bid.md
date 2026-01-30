@@ -521,7 +521,7 @@ Die Datenbankkomponente muss somit nachweislich in der Lage sein, große Mengen 
 
 Die STAC API-Komponente bildet die zentrale Datenschnittstelle des Systems und ermöglicht einen standardkonformen Zugriff auf die in der Datenbank gespeicherten STAC collections und catalogs. Sie erfüllt vollständig die Anforderungen der SpatioTemporal Asset Catalog (STAC) API sowie der Collection Search Extension und bietet erweiterte Such- und Filterfunktionen.
 
-Über den Endpunkt /collections können Nutzer Collections nach Attributen wie Titel, Lizenz, Schlüsselwörtern sowie räumlicher und zeitlicher Ausdehnung durchsuchen, filtern und sortieren. Dabei wird die CQL2-Filterung unterstützt, um standardkonforme und einheitliche Datensuche zu ermöglichen. Dabei stehen logische Operatoren (AND, OR, NOT) und Vergleichsoperatoren (=, <, >, IN) <!-- CR: Es gibt noch mehr Operatoren RoGu --> zur Verfügung; optional sind auch erweiterte Funktionen wie LIKE, BETWEEN oder INTERSECTS vorgesehen.
+Über den Endpunkt /collections können Nutzer Collections nach Attributen wie Titel, Lizenz, Schlüsselwörtern sowie räumlicher und zeitlicher Ausdehnung durchsuchen, filtern und sortieren. Dabei wird die CQL2-Filterung unterstützt, um standardkonforme und einheitliche Datensuche zu ermöglichen. Dabei stehen logische Operatoren (AND, OR, NOT) und Vergleichsoperatoren (=, <>, <, <=, >, >=, IN, isNull, between) zur Verfügung; optional sind auch erweiterte Funktionen für zeitliche (t_before, t_after, t_intersects) und räumliche (s_intersects, s_within, s_contains) Filter vorgesehen.
 
 Die API bietet eine hohe Performance:
 Zugriff auf indizierte Daten mit Antwortzeiten unter 1 s,
@@ -758,10 +758,12 @@ und ermöglicht einen einheitlichen, standardkonformen Zugriff auf alle gespeich
    - `sortby` → Sortierung
   <!-- VI ViKu -->
 
-- Erweiterte Filterung über CQL2 (GET): <!-- CR:  Ein Vergleichsoperator ist falsch RoGu -->
-   - Die API implementiert CQL2 Basic Filtering zur semantischen Abfrage von Eigenschaften:
-   - Vergleichsoperatoren: `=`, `!=`, `<`, `<=`, `>`, `>=`
+- Erweiterte Filterung über CQL2 (GET):
+   - Die API implementiert CQL2 Basic Filtering plus Erweiterungen zur semantischen Abfrage von Eigenschaften:
+   - Vergleichsoperatoren: `=`, `<>`, `<`, `<=`, `>`, `>=`, `between`, `in`, `isNull`
    - Logische Operatoren: `and`, `or`, `not`
+   - Zeitliche Operatoren: `t_before`, `t_after`, `t_intersects`
+   - Räumliche Operatoren: `s_intersects`, `s_within`, `s_contains`
   <!-- VI ViKu -->
   
 #### 9.3.3 Sicherheit, Performance und Erweiterbarkeit
