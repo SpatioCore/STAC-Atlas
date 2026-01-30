@@ -1,4 +1,5 @@
 const { ErrorResponses, sanitizeErrorMessage } = require('../utils/errorResponse');
+const { logError, logWarn } = require('../utils/logger');
 
 /**
  * Global error handler middleware
@@ -26,19 +27,16 @@ function globalErrorHandler(err, req, res, next) {
   // Log error based on severity
   if (status >= 500) {
     // Server errors - log full details
-    console.error('='.repeat(80));
-    console.error('INTERNAL SERVER ERROR');
-    console.error('Request ID:', requestId);
-    console.error('Timestamp:', new Date().toISOString());
-    console.error('Method:', req.method);
-    console.error('URL:', instance);
-    console.error('User-Agent:', req.get('user-agent'));
-    console.error('Error:', err);
-    console.error('Stack:', err.stack);
-    console.error('='.repeat(80));
+    logError(err, {
+      requestId,
+      method: req.method,
+      url: instance,
+      userAgent: req.get('user-agent'),
+      ip: req.ip || req.connection.remoteAddress
+    });
   } else if (status >= 400) {
     // Client errors - log basic info
-    console.warn('Client Error:', {
+    logWarn('Client Error', {
       requestId,
       status,
       method: req.method,

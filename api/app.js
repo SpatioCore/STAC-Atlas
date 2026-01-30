@@ -1,7 +1,5 @@
 require('dotenv').config();
 const express = require('express');
-const logger = require('morgan');
-const cors = require('cors');
 const swaggerUi = require('swagger-ui-express');
 const YAML = require('yamljs');
 const path = require('path');
@@ -11,6 +9,8 @@ const favicon = require('serve-favicon');
 const { requestIdMiddleware } = require('./middleware/requestId');
 const { globalErrorHandler } = require('./middleware/errorHandler');
 const { rateLimitMiddleware } = require('./middleware/rateLimit');
+const { corsMiddleware } = require('./middleware/cors');
+const { httpLogger } = require('./utils/logger');
 
 // Import routes
 const indexRouter = require('./routes/index');
@@ -23,6 +23,9 @@ const app = express();
 // Request ID middleware (must be first)
 app.use(requestIdMiddleware);
 
+// HTTP request/response logging (after request ID)
+app.use(httpLogger);
+
 // Favicon middleware
 app.use(favicon(path.join(__dirname, 'favicon.ico')));
 
@@ -31,16 +34,11 @@ app.use(favicon(path.join(__dirname, 'favicon.ico')));
 app.use(rateLimitMiddleware);
 
 // Middleware
-app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
 // CORS configuration - allow requests from frontend
-app.use(cors({
-  origin: process.env.CORS_ORIGIN || '*',
-  methods: ['GET', 'POST', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
+app.use(corsMiddleware);
 
 // OpenAPI spec endpoint (YAML file with correct content-type) - MUST be before Content-Type middleware
 app.get('/openapi.yaml', (req, res, next) => {
