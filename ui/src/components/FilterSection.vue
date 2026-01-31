@@ -100,6 +100,28 @@
       </div>
     </div>
 
+    <div class="filter-bottom">
+      <div class="filter-group">
+        <h3 class="filter-title">
+          <Code class="filter-icon" :size="20" />
+          CQL2 Filter
+        </h3>
+        <div class="filter-field">
+          <textarea
+            id="cql2-filter"
+            v-model="cql2Filter"
+            class="filter-textarea"
+            placeholder="Text: title LIKE '%Sentinel%'&#10;JSON: {&quot;op&quot;:&quot;=&quot;,&quot;args&quot;:[{&quot;property&quot;:&quot;license&quot;},&quot;CC-BY-4.0&quot;]}"
+            rows="4"
+          ></textarea>
+          <p class="filter-hint" :class="{ 'formatting': isFormattingJson }">
+            <template v-if="isFormattingJson">Formatting JSON...</template>
+            <template v-else>CQL2-Text or CQL2-JSON (auto-detected if starts with {)</template>
+          </p>
+        </div>
+      </div>
+    </div>
+
     <div class="filter-actions">
       <button class="btn-apply" @click="applyFilters">Apply Filters</button>
       <button class="btn-reset" @click="resetFilters">Reset</button>
@@ -115,9 +137,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onUnmounted } from 'vue'
 import { storeToRefs } from 'pinia'
-import { MapPin, Calendar, Box, X } from 'lucide-vue-next'
+import { MapPin, Calendar, Box, X, Code } from 'lucide-vue-next'
 import CustomSelect from '@/components/CustomSelect.vue'
 import BoundingBoxModal from '@/components/BoundingBoxModal.vue'
 import { useFilterStore } from '@/stores/filterStore'
@@ -135,7 +157,8 @@ const {
   selectedLicense, 
   startDate, 
   endDate, 
-  drawnBbox
+  drawnBbox,
+  cql2Filter
 } = storeToRefs(filterStore)
 
 // Load providers and licenses from static file (auto-refreshes every 15 min)
@@ -187,6 +210,52 @@ function resetFilters() {
   filterStore.resetFilters()
   emit('reset')
 }
+
+// JSON formatting state
+const isFormattingJson = ref(false)
+let formatDebounceTimer: ReturnType<typeof setTimeout> | null = null
+
+// Watch CQL2 filter and auto-format JSON after user stops typing
+watch(cql2Filter, (newValue) => {
+  // Clear any pending format timer
+  if (formatDebounceTimer) {
+    clearTimeout(formatDebounceTimer)
+    formatDebounceTimer = null
+  }
+  
+  const trimmed = newValue.trim()
+  
+  // Only attempt formatting if it looks like JSON
+  if (!trimmed || !trimmed.startsWith('{')) {
+    isFormattingJson.value = false
+    return
+  }
+  
+  // Show formatting indicator
+  isFormattingJson.value = true
+  
+  // Debounce the formatting (800ms after user stops typing)
+  formatDebounceTimer = setTimeout(() => {
+    try {
+      const parsed = JSON.parse(trimmed)
+      const formatted = JSON.stringify(parsed, null, 2)
+      // Only update if it's actually different (avoid infinite loop)
+      if (formatted !== trimmed) {
+        cql2Filter.value = formatted
+      }
+    } catch {
+      // Not valid JSON yet, leave as-is
+    }
+    isFormattingJson.value = false
+  }, 800)
+})
+
+// Cleanup timer on unmount
+onUnmounted(() => {
+  if (formatDebounceTimer) {
+    clearTimeout(formatDebounceTimer)
+  }
+})
 
 // Region options with bounding boxes (minLon, minLat, maxLon, maxLat)
 const regionOptions = [

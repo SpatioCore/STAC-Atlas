@@ -2,7 +2,7 @@
   <div class="search-section">
     <div class="search-header">
       <h2 class="search-title">Search Results</h2>
-      <p class="search-count">{{ resultCount }} of {{ totalCount }} collections</p>
+      <p class="search-count">{{ totalCount }} collections</p>
     </div>
     
     <div class="search-bar">

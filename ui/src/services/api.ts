@@ -53,6 +53,11 @@ export const api = {
     const queryParams = new URLSearchParams()
     
     if (params) {
+      // Auto-detect filter-lang if filter is provided but filter-lang is not
+      if (params.filter && !params['filter-lang']) {
+        params['filter-lang'] = params.filter.trim().startsWith('{') ? 'cql2-json' : 'cql2-text'
+      }
+      
       Object.entries(params).forEach(([key, value]) => {
         if (value !== undefined && value !== null && value !== '') {
           queryParams.append(key, value.toString())

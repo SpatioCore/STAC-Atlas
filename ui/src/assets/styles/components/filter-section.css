@@ -1,7 +1,7 @@
 .filter-section {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-md);
+  gap: var(--spacing-sm);
   justify-content: space-between;
   width: 280px;
   background: var(--bg);
@@ -22,12 +22,13 @@
 .filter-top {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-md);
+  gap: var(--spacing-sm);
 }
 
 .filter-group {
   display: flex;
   flex-direction: column;
+  height: 100%;
   gap: var(--spacing-sm);
 }
 
@@ -187,6 +188,69 @@
   height: 24px;
   border: 1.5px solid var(--border);
   border-radius: var(--radius-sm)
+}
+
+/* Filter bottom section for CQL2 */
+.filter-bottom {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  height: 100%;
+  padding-top: var(--spacing-sm);
+}
+
+.filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  height: 100%;
+}
+
+.filter-textarea {
+  width: 100%;
+  height: 100%;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--fg);
+  font-size: var(--font-size-sm);
+  font-family: 'Fira Code', 'Monaco', 'Consolas', monospace;
+  resize: none;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  box-shadow: var(--shadow);
+}
+
+.dark .filter-textarea {
+  background: var(--card);
+}
+
+.filter-textarea:hover {
+  border-color: var(--primary);
+  box-shadow: var(--shadow-sm);
+}
+
+.filter-textarea:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+.filter-textarea::placeholder {
+  color: var(--muted-fg);
+  font-family: inherit;
+}
+
+.filter-hint {
+  font-size: var(--font-size-xs);
+  color: var(--muted-fg);
+  margin-top: var(--spacing-xs);
+  line-height: 1.4;
+  transition: color var(--transition-fast);
+}
+
+.filter-hint.formatting {
+  color: var(--primary);
+  font-style: italic;
 }
 
 .filter-actions {

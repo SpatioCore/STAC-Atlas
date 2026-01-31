@@ -7,6 +7,8 @@ export interface FilterState {
   provider?: string
   license?: string
   q?: string
+  filter?: string
+  'filter-lang'?: 'cql2-text' | 'cql2-json'
 }
 
 export const useFilterStore = defineStore('filters', () => {
@@ -18,6 +20,7 @@ export const useFilterStore = defineStore('filters', () => {
   const selectedProvider = ref('')
   const selectedLicense = ref('')
   const searchQuery = ref('')
+  const cql2Filter = ref('')
 
   // Pagination state
   const currentPage = ref(1)
@@ -43,13 +46,22 @@ export const useFilterStore = defineStore('filters', () => {
     return `${start}/${end}`
   })
 
+  // Computed: detect CQL2 filter language (JSON if starts with {, otherwise text)
+  const cql2FilterLang = computed<'cql2-text' | 'cql2-json' | undefined>(() => {
+    const trimmed = cql2Filter.value.trim()
+    if (!trimmed) return undefined
+    return trimmed.startsWith('{') ? 'cql2-json' : 'cql2-text'
+  })
+
   // Computed: all active filters for API request
   const activeFilters = computed<FilterState>(() => ({
     bbox: activeBbox.value,
     datetime: datetime.value,
     provider: selectedProvider.value || undefined,
     license: selectedLicense.value || undefined,
-    q: searchQuery.value.trim() || undefined
+    q: searchQuery.value.trim() || undefined,
+    filter: cql2Filter.value.trim() || undefined,
+    'filter-lang': cql2FilterLang.value
   }))
 
   // Computed: formatted bbox for display
@@ -85,6 +97,7 @@ export const useFilterStore = defineStore('filters', () => {
     selectedProvider.value = ''
     selectedLicense.value = ''
     searchQuery.value = ''
+    cql2Filter.value = ''
     currentPage.value = 1
   }
 
@@ -119,6 +132,7 @@ export const useFilterStore = defineStore('filters', () => {
     selectedProvider,
     selectedLicense,
     searchQuery,
+    cql2Filter,
     currentPage,
     itemsPerPage,
     totalCollections,
