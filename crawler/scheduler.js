@@ -6,7 +6,7 @@
  */
 
 import dotenv from 'dotenv';
-import { crawler } from './index.js';
+import { crawler, requestShutdown, resetShutdownFlag } from './index.js';
 import { formatDuration } from './utils/time.js';
 
 dotenv.config();
@@ -103,6 +103,9 @@ const getMillisecondsUntilEndTime = () => {
  * @returns {Promise<Object>} Crawler statistics
  */
 const runCrawler = async () => {
+    // Reset shutdown flag before starting a new crawl
+    resetShutdownFlag();
+    
     const timestamp = new Date().toISOString();
     console.log(`\n${'='.repeat(60)}`);
     console.log(`[${timestamp}] Starting crawler run...`);
@@ -131,13 +134,14 @@ const runCrawler = async () => {
             }, msUntilEnd);
             
             // Set forced shutdown timer (end time + grace period)
+            // Instead of process.exit(), we request graceful shutdown
             gracePeriodTimer = setTimeout(() => {
                 console.error(`\n${'!'.repeat(60)}`);
                 console.error(`CRITICAL: Grace period expired! (${ALLOWED_END_HOUR}:00 + ${GRACE_PERIOD_MINUTES}min)`);
-                console.error(`Crawler is being stopped to respect time window.`);
+                console.error(`Requesting graceful shutdown to respect time window.`);
                 console.error(`Next run will be scheduled for ${ALLOWED_START_HOUR}:00`);
                 console.error('!'.repeat(60) + '\n');
-                process.exit(0); // Graceful exit
+                requestShutdown(); // Request graceful shutdown instead of hard exit
             }, msUntilGraceEnd);
         }
     }

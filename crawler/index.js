@@ -25,9 +25,33 @@ let shutdownRequested = false;
 
 /**
  * Check if shutdown was requested (can be used by crawlers to stop early)
+ * @returns {boolean} True if shutdown was requested
  */
 export function isShutdownRequested() {
     return shutdownRequested;
+}
+
+/**
+ * Request a graceful shutdown of the crawler
+ * The crawler will stop after completing the current batch
+ */
+export function requestShutdown() {
+    if (!shutdownRequested) {
+        console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        console.log('GRACEFUL SHUTDOWN REQUESTED');
+        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        console.log('The crawler will stop after the current batch completes.');
+        console.log('Already-crawled collections are saved in crawllog_collection.');
+        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+        shutdownRequested = true;
+    }
+}
+
+/**
+ * Reset the shutdown flag (for scheduler to start a new crawl)
+ */
+export function resetShutdownFlag() {
+    shutdownRequested = false;
 }
 
 /**
