@@ -519,9 +519,21 @@ async function _insertOrUpdateCollectionInternal(collection) {
            crawllog_catalog_id = EXCLUDED.crawllog_catalog_id`,
         [collectionId, sourceUrl, crawllogCatalogId]
       );
+      
     }
 
     await client.query('COMMIT');
+    
+    // Sync is_api value from crawllog_catalog after successful commit
+    if (crawllogCatalogId) {
+      try {
+        await syncIsApiFromCatalog();
+      } catch (syncError) {
+        // Log but don't fail - collection was already saved successfully
+        console.warn(`Warning: Failed to sync is_api for collection ${collectionId}: ${syncError.message}`);
+      }
+    }
+    
     return collectionId;
   } catch (error) {
     await client.query('ROLLBACK');
@@ -723,6 +735,27 @@ async function insertAssets(client, collectionId, assets) {
 
 
 /**
+ * Sync is_api values from crawllog_catalog to collection table
+ * Copies the is_api value from crawllog_catalog to associated collections
+ * via the crawllog_collection join table
+ * @async
+ * @function syncIsApiFromCatalog
+ * @returns {Promise<number>} Number of collections updated
+ */
+async function syncIsApiFromCatalog() {
+  const result = await pool.query(`
+UPDATE collection c
+    SET is_api = cc.is_api
+    FROM crawllog_collection clc
+    JOIN crawllog_catalog cc ON clc.crawllog_catalog_id = cc.id
+    WHERE clc.collection_id = c.id
+      AND c.is_api IS DISTINCT FROM cc.is_api
+  `);
+  
+  return result.rowCount;
+}
+
+/**
  * Close the database connection pool
  * Should be called when the application shuts down
  * @async
@@ -746,6 +779,7 @@ export default {
   markCatalogCrawled,
   clearCrawllogCollection,
   clearAllCrawllogs,
+  syncIsApiFromCatalog,
   close, 
   pool 
 };
