@@ -65,6 +65,13 @@ function cql2ToSql(cql, values) {
          return `${val} IS NULL`;
     }
 
+    // LIKE operator (pattern matching)
+    if (cql.op === 'like') {
+        const val = processArg(cql.args[0], values);
+        const pattern = processArg(cql.args[1], values);
+        return `${val} LIKE ${pattern}`;
+    }
+
     // Spatial operators (CQL2 Advanced)
     if (cql.op === 's_intersects') {
         const geomProp = processArg(cql.args[0], values);
@@ -192,8 +199,8 @@ function mapProperty(propName) {
     }
 
     // Fallback: query inside full_json JSONB column
-    // Ensure propName is safe (alphanumeric + underscores)
-    if (!/^[a-zA-Z0-9_]+$/.test(propName)) {
+    // Ensure propName is safe (alphanumeric + underscores + dots + hyphens + double colons)
+    if (!/^[a-zA-Z0-9_.:-]+$/.test(propName)) {
         throw new Error(`Invalid property name: ${propName}`);
     }
     

@@ -125,7 +125,7 @@ The API supports advanced filtering using the Common Query Language 2 (CQL2) sta
 | `filter-lang` | String | Filter language: `cql2-text` (default) or `cql2-json` |
 
 **Supported Operators:**
-- **Comparison:** `=`, `<`, `>`, `<=`, `>=`, `<>`, `BETWEEN`, `IN`, `IS NULL`
+- **Comparison:** `=`, `<`, `>`, `<=`, `>=`, `<>`, `BETWEEN`, `IN`, `IS NULL`, `LIKE`
 - **Logical:** `AND`, `OR`, `NOT`
 - **Spatial:** `S_INTERSECTS`, `S_WITHIN`, `S_CONTAINS`
 - **Temporal:** `T_INTERSECTS`, `T_BEFORE`, `T_AFTER`
@@ -134,6 +134,9 @@ The API supports advanced filtering using the Common Query Language 2 (CQL2) sta
 ```bash
 # Filter by license (note: string literals require single quotes)
 GET /collections?filter=license = 'MIT'
+
+# Pattern matching with LIKE
+GET /collections?filter=title LIKE '%Sentinel%'
 
 # Combined filters
 GET /collections?filter=license = 'CC-BY-4.0' AND title LIKE '%Sentinel%'

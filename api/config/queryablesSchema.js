@@ -27,9 +27,10 @@ function buildCollectionsQueryablesSchema(baseUrl) {
   const OPS_RANGE = ['between'];
   const OPS_SET = ['in'];
   const OPS_NULL = ['isNull'];
+  const OPS_LIKE = ['like'];
   const OPS_LOGICAL = ['and', 'or', 'not']; // Applied to expressions, not properties
   
-  const OPS_STRING = [...OPS_COMPARISON, ...OPS_RANGE, ...OPS_SET, ...OPS_NULL];
+  const OPS_STRING = [...OPS_COMPARISON, ...OPS_RANGE, ...OPS_SET, ...OPS_NULL, ...OPS_LIKE];
   const OPS_NUMERIC = [...OPS_COMPARISON, ...OPS_RANGE, ...OPS_SET, ...OPS_NULL];
   const OPS_BOOLEAN = ['=', '<>', ...OPS_NULL];
   const OPS_TIMESTAMP = [...OPS_COMPARISON, ...OPS_RANGE, ...OPS_SET, ...OPS_NULL, 't_before', 't_after', 't_intersects'];
