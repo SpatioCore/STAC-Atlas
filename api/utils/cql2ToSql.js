@@ -185,6 +185,8 @@ function mapProperty(propName) {
         'created': 'c.created_at',
         'updated': 'c.updated_at',
         'collection': 'c.id',
+        'active': 'c.is_active',
+        'api': 'c.is_api',
         
         // Aggregated fields (from LATERAL JOINs)
         'keywords': 'kw.keywords',

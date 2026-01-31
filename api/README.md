@@ -582,6 +582,34 @@ GET /collections?provider=ESA&license=CC-BY-4.0&sortby=-created
 
 ---
 
+### Active and API Status
+
+Filter collections by their active or API status.
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `active` | boolean | Filter by collection active status (`true`/`false`) |
+| `api` | boolean | Filter by API status (`true` = from STAC API, `false` = from static catalog) |
+
+**Accepted values:** `true`, `false`, `1`, `0`, `yes`, `no`
+
+**Examples:**
+```bash
+# Only active collections
+GET /collections?active=true
+
+# Only collections from STAC APIs
+GET /collections?api=true
+
+# Active collections from static catalogs
+GET /collections?active=true&api=false
+
+# Combine with other filters
+GET /collections?active=true&api=true&license=CC-BY-4.0
+```
+
+---
+
 ## CQL2 Filtering
 
 The API supports the Common Query Language 2 (CQL2) standard for advanced filtering. Both CQL2-Text (human-readable) and CQL2-JSON (machine-readable) encodings are supported.

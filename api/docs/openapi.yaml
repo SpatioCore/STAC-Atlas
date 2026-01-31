@@ -213,6 +213,26 @@ paths:
           schema:
             type: string
           example: "CC-BY-4.0"
+        - name: active
+          in: query
+          description: |
+            Filter by collection active status.
+            - `true`: Only active collections
+            - `false`: Only inactive collections
+          required: false
+          schema:
+            type: boolean
+          example: true
+        - name: api
+          in: query
+          description: |
+            Filter by API status.
+            - `true`: Only collections from STAC APIs
+            - `false`: Only collections from static catalogs
+          required: false
+          schema:
+            type: boolean
+          example: true
       responses:
         '200':
           description: List of collections matching the query

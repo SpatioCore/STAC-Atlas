@@ -98,7 +98,9 @@ function toStacCollection(row, baseHost) {
   collection.id = row.stac_id;
   collection.stac_id = row.stac_id;
 
-  // TODO: Add is_active, is_api, fields if needed
+  // Add other fields from DB row
+  collection.is_active = row.is_active;
+  collection.is_api = row.is_api;
 
   // Add Links incase a baseHost is provided
   if (baseHost !== undefined) {
@@ -160,6 +162,8 @@ async function runQuery(sql, params = []) {
  *   - token: Pagination continuation token (offset)
  *   - provider: Provider name — filter by data provider
  *   - license: License identifier — filter by collection license
+ *   - active: Boolean — filter by collection active status (is_active)
+ *   - api: Boolean — filter by API status (is_api)
  * 
  * All parameters are validated by validateCollectionSearchParams middleware.
  * Validated/normalized values are available in req.validatedParams.
@@ -169,7 +173,7 @@ router.get('/', validateCollectionSearchParams, async (req, res, next) => {
   // TODO: Think about the parameters `provider` and `license` - They are mentioned in the bid, but not in the STAC spec
   try {
     // validated parameters from middleware
-    const { q, bbox, datetime, limit, sortby, token, provider, license, filter } = req.validatedParams;
+    const { q, bbox, datetime, limit, sortby, token, provider, license, active, api, filter } = req.validatedParams;
     const filterLang = req.validatedParams['filter-lang'] || 'cql2-text'; // seperate extraction due to hyphen and default value
 
     let cqlFilter = undefined;
@@ -202,6 +206,8 @@ router.get('/', validateCollectionSearchParams, async (req, res, next) => {
       datetime,
       provider,
       license,
+      active,
+      api,
       limit,
       sortby,
       token,
@@ -223,6 +229,9 @@ router.get('/', validateCollectionSearchParams, async (req, res, next) => {
       datetime,
       provider,
       license,
+      active,
+      api,
+      cqlFilter,   // Include CQL2 filter for accurate count
       limit: null, // No limit for count
       sortby: null, // No sorting for count
       token: null   // No offset for count
