@@ -6,6 +6,11 @@ const swaggerUi = require('swagger-ui-express');
 const YAML = require('yamljs');
 const path = require('path');
 
+// Import middleware
+const { requestIdMiddleware } = require('./middleware/requestId');
+const { globalErrorHandler } = require('./middleware/errorHandler');
+const { rateLimitMiddleware } = require('./middleware/rateLimit');
+
 // Import routes
 const indexRouter = require('./routes/index');
 const conformanceRouter = require('./routes/conformance');
@@ -13,6 +18,13 @@ const collectionsRouter = require('./routes/collections');
 const queryablesRouter = require('./routes/queryables');
 
 const app = express();
+
+// Request ID middleware (must be first)
+app.use(requestIdMiddleware);
+
+// Global rate limiting middleware
+// Limits each IP to 1000 requests per 15 minutes
+app.use(rateLimitMiddleware);
 
 // Middleware
 app.use(logger('dev'));
@@ -58,24 +70,15 @@ app.use('/conformance', conformanceRouter);
 app.use('/collections', collectionsRouter);
 app.use('/queryables', queryablesRouter);
 
-// 404 handler
+// 404 handler - must be after all routes
 app.use((req, res, next) => {
-  res.status(404).json({
-    code: 'NotFound',
-    description: `The requested resource '${req.url}' was not found on this server.`
-  });
+  const error = new Error(`The requested resource '${req.originalUrl}' was not found on this server.`);
+  error.status = 404;
+  error.code = 'NotFound';
+  next(error);
 });
 
-// Error handler
-app.use((err, req, res, next) => {
-  // Set locals, only providing error in development
-  const isDev = req.app.get('env') === 'development';
-  
-  res.status(err.status || 500).json({
-    code: err.code || 'InternalServerError',
-    description: err.message || 'An internal server error occurred',
-    ...(isDev && { stack: err.stack })
-  });
-});
+// Global error handler - must be last
+app.use(globalErrorHandler);
 
 module.exports = app;
