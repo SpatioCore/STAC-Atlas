@@ -61,9 +61,9 @@ CREATE TABLE assets (
 -- Used to schedule re-crawling and maintain freshness of collection data
 CREATE TABLE crawllog_collection (
     id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-    FOREIGN KEY (collection_id) INTEGER REFERENCES collection(id) ON DELETE CASCADE,
+    collection_id INTEGER REFERENCES collection(id) ON DELETE CASCADE,
     source_url TEXT UNIQUE NOT NULL,
-    FOREIGN KEY (catalog_id) REFERENCES catalog_id(id) ON DELETE CASCADE,
+    crawllog_catalog_id INTEGER REFERENCES crawllog_catalog(id) ON DELETE CASCADE
 );
 
 -- ========================================
