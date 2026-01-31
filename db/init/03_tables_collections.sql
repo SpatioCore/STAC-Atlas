@@ -6,11 +6,12 @@
 CREATE TABLE collection (
     id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     stac_version TEXT,
-    stac_id INTEGER,
+    stac_id TEXT UNIQUE,
     type TEXT,
     title TEXT,
     description TEXT,
     license TEXT,
+    source_url TEXT,
     created_at TIMESTAMP DEFAULT now(),
     updated_at TIMESTAMP DEFAULT now(),
 

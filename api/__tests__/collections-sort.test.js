@@ -19,7 +19,7 @@ describe('Collection Search - Sorting behavior (4.4 Implement Sorting)', () => {
    */
   it('should sort ascending by title with +title', async () => {
     const response = await request(app)
-      .get('/collections?sortby=%2Btitle')
+      .get('/collections?sortby=%2Btitle&limit=100')
       .expect(200);
 
     const titles = response.body.collections.map(c => c.title);
@@ -129,7 +129,7 @@ describe('Collection Search - Sorting behavior (4.4 Implement Sorting)', () => {
    */
   it('should sort descending by license with -license', async () => {
     const response = await request(app)
-      .get('/collections?sortby=-license')
+      .get('/collections?sortby=-license&token=2')
       .expect(200);
 
     const licenses = response.body.collections.map(c => c.license);
@@ -143,7 +143,7 @@ describe('Collection Search - Sorting behavior (4.4 Implement Sorting)', () => {
    */
   it('should default to ascending when no prefix provided', async () => {
     const response = await request(app)
-      .get('/collections?sortby=title')
+      .get('/collections?sortby=title&limit=50')
       .expect(200);
 
     const titles = response.body.collections.map(c => c.title);

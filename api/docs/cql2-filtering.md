@@ -81,13 +81,55 @@ GET /collections?filter=NOT is_active = false
 | `BETWEEN` | Value is within range (inclusive) | `id BETWEEN 10 AND 50` |
 | `IN` | Value is in a list | `license IN ('MIT', 'Apache-2.0', 'CC-BY-4.0')` |
 | `IS NULL` | Value is null | `description IS NULL` |
+| `LIKE` | Pattern matching with wildcards | `title LIKE '%Sentinel%'` |
 
 **Examples:**
 ```
 GET /collections?filter=id BETWEEN 1 AND 100
 GET /collections?filter=license IN ('MIT', 'CC0-1.0', 'CC-BY-4.0')
 GET /collections?filter=title IS NULL
+GET /collections?filter=title LIKE '%Sentinel%'
+GET /collections?filter=description LIKE '%climate%'
 ```
+
+### Pattern Matching with LIKE
+
+The `LIKE` operator supports SQL-style wildcard patterns:
+
+| Wildcard | Description | Example |
+|----------|-------------|---------|-------|
+| `%` | Matches zero or more characters | `'%Sentinel%'` matches "Sentinel-2", "Copernicus Sentinel" |
+| `_` | Matches exactly one character | `'Sentinel-_'` matches "Sentinel-1", "Sentinel-2" |
+
+**Pattern Examples:**
+
+```bash
+# Find collections with "Sentinel" anywhere in title
+GET /collections?filter=title LIKE '%Sentinel%'
+
+# Find collections starting with "USGS"
+GET /collections?filter=title LIKE 'USGS%'
+
+# Find collections ending with "L2A"
+GET /collections?filter=title LIKE '%L2A'
+
+# Combine wildcards
+GET /collections?filter=title LIKE 'Sentinel-_ %'
+```
+
+**CQL2-JSON Format:**
+
+```json
+{
+  "op": "like",
+  "args": [
+    { "property": "title" },
+    "%Sentinel%"
+  ]
+}
+```
+
+**Note:** Pattern matching is case-sensitive. For case-insensitive matching, consider using the `q` parameter for full-text search instead.
 
 ---
 
@@ -108,7 +150,7 @@ Spatial operators compare geometry properties against GeoJSON geometries. These 
 {
   "op": "s_intersects",
   "args": [
-    { "property": "spatial_extend" },
+    { "property": "spatial_extent" },
     {
       "type": "Polygon",
       "coordinates": [[[7, 51], [8, 51], [8, 52], [7, 52], [7, 51]]]
@@ -119,7 +161,7 @@ Spatial operators compare geometry properties against GeoJSON geometries. These 
 
 **HTTP Request:**
 ```bash
-GET /collections?filter-lang=cql2-json&filter={"op":"s_intersects","args":[{"property":"spatial_extend"},{"type":"Polygon","coordinates":[[[7,51],[8,51],[8,52],[7,52],[7,51]]]}]}
+GET /collections?filter-lang=cql2-json&filter={"op":"s_intersects","args":[{"property":"spatial_extent"},{"type":"Polygon","coordinates":[[[7,51],[8,51],[8,52],[7,52],[7,51]]]}]}
 ```
 
 **Note:** Spatial operators are primarily used with CQL2-JSON encoding due to the complexity of GeoJSON geometry literals.
@@ -189,9 +231,9 @@ The following properties can be used in CQL2 filter expressions:
 | `title` | String | Collection title |
 | `description` | String | Collection description |
 | `license` | String | License identifier (e.g., "MIT", "CC-BY-4.0") |
-| `spatial_extend` | Geometry | Spatial bounding box (for spatial operators) |
-| `temporal_extend_start` | Timestamp | Start of temporal extent |
-| `temporal_extend_end` | Timestamp | End of temporal extent |
+| `spatial_extent` | Geometry | Spatial bounding box (for spatial operators) |
+| `temporal_extent_start` | Timestamp | Start of temporal extent |
+| `temporal_extent_end` | Timestamp | End of temporal extent |
 | `created_at` | Timestamp | Creation timestamp |
 | `updated_at` | Timestamp | Last update timestamp |
 | `is_api` | Boolean | Whether collection has an API |
@@ -206,14 +248,13 @@ The following properties can be used in CQL2 filter expressions:
 | `providers` | Array | Data providers |
 | `assets` | Array | Collection assets |
 | `summaries` | Object | Property summaries |
-| `last_crawled` | Timestamp | Last crawler update |
 
 ### Aliases
 
 | Alias | Maps To |
 |-------|---------|
-| `datetime` | `temporal_extend_start` / `temporal_extend_end` |
-| `temporal_extend` | `temporal_extend_start` / `temporal_extend_end` |
+| `datetime` | `temporal_extent_start` / `temporal_extent_end` |
+| `temporal_extent` | `temporal_extent_start` / `temporal_extent_end` |
 | `created` | `created_at` |
 | `updated` | `updated_at` |
 | `collection` | `id` |
@@ -288,6 +329,17 @@ CQL2-JSON is a structured JSON format for filter expressions.
 }
 ```
 
+**LIKE operator:**
+```json
+{
+  "op": "like",
+  "args": [
+    { "property": "title" },
+    "%Sentinel%"
+  ]
+}
+```
+
 ---
 
 ## Combining CQL2 with Other Parameters
@@ -353,7 +405,7 @@ WHERE c.license = $1
 Spatial operators use PostGIS functions with ST_GeomFromGeoJSON for geometry parsing:
 
 ```sql
-ST_Intersects(c.spatial_extend, ST_GeomFromGeoJSON($1))
+ST_Intersects(c.spatial_extent, ST_GeomFromGeoJSON($1))
 ```
 
 ---

@@ -9,7 +9,7 @@
  * The SELECT part focuses on the core STAC collection metadata, as described in the bid
  * and the database schema:
  * - id, stac_version, type, title, description, license
- * - spatial_extend, temporal_extend_start, temporal_extend_end
+ * - spatial_extent, temporal_extent_start, temporal_extent_end
  * - created_at, updated_at, is_api, is_active
  * - full_json (complete STAC Collection document as JSONB)
  *
@@ -36,7 +36,7 @@
  * @param {number[]|undefined} params.bbox
  *        Spatial filter as [minX, minY, maxX, maxY] in EPSG:4326.
  *        When present, the query adds:
- *        ST_Intersects(spatial_extend, ST_MakeEnvelope($x, $y, $z, $w, 4326))
+ *        ST_Intersects(spatial_extent, ST_MakeEnvelope($x, $y, $z, $w, 4326))
  *
  * @param {string|undefined} params.datetime
  *        Temporal filter in ISO8601:
@@ -44,7 +44,7 @@
  *        - closed interval: "2019-01-01/2021-12-31"
  *        - open start/end: "../2021-12-31" or "2019-01-01/.."
  *
- *        The collection is matched if its temporal_extend_start/temporal_extend_end
+ *        The collection is matched if its temporal_extent_start/temporal_extent_end
  *        overlap the requested interval.
  *
  * @param {{field: string, direction: 'ASC'|'DESC'}|undefined} params.sortby
@@ -88,7 +88,6 @@ function buildCollectionSearchQuery(params) {
     sortby,
     limit,
     token,
-    collectionId,
     cqlFilter
   } = params;
 
@@ -104,19 +103,19 @@ function buildCollectionSearchQuery(params) {
   // distinguish collection columns from aggregated relation data (keywords, providers, etc.).
   let selectPart = `
     SELECT
-      c.id,
       c.stac_version,
-      c.type,
+      c.stac_id,
+      c.source_url,
       c.title,
       c.description,
       c.license,
-      c.spatial_extend,
-      ST_XMin(c.spatial_extend) AS minx,
-      ST_YMin(c.spatial_extend) AS miny,
-      ST_XMax(c.spatial_extend) AS maxx,
-      ST_YMax(c.spatial_extend) AS maxy,
-      c.temporal_extend_start,
-      c.temporal_extend_end,
+      c.spatial_extent,
+      ST_XMin(c.spatial_extent) AS minx,
+      ST_YMin(c.spatial_extent) AS miny,
+      ST_XMax(c.spatial_extent) AS maxx,
+      ST_YMax(c.spatial_extent) AS maxy,
+      c.temporal_extent_start,
+      c.temporal_extent_end,
       c.created_at,
       c.updated_at,
       c.is_api,
@@ -126,8 +125,7 @@ function buildCollectionSearchQuery(params) {
       ext.stac_extensions,
       prov.providers,
       a.assets,
-      s.summaries,
-      cl.last_crawled
+      s.summaries
   `;
 
   const where = [];
@@ -135,15 +133,9 @@ function buildCollectionSearchQuery(params) {
   let i = 1;
 
   if (id !== undefined && id !== null) {
-    where.push(`c.id = $${i}`);
+    where.push(`c.stac_id = $${i}`);
     values.push(id);
     i++;
-  }
-
-  if (collectionId !== undefined && collectionId !== null && collectionId !== '') {
-    where.push(`c.full_json->>'id' = $${i}`);
-    values.push(collectionId);
-    i += 1;
   }
 
   // Full-text search using weighted tsvector across title (weight A) and description (weight B).
@@ -165,7 +157,7 @@ function buildCollectionSearchQuery(params) {
     const queryIndex = i; // remember index to reuse for rank and condition
 
     // Weighted combined tsvector expression (using alias 'c' for collection table)
-    const vectorExpr = `to_tsvector('simple', coalesce(c.title,'') || ' ' || coalesce(c.description,''))`;
+    const vectorExpr = `c.search_vector`;
 
     // Add rank to selected columns (ts_rank_cd => constant-duration ranking function)
     // The computed `rank` is available in the result rows and used for ordering
@@ -185,7 +177,7 @@ function buildCollectionSearchQuery(params) {
 
     where.push(`
       ST_Intersects(
-        c.spatial_extend, 
+        c.spatial_extent, 
         ST_MakeEnvelope($${i}, $${i + 1}, $${i + 2}, $${i + 3}, 4326)
       )
     `);
@@ -202,22 +194,22 @@ function buildCollectionSearchQuery(params) {
 
       if (start !== '..') {
         // Collection should run after start
-        where.push(`c.temporal_extend_end >= $${i}`);
+        where.push(`c.temporal_extent_end >= $${i}`);
         values.push(start);
         i++;
       }
 
       if (end !== '..') {
         // Collection should run before end
-        where.push(`c.temporal_extend_start <= $${i}`);
+        where.push(`c.temporal_extent_start <= $${i}`);
         values.push(end);
         i++;
       }
     } else {
       // single datetime: collections active at that time
       where.push(`
-        c.temporal_extend_start <= $${i}
-        AND c.temporal_extend_end >= $${i}
+        c.temporal_extent_start <= $${i}
+        AND c.temporal_extent_end >= $${i}
       `);
       values.push(datetime);
       i++;
@@ -317,11 +309,6 @@ function buildCollectionSearchQuery(params) {
         WHERE cs.collection_id = c.id
       ) s
     ) s ON TRUE
-    LEFT JOIN LATERAL (
-      SELECT MAX(clc.last_crawled) AS last_crawled
-      FROM crawllog_collection clc
-      WHERE clc.collection_id = c.id
-    ) cl ON TRUE
   `;
 
   if (where.length > 0) {
@@ -333,17 +320,17 @@ function buildCollectionSearchQuery(params) {
   //
   // Behaviour summary:
   // - `sortby` provided → use that (with 'c.' prefix for collection columns)
-  // - no `sortby` & `q` present → order by `rank DESC, c.id ASC` so higher relevance comes first
-  // - no `sortby` & no `q` → order by `c.id ASC` (legacy default)
+  // - no `sortby` & `q` present → order by `rank DESC, c.stac_id ASC` so higher relevance comes first
+  // - no `sortby` & no `q` → order by `c.stac_id ASC` (legacy default)
   //
   // Note: sortby.field is validated against a whitelist in the calling code; only collection
   // table columns are allowed for sorting (not aggregated fields like keywords/providers).
   if (sortby) {
     sql += ` ORDER BY c.${sortby.field} ${sortby.direction}`;
   } else if (q) {
-    sql += ` ORDER BY rank DESC, c.id ASC`;
+    sql += ` ORDER BY rank DESC, c.stac_id ASC`;
   } else {
-    sql += ` ORDER BY c.id ASC`;
+    sql += ` ORDER BY c.stac_id ASC`;
   }
 
   // Pagination (only add if limit is provided)
