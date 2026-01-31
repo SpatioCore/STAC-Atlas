@@ -123,5 +123,5 @@ All scripts in the `./init/` folder are automatically executed on first start in
 
 ## Migrations
 
-The `./migrations/` folder contains SQL scripts for schema changes after initial setup.
+The `./migrations/` folder contains SQL scripts for schema changes after initial setup. Those are not planed yet, but could be used in the future, when chages to the given database are required.
 
