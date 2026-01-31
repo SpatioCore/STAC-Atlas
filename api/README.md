@@ -198,7 +198,7 @@ CORS_ORIGIN=*
 
 This API implements:
 
-- ✅ STAC API Core (v1.1.0)
+- ✅ STAC API Core (v1.0.0)
 - ✅ OGC API Features Core
 - ✅ STAC Collections
 - ✅ Collection Search Extension

@@ -3,7 +3,7 @@
 ## Validator
 - Tool: stac_api_validator (official)
 - Execution: Python module (`py -m stac_api_validator`)
-- STAC API Version: 1.1.0
+- STAC API Version: 1.0.0
 - Collection STAC version: 1.0.0
 - API Base URL: http://localhost:3000
 
