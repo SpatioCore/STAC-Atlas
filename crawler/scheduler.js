@@ -1,6 +1,6 @@
 /**
- * @fileoverview Scheduler for running STAC crawler every 7 days
- * Runs only during allowed time window (22:00 - 07:00)
+ * @fileoverview Scheduler for running STAC crawler at configurable intervals
+ * Optionally restricts crawling to specified time windows
  * Skips scheduling if database errors occur
  * @module scheduler
  */
