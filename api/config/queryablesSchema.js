@@ -245,15 +245,6 @@ function buildCollectionsQueryablesSchema(baseUrl) {
         'x-implementation-status': 'Summary filtering requires JSONB key/value logic (not yet implemented).'
       },
 
-      last_crawled: {
-        title: 'Last Crawled',
-        description: 'Timestamp of last crawler visit. Maps to cl.last_crawled from LATERAL JOIN.',
-        type: 'string',
-        format: 'date-time',
-        'x-ogc-operators': OPS_TIMESTAMP,
-        'x-ogc-property': 'cl.last_crawled'
-      },
-
       // ==================== Property Aliases ====================
 
       created: {

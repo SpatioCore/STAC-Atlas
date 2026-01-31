@@ -10,6 +10,7 @@ const { requestIdMiddleware } = require('./middleware/requestId');
 const { globalErrorHandler } = require('./middleware/errorHandler');
 const { rateLimitMiddleware } = require('./middleware/rateLimit');
 const { corsMiddleware } = require('./middleware/cors');
+const { requestSizeLimitMiddleware, MAX_BODY_SIZE } = require('./middleware/requestSize');
 const { httpLogger } = require('./utils/logger');
 
 // Import routes
@@ -17,6 +18,7 @@ const indexRouter = require('./routes/index');
 const conformanceRouter = require('./routes/conformance');
 const collectionsRouter = require('./routes/collections');
 const queryablesRouter = require('./routes/queryables');
+const healthRouter = require('./routes/health');
 
 const app = express();
 
@@ -33,9 +35,14 @@ app.use(favicon(path.join(__dirname, 'favicon.ico')));
 // Limits each IP to 1000 requests per 15 minutes
 app.use(rateLimitMiddleware);
 
+// Request size limiting middleware
+// Protects against excessively large requests (URLs, headers, bodies)
+app.use(requestSizeLimitMiddleware);
+
 // Middleware
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+// Body size limits are enforced here (for future POST/PUT support)
+app.use(express.json({ limit: MAX_BODY_SIZE }));
+app.use(express.urlencoded({ extended: false, limit: MAX_BODY_SIZE }));
 
 // CORS configuration - allow requests from frontend
 app.use(corsMiddleware);
@@ -71,6 +78,7 @@ app.use('/', indexRouter);
 app.use('/conformance', conformanceRouter);
 app.use('/collections', collectionsRouter);
 app.use('/collections-queryables', queryablesRouter);
+app.use('/health', healthRouter);
 
 // 404 handler - must be after all routes
 app.use((req, res, next) => {

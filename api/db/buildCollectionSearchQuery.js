@@ -106,7 +106,6 @@ function buildCollectionSearchQuery(params) {
       c.stac_version,
       c.stac_id,
       c.source_url,
-      c.type,
       c.title,
       c.description,
       c.license,
@@ -126,8 +125,7 @@ function buildCollectionSearchQuery(params) {
       ext.stac_extensions,
       prov.providers,
       a.assets,
-      s.summaries,
-      cl.last_crawled
+      s.summaries
   `;
 
   const where = [];
@@ -311,11 +309,6 @@ function buildCollectionSearchQuery(params) {
         WHERE cs.collection_id = c.id
       ) s
     ) s ON TRUE
-    LEFT JOIN LATERAL (
-      SELECT MAX(clc.last_crawled) AS last_crawled
-      FROM crawllog_collection clc
-      WHERE clc.collection_id = c.id
-    ) cl ON TRUE
   `;
 
   if (where.length > 0) {

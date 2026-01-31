@@ -206,7 +206,6 @@ The following properties can be used in CQL2 filter expressions:
 | `providers` | Array | Data providers |
 | `assets` | Array | Collection assets |
 | `summaries` | Object | Property summaries |
-| `last_crawled` | Timestamp | Last crawler update |
 
 ### Aliases
 

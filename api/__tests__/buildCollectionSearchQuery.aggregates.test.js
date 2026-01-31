@@ -7,7 +7,6 @@ describe('buildCollectionSearchQuery - aggregated fields', () => {
     // Core collection fields should be prefixed with 'c.'
     expect(sql).toMatch(/c\.id/);
     expect(sql).toMatch(/c\.stac_version/);
-    expect(sql).toMatch(/c\.type/);
     expect(sql).toMatch(/c\.title/);
     expect(sql).toMatch(/c\.description/);
     expect(sql).toMatch(/c\.license/);
@@ -30,7 +29,6 @@ describe('buildCollectionSearchQuery - aggregated fields', () => {
     expect(sql).toMatch(/prov\.providers/);
     expect(sql).toMatch(/a\.assets/);
     expect(sql).toMatch(/s\.summaries/);
-    expect(sql).toMatch(/cl\.last_crawled/);
   });
 
   test('FROM clause uses collection alias c', () => {
@@ -94,13 +92,6 @@ describe('buildCollectionSearchQuery - aggregated fields', () => {
       expect(sql).toMatch(/WHERE cs\.collection_id = c\.id/);
     });
 
-    test('includes LATERAL JOIN for last_crawled timestamp', () => {
-      const { sql } = buildCollectionSearchQuery({ limit: 10, token: 0 });
-
-      expect(sql).toMatch(/MAX\(clc\.last_crawled\) AS last_crawled/);
-      expect(sql).toMatch(/FROM crawllog_collection clc/);
-      expect(sql).toMatch(/WHERE clc\.collection_id = c\.id/);
-    });
   });
 
   describe('WHERE clauses use collection alias c', () => {
@@ -214,7 +205,7 @@ describe('buildCollectionSearchQuery - aggregated fields', () => {
       // Count LEFT JOIN LATERAL occurrences (should be 6: kw, ext, prov, a, s, cl)
       const leftJoinLateralCount = (sql.match(/LEFT JOIN LATERAL/gi) || []).length;
       
-      expect(leftJoinLateralCount).toBe(6);
+      expect(leftJoinLateralCount).toBe(5);
     });
   });
 });
