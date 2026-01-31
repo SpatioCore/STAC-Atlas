@@ -361,6 +361,10 @@
   box-shadow: none;
 }
 
+.copy-btn.copied {
+  color: var(--primary);
+}
+
 /* Source Wrapper and Popover */
 .source-wrapper {
   position: relative;
