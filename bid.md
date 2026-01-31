@@ -204,7 +204,7 @@ Komponente | Funktion (Kurzbeschreibung) | Optionale Umsetzung | Akzeptanzkriter
 | Crawler | Collections in nahezu beliebiger Verschachtelungstiefe erfassen (nested catalogs) | – | Maximale Tiefe < 1024 | M | 6.1.1 2. | <!-- VI HuHi -->
 | Crawler | Metadaten extrahieren: id, title, description, spatial/temporal extent, keywords, provider, license, DOI, summaries(platform/constellation/gsd/processing:level) | – | ≥ 95 % Felder gefüllt bei Stichprobe n=50 | H | 6.1.1 3. | <!-- VI HuHi -->
 | Crawler | Quell-URL, Quell-Titel, „zuletzt gecrawlt“ speichern | – | Felder in DB vorhanden und befüllt | M | 6.1.1 4. | <!-- VI HuHi -->
-| Crawler | Alle stabilen STAC-Versionen unterstützen (alte Ressourcen werden automatisch auf 1.1 migriert) | – | Collections unterschiedl. Versionen werden gespeichert und ggf. migriert | M | 6.1.1 5. | <!-- CR: Crawler, fehlende Definition Stac Versionen migrieren/speichern, Wortwahl muss angepasst werden  JaWo -->
+| Crawler | Alle stabilen STAC-Versionen unterstützen (alte Ressourcen werden automatisch auf 1.1 migriert) | – | Validierte Collections unterschiedl. Versionen werden migriert und ggf. gespeichert  | M | 6.1.1 5. |
 | Crawler | Inkrementelle Updates und periodisches Re-Crawling | – | Änderungen können ohne vollständige Neuindexierung hinzugefügt werden | H | 6.1.1 6. | <!-- NI HuHi -->
 | Crawler | Vollständige STAC-Collection + extrahierte Suchfelder persistent ablegen | – | ≥ 95 % Felder identisch zwischen Quelle und Datenbank bei Stichprobe n=50 | H | 6.1.1 7. | <!-- VI HuHi -->
 | Crawler | Erweiterbares DB-Design für zusätzliche Felder vorschlagen (siehe 5. Produktdaten) | – | Schema-Entwurf dokumentiert & abgenommen | M | 6.1.1 8. | <!-- VI HuHi -->
@@ -453,7 +453,7 @@ Die Crawler-Komponente soll eine hohe Effizienz, Stabilität und Skalierbar sein
 
 #### 6.1.1 Crawling Leistung
 
-Der Crawler soll in der Lage sein aus dem STAC-Index Quellen innerhalb einer Woche zu analysieren. In folge dessen soll auch die Aktualisierung aller bekannter und neuer Quellen maximal eine Woche betragen. Die einzelnen STAC-Collections sollen jeweils innerhalb von < 5 Sekunden abgerufen und verarbeitet werden. Zudem soll der Crawler alle vorgegebenen Rate-Limits einhalten, um die externen Dienste nicht zu überlasten (z.B. max. 20 Request/Minute pro Quelle). <!-- NVI-70 (Rate Limiting) HuHi --> <!-- VI JaWo --><!-- CR: Beispiel Wert nicht wirklich treffend.  JaWo -->
+Der Crawler soll in der Lage sein aus dem STAC-Index Quellen innerhalb einer Woche zu analysieren. In folge dessen soll auch die Aktualisierung aller bekannter und neuer Quellen maximal eine Woche betragen. Die einzelnen STAC-Collections sollen jeweils innerhalb von < 5 Sekunden abgerufen und verarbeitet werden. Zudem soll der Crawler alle vorgegebenen Rate-Limits einhalten, um die externen Dienste nicht zu überlasten. <!-- VI JaWo -->
 
 #### 6.1.2 Crawling Parallelität und Skalierbarkeit
 Die Implementierung soll asynchrones und paralleles Crawling unterstützten. Es wird nur ein einzelene Crawler-Instanz sein, um die Komplexität mit Datenbankkonflikten zu vermeiden. Es wird darauf geachtet so zu programmieren, um in Zukunft horizontale Skalierung mit mehren Crawlern möglich zu machen. <!-- VI HuHi --> <!-- VI  JaWo --> <!-- VI LeKr --> 
