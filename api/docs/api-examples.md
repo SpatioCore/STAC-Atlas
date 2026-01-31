@@ -86,7 +86,7 @@ Use this endpoint to discover which attributes you can use in your queries and h
 
 ---
 
-## Common Search Patterns
+## Pagination and Sorting
 
 Here you will find typical use cases for sorting and pagination.
 
@@ -106,13 +106,107 @@ Retrieve large result lists page by page.
 The `token` parameter in this API is a simple offset: it tells the server how many collections to skip before starting to return results.
 For example, `token=0` means start at the beginning, `token=10` means skip the first 10 collections and return the next ones. 
 It is not a page number, and it is not related to a specific collection ID. 
-Always use the value provided by the API for consistent paging, especially if the API ever changes its paging logic.
 
 For example:
 
 "http://localhost:3000/collections?limit=10&token=0"
 
 "http://localhost:3000/collections?limit=10&token=10"
+
+---
+
+## Additional Query Parameters
+
+The API provides several specialized query parameters for filtering collections based on specific attributes.
+
+### Full-Text Search with `q`
+Perform a full-text search across collection titles, descriptions, and keywords.
+The `q` parameter accepts a search string (case-insensitive) and returns collections containing the search term in any of these fields.
+
+For example, to search for all collections related to "landsat":
+
+"http://localhost:3000/collections?q=landsat"
+
+To search for "sentinel" and limit results:
+
+"http://localhost:3000/collections?q=sentinel&limit=10"
+
+Combined with other filters (search for "climate" data with MIT license):
+
+"http://localhost:3000/collections?q=climate&license=MIT"
+
+### Spatial Filter with `bbox`
+Filter collections by geographic bounding box.
+The `bbox` parameter accepts four comma-separated coordinates: `minLon,minLat,maxLon,maxLat` (in WGS84/EPSG:4326).
+Returns collections whose spatial extent intersects with the specified bounding box.
+
+For example, to find collections covering the region around Münster, Germany:
+
+"http://localhost:3000/collections?bbox=7.5,51.8,7.8,52.0"
+
+To find collections covering Central Europe:
+
+"http://localhost:3000/collections?bbox=5,47,15,55"
+
+Combined with other filters (active collections in a specific region):
+
+"http://localhost:3000/collections?bbox=7.5,51.8,7.8,52.0&active=true&limit=20"
+
+### Filter by Provider
+Search for collections from a specific data provider.
+The `provider` parameter accepts a string value (case-insensitive).
+
+For example, to find all collections from ESA:
+
+"http://localhost:3000/collections?provider=ESA"
+
+To combine with other filters:
+
+"http://localhost:3000/collections?provider=NASA&limit=50"
+
+### Filter by License
+Filter collections by their license type.
+The `license` parameter accepts a string value (case-insensitive).
+
+For example, to find all collections with CC-BY-4.0 license:
+
+"http://localhost:3000/collections?license=CC-BY-4.0"
+
+To find collections with MIT license:
+
+"http://localhost:3000/collections?license=MIT"
+
+### Filter by Active Status
+Filter collections based on whether they are currently active or archived.
+The `active` parameter accepts boolean values: `true`, `false`, `1`, `0`, `yes`, or `no` (case-insensitive).
+
+For example, to show only active collections:
+
+"http://localhost:3000/collections?active=true"
+
+To show only archived/inactive collections:
+
+"http://localhost:3000/collections?active=false"
+
+Combined with other filters:
+
+"http://localhost:3000/collections?active=true&provider=ESA&limit=10"
+
+### Filter by API Availability
+Filter collections based on whether they are available via API or static Catalog.
+The `api` parameter accepts boolean values: `true`, `false`, `1`, `0`, `yes`, or `no` (case-insensitive).
+
+For example, to show only collections with API access:
+
+"http://localhost:3000/collections?api=true"
+
+To show collections inside static Catalogs:
+
+"http://localhost:3000/collections?api=false"
+
+Combined example (active collections with API access):
+
+"http://localhost:3000/collections?active=true&api=true"
 
 ---
 
@@ -160,7 +254,7 @@ However, for complex or deeply nested filters (especially with geo-objects), CQL
 
 - Bounding Box (S_INTERSECTS):
 
-  "http://localhost:3000/collections?filter-lang=cql2-json&filter={"op":"s_intersects","args":[{"property":"spatial_extend"},{"type":"Polygon","coordinates":[[[7,51],[8,51],[8,52],[7,52],[7,51]]]}]}"
+  "http://localhost:3000/collections?filter-lang=cql2-json&filter={"op":"s_intersects","args":[{"property":"spatial_extent"},{"type":"Polygon","coordinates":[[[7,51],[8,51],[8,52],[7,52],[7,51]]]}]}"
 
 - Time interval (T_INTERSECTS):
 
@@ -168,7 +262,7 @@ However, for complex or deeply nested filters (especially with geo-objects), CQL
 
 - Combined spatial and temporal filter:
 
-  "http://localhost:3000/collections?filter-lang=cql2-json&filter={"op":"and","args":[{"op":"s_intersects","args":[{"property":"spatial_extend"},{"type":"Polygon","coordinates":[[[7,51],[8,51],[8,52],[7,52],[7,51]]]}]},{"op":"t_intersects","args":[{"property":"datetime"},{"interval":["2020-01-01","2025-12-31"]}]}]}"
+  "http://localhost:3000/collections?filter-lang=cql2-json&filter={"op":"and","args":[{"op":"s_intersects","args":[{"property":"spatial_extent"},{"type":"Polygon","coordinates":[[[7,51],[8,51],[8,52],[7,52],[7,51]]]}]},{"op":"t_intersects","args":[{"property":"datetime"},{"interval":["2020-01-01","2025-12-31"]}]}]}"
 
 ## Example of a successful collection search
 
