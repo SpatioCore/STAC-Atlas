@@ -172,13 +172,13 @@ export async function handleCatalog({ request, json, crawler, log, indent, resul
     const depth = request.userData?.depth || 0;
     const catalogId = request.userData?.catalogId || 'unknown';
     const catalogSlug = request.userData?.catalogSlug || null;
+    const crawllogCatalogId = request.userData?.crawllogCatalogId || null;
     const maxDepth = config.maxDepth || 0; // 0 = unlimited
     
     log.info(`${indent}Processing catalog: ${catalogId} (depth: ${depth}${maxDepth > 0 ? `/${maxDepth}` : ''})`);
     
-    
     // Validate STAC structure before attempting migration
-    const validation = validateStacStructure(json);
+    const validation = await validateStacStructure(json, log, indent);
     if (!validation.valid) {
         log.warning(`${indent}Pre-validation failed for catalog ${catalogId} at ${request.url}`);
         log.warning(`${indent}Validation error: ${validation.error}`);
@@ -239,6 +239,13 @@ export async function handleCatalog({ request, json, crawler, log, indent, resul
     // If this is a STAC Collection (not a catalog), extract and store it
     // Collections don't have /collections endpoints, so we skip tryCollectionEndpoints for them
     if (isCollection) {
+        // Check if this collection URL was already crawled (pause/resume support)
+        const alreadyCrawled = await db.isCollectionUrlCrawled(request.url);
+        if (alreadyCrawled) {
+            log.info(`${indent}Skipping already-crawled collection: ${stacCatalog.id} (resume mode)`);
+            return;
+        }
+        
         const collection = normalizeCollection(stacCatalog, results.collections.length);
         // Add the catalog slug to the collection for unique stac_id generation
         collection.sourceSlug = catalogSlug;
@@ -246,6 +253,8 @@ export async function handleCatalog({ request, json, crawler, log, indent, resul
         collection.crawledUrl = request.url;
         // Mark as non-API collection (from static catalog)
         collection.is_api = false;
+        // Link to the crawllog_catalog for the parent catalog
+        collection.crawllogCatalogId = crawllogCatalogId;
         results.collections.push(collection);
         results.stats.collectionsFound++;
         log.info(`${indent}Extracted collection: ${collection.id} - ${collection.title}`);
@@ -256,7 +265,7 @@ export async function handleCatalog({ request, json, crawler, log, indent, resul
         // Only try /collections endpoint for Catalogs, not Collections
         // Static STAC catalogs don't have /collections endpoints - they use rel="child" links
         // STAC APIs have /collections endpoints and advertise them via rel="data" or rel="collections"
-        await tryCollectionEndpoints(stacCatalog, request.url, catalogId, depth, crawler, log, indent, catalogSlug);
+        await tryCollectionEndpoints(stacCatalog, request.url, catalogId, depth, crawler, log, indent, catalogSlug, crawllogCatalogId);
     }
     
     // Extract and enqueue child catalog links using stac-js
@@ -335,7 +344,8 @@ export async function handleCatalog({ request, json, crawler, log, indent, resul
                             depth: depth + 1,
                             catalogId: linkTitle,
                             parentId: catalogId,
-                            catalogSlug: catalogSlug
+                            catalogSlug: catalogSlug,
+                            crawllogCatalogId: crawllogCatalogId  // Pass through for linking collections
                         }
                     };
                 })
@@ -381,6 +391,7 @@ export async function handleCatalog({ request, json, crawler, log, indent, resul
 export async function handleCollections({ request, json, crawler, log, indent, results, isApi = false }) {
     const catalogId = request.userData?.catalogId || 'unknown';
     const catalogSlug = request.userData?.catalogSlug || null;
+    const crawllogCatalogId = request.userData?.crawllogCatalogId || null;
     
     // Validate STAC structure before attempting migration using stac-node-validator
     const validation = await validateStacStructure(json, log, indent);
@@ -438,12 +449,27 @@ export async function handleCollections({ request, json, crawler, log, indent, r
         // Remove trailing /collections from the request URL to get the API base
         const baseUrl = request.url.replace(/\/collections\/?$/, '');
 
+        // Get already-crawled URLs for this catalog to enable pause/resume
+        let crawledUrls = new Set();
+        if (crawllogCatalogId) {
+            try {
+                crawledUrls = await db.getCrawledCollectionUrls(crawllogCatalogId);
+                if (crawledUrls.size > 0) {
+                    log.info(`${indent}Found ${crawledUrls.size} already-crawled collection URLs for this catalog`);
+                }
+            } catch (err) {
+                log.warning(`${indent}Failed to get crawled URLs: ${err.message}`);
+            }
+        }
         
-        // Normalize and store collections
+        // Normalize and store collections, skipping already-crawled ones
+        let skippedCount = 0;
         const collections = collectionsData.map((colObj, index) => {
             const collection = normalizeCollection(colObj, index);
             // Add the catalog slug to the collection for unique stac_id generation
             collection.sourceSlug = catalogSlug;
+            // Link to the crawllog_catalog for the parent catalog
+            collection.crawllogCatalogId = crawllogCatalogId;
             
             // Store the absolute URL as crawledUrl
             // Use stac-js getAbsoluteUrl() if available, otherwise construct from base + id
@@ -459,11 +485,21 @@ export async function handleCollections({ request, json, crawler, log, indent, r
                 collection.crawledUrl = `${baseUrl}/collections/${collection.id}`;
             } 
             
+            // Skip if this URL was already crawled (pause/resume support)
+            if (crawledUrls.has(collection.crawledUrl)) {
+                skippedCount++;
+                return null;
+            }
+            
             // Mark collection as API or static catalog based on context
             collection.is_api = isApi;
             
             return collection;
-        });
+        }).filter(Boolean);  // Remove nulls (skipped collections)
+        
+        if (skippedCount > 0) {
+            log.info(`${indent}Skipped ${skippedCount} already-crawled collections (resume mode)`);
+        }
         
         results.collections.push(...collections);
         results.stats.collectionsFound += collections.length;
