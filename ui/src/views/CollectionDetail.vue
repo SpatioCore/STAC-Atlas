@@ -184,17 +184,52 @@
       <!-- Right Section: Items -->
       <div class="collection-detail__right-section">
         <section class="items-section">
-          <h2 class="section-title">Items ({{ items.length }})</h2>
-          <div class="items-section__list">
+          <h2 class="section-title">Items ({{ items.length }}{{ totalItemCount > items.length ? ` of ${totalItemCount}` : '' }})</h2>
+          <div v-if="itemsLoading" class="items-section__loading">
+            <p>Loading items from source...</p>
+          </div>
+          <div v-else-if="items.length === 0" class="items-section__empty">
+            <p>No items available</p>
+          </div>
+          <!-- Scrollable list for 12 or fewer items -->
+          <div v-else-if="!usePagination" class="items-section__list items-section__list--scrollable">
             <ItemCard
               v-for="item in items"
               :key="item.id"
+              :title="item.title"
               :id="item.id"
               :date="item.date"
-              :coverage="item.coverage"
-              :thumbnail="item.thumbnail"
             />
           </div>
+          <!-- Paginated list for 13+ items -->
+          <template v-else>
+            <div class="items-section__list items-section__list--paginated">
+              <ItemCard
+                v-for="item in paginatedItems"
+                :key="item.id"
+                :title="item.title"
+                :id="item.id"
+                :date="item.date"
+              />
+            </div>
+            <div class="items-section__pagination">
+              <button 
+                class="pagination-btn" 
+                @click="prevPage" 
+                :disabled="currentPage === 1"
+              >
+                ‹
+              </button>
+              <span class="pagination-info">{{ currentPage }} / {{ totalPages }}</span>
+              <button 
+                class="pagination-btn" 
+                @click="nextPage" 
+                :disabled="currentPage === totalPages"
+              >
+                ›
+              </button>
+            </div>
+          </template>
         </section>
       </div>
     </div>
@@ -387,45 +422,146 @@ const metadata = computed(() => {
   return meta
 })
 
-const items = ref<Array<{ id: string; date: string; coverage: string; thumbnail: string }>>([])
+const items = ref<Array<{ id: string; title: string; date: string }>>([])  
+const itemsLoading = ref(false)
+const currentPage = ref(1)
+const itemsPerPage = 6
+
+// Pagination logic - use pagination if 13+ items, otherwise scroll
+const usePagination = computed(() => items.value.length >= 13)
+const totalPages = computed(() => Math.ceil(items.value.length / itemsPerPage))
+const paginatedItems = computed(() => {
+  if (!usePagination.value) return items.value
+  const start = (currentPage.value - 1) * itemsPerPage
+  return items.value.slice(start, start + itemsPerPage)
+})
+
+const goToPage = (page: number) => {
+  if (page >= 1 && page <= totalPages.value) {
+    currentPage.value = page
+  }
+}
+
+const nextPage = () => goToPage(currentPage.value + 1)
+const prevPage = () => goToPage(currentPage.value - 1)
+
+// Compute total item count from source_links or links
+const totalItemCount = computed(() => {
+  const sourceLinks = collection.value?.source_links || []
+  const regularLinks = collection.value?.links || []
+  
+  const sourceItemCount = sourceLinks.filter(link => link.rel === 'item' || link.rel === 'items').length
+  if (sourceItemCount > 0) return sourceItemCount
+  
+  return regularLinks.filter(link => link.rel === 'item' || link.rel === 'items').length
+})
+
+// Helper function to resolve relative URLs against a base URL
+const resolveUrl = (baseUrl: string, relativePath: string): string => {
+  // Remove the filename from the base URL to get the directory
+  const baseDir = baseUrl.substring(0, baseUrl.lastIndexOf('/') + 1)
+  
+  // Handle relative paths starting with ./
+  if (relativePath.startsWith('./')) {
+    relativePath = relativePath.substring(2)
+  }
+  
+  // Handle parent directory references (..)
+  let resolvedBase = baseDir
+  while (relativePath.startsWith('../')) {
+    relativePath = relativePath.substring(3)
+    resolvedBase = resolvedBase.substring(0, resolvedBase.slice(0, -1).lastIndexOf('/') + 1)
+  }
+  
+  return resolvedBase + relativePath
+}
 
 const fetchItems = async () => {
-  const links = collection.value?.links || []
-  const itemLinks = links.filter(link => link.rel === 'item')
+  // Use source_links if available, otherwise fallback to links
+  const sourceUrl = collection.value?.source_url
+  const sourceLinks = collection.value?.source_links || []
+  const regularLinks = collection.value?.links || []
   
-  // Fetch first 10 items to avoid too many requests
-  const itemsToFetch = itemLinks.slice(0, 10)
+  // Get item links from source_links (for AWS-hosted items) or regular links
+  let itemLinks = sourceLinks.filter(link => link.rel === 'item' || link.rel === 'items')
+  
+  // If no source_links items, fallback to regular links
+  if (itemLinks.length === 0) {
+    itemLinks = regularLinks.filter(link => link.rel === 'item' || link.rel === 'items')
+  }
+  
+  if (itemLinks.length === 0) {
+    items.value = []
+    return
+  }
+  
+  itemsLoading.value = true
+  
+  // Fetch first 20 items to avoid too many requests
+  const itemsToFetch = itemLinks.slice(0, 20)
   
   const fetchedItems = await Promise.all(
     itemsToFetch.map(async (link) => {
       try {
-        const response = await fetch(link.href)
+        // Resolve the URL - if it's relative and we have a source_url, resolve against it
+        let itemUrl = link.href
+        if (sourceUrl && !link.href.startsWith('http')) {
+          itemUrl = resolveUrl(sourceUrl, link.href)
+        }
+        
+        const response = await fetch(itemUrl)
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`)
+        }
         const itemData = await response.json()
+        
+        const props = itemData.properties || {}
+        
+        // Get title
+        const title = props.title || itemData.id || 'Unknown'
+        
+        // Helper to format date nicely
+        const formatDate = (isoString: string): string => {
+          const date = new Date(isoString)
+          return date.toLocaleDateString('en-US', { 
+            year: 'numeric', 
+            month: 'short', 
+            day: 'numeric' 
+          })
+        }
+        
+        // Get date - try datetime first, then start_datetime/end_datetime
+        let dateStr = 'N/A'
+        if (props.datetime) {
+          dateStr = formatDate(props.datetime)
+        } else if (props.start_datetime) {
+          if (props.end_datetime) {
+            dateStr = `${formatDate(props.start_datetime)} – ${formatDate(props.end_datetime)}`
+          } else {
+            dateStr = formatDate(props.start_datetime)
+          }
+        }
         
         return {
           id: itemData.id || 'Unknown',
-          date: itemData.properties?.datetime 
-            ? new Date(itemData.properties.datetime).toLocaleDateString()
-            : 'N/A',
-          coverage: itemData.properties?.gsd 
-            ? `${itemData.properties.gsd}m`
-            : 'N/A',
-          thumbnail: ''
+          title,
+          date: dateStr
         }
       } catch (error) {
         console.error(`Failed to fetch item from ${link.href}:`, error)
+        // Extract item name from the href for display
         const filename = link.href.split('/').pop()?.replace('.json', '') || 'Unknown'
         return {
           id: filename,
-          date: 'N/A',
-          coverage: 'N/A',
-          thumbnail: ''
+          title: filename,
+          date: 'N/A'
         }
       }
     })
   )
   
   items.value = fetchedItems
+  itemsLoading.value = false
 }
 
 // Provider information computed from collection

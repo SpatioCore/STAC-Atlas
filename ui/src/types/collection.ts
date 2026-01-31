@@ -46,6 +46,11 @@ export interface Collection {
   summaries?: Record<string, unknown>
   assets?: Record<string, unknown>
 
+  // Source links from original STAC catalog (items stored on AWS)
+  source_links?: STACLink[]
+  source_url?: string
+  source_id?: string
+
   // Full-text search rank (only present when q parameter is used)
   rank?: number
 }
