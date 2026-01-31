@@ -5,22 +5,25 @@
  * @module scheduler
  */
 
+import dotenv from 'dotenv';
 import { crawler } from './index.js';
 import { formatDuration } from './utils/time.js';
+
+dotenv.config();
 
 /**
  * Configuration
  */
-const DAYS_INTERVAL = 7; // Run every 7 days
-const RUN_ON_STARTUP = true; // Set to false to wait 7 days before first run
-const RETRY_ON_CRAWL_ERROR = true; // Retry if crawl fails but DB is ok
-const RETRY_DELAY_HOURS = 2; // Hours to wait before retry on crawl error
+const DAYS_INTERVAL = parseInt(process.env.CRAWL_DAYS_INTERVAL, 10) || 7; // Run every N days
+const RUN_ON_STARTUP = process.env.CRAWL_RUN_ON_STARTUP !== 'false'; // Set to false to wait N days before first run
+const RETRY_ON_CRAWL_ERROR = process.env.CRAWL_RETRY_ON_ERROR !== 'false'; // Retry if crawl fails but DB is ok
+const RETRY_DELAY_HOURS = parseInt(process.env.CRAWL_RETRY_DELAY_HOURS, 10) || 2; // Hours to wait before retry on crawl error
 
 // Time window configuration (crawler only starts between these hours)
-const ALLOWED_START_HOUR = 22; // 22:00 (10 PM)
-const ALLOWED_END_HOUR = 7;    // 07:00 (7 AM)
-const ENFORCE_TIME_WINDOW = true; // Set to false to disable time window check
-const GRACE_PERIOD_MINUTES = 30; // Minutes to allow crawler to finish gracefully after end hour
+const ALLOWED_START_HOUR = parseInt(process.env.CRAWL_ALLOWED_START_HOUR, 10) || 0; // Default: 00:00 (Midnight)
+const ALLOWED_END_HOUR = parseInt(process.env.CRAWL_ALLOWED_END_HOUR, 10) || 23; // Default: 23:00 (11 PM)
+const ENFORCE_TIME_WINDOW = process.env.CRAWL_ENFORCE_TIME_WINDOW === 'true'; // Set to true to enable time window check
+const GRACE_PERIOD_MINUTES = parseInt(process.env.CRAWL_GRACE_PERIOD_MINUTES, 10) || 30; // Minutes to allow crawler to finish gracefully after end hour
 
 /**
  * Check if current time is within allowed time window
