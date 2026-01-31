@@ -227,9 +227,6 @@ async function clearAllCrawllogs() {
     collections: collectionsResult.rowCount
   };
 }
-    [crawllogCatalogId]
-  );
-}
 
 /**
  * Check if an error is a PostgreSQL deadlock error
