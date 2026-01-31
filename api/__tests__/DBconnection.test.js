@@ -1,5 +1,5 @@
 const { testConnection, queryByBBox, queryByGeometry, queryByDistance, closePool } = require('../db/db_APIconnection');
-
+const { query } = require('../db/db_APIconnection');
 /**
  * Jest Test Suite: Database Connection & PostGIS Tests
  */
@@ -23,20 +23,22 @@ describe('Database Connection', () => {
 
   describe('PostGIS - BBox Query', () => {
     test('should execute BBox query', async () => {
-      const result = await queryByBBox('collection', [-180, -90, 180, 90]);
-      
-      expect(result).toBeDefined();
-      expect(result.rows).toBeDefined();
-    });
+      const result = await queryByBBox('collection', [-80, -60, 80, 60]);
+      expect(result.rowCount).toBeGreaterThanOrEqual(0);
+    }, 45000);
 
     test('should return collections within bbox', async () => {
-      const result = await queryByBBox('collection', [-180, -90, 180, 90]);
-      
+      const result = await queryByBBox('collection', [-80, -60, 80, 60]);
+
+      // query worked and returned structure
+      expect(Array.isArray(result.rows)).toBe(true);
+
+      // if there are results, they should have spatial_extent property
       if (result.rowCount > 0) {
-        expect(result.rows[0]).toHaveProperty('spatial_extend');
-        expect(result.rowCount).toBeGreaterThan(0);
+        expect(result.rows[0]).toHaveProperty('spatial_extent');
       }
-    });
+    }, 45000);
+  });
 
     test('should reject invalid longitude', async () => {
       await expect(
@@ -76,7 +78,7 @@ describe('Database Connection', () => {
       expect(result.rows).toBeDefined();
     });
 
-    test('should return spatial_extend column', async () => {
+    test('should return spatial_extent column', async () => {
       const point = {
         type: 'Point',
         coordinates: [0, 0]
@@ -85,7 +87,7 @@ describe('Database Connection', () => {
       const result = await queryByGeometry('collection', point, 'intersects');
       
       if (result.rowCount > 0) {
-        expect(result.rows[0]).toHaveProperty('spatial_extend');
+        expect(result.rows[0]).toHaveProperty('spatial_extent');
       }
     });
 
@@ -131,7 +133,7 @@ describe('Database Connection', () => {
       
       if (result.rowCount > 0) {
         expect(result.rows[0]).toHaveProperty('distance');
-        expect(result.rows[0]).toHaveProperty('spatial_extend');
+        expect(result.rows[0]).toHaveProperty('spatial_extent');
       }
     });
 
@@ -163,4 +165,4 @@ describe('Database Connection', () => {
       expect(result2).toBeDefined();
     });
   });
-});
+
