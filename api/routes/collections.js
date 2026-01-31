@@ -41,8 +41,8 @@ function toStacCollection(row, baseHost) {
       },
       {
         rel: "parent",
-        href: `${baseHost}/collections`,
-        title: 'STAC Collections on STAC Atlas'
+        href: `${baseHost}`,
+        title: 'STAC Atlas Landing Page'
       }
     ];
   };
@@ -247,7 +247,7 @@ const rows = await runQuery(sql, values);
     const links = [
       { rel: 'self', href: selfHref, type: 'application/json', title: 'The collection itself' },
       { rel: 'root', href: rootHref, type: 'application/json', title: 'STAC Atlas Landing Page' },
-      { rel: 'parent', href: `${rootHref}/collections`, type: 'application/json', title: 'STAC Collections on STAC Atlas' }
+      { rel: 'parent', href: `${rootHref}`, type: 'application/json', title: 'STAC Atlas Landing Page' }
     ];
    const collection_id = toStacCollection(row);
     // Return the collection with a normalized `links` array.
