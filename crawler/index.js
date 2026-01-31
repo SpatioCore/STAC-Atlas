@@ -258,6 +258,16 @@ export const crawler = async () => {
         // Stop global statistics tracking and log final stats
         globalStats.stop();
         
+        // Deactivate collections that haven't been updated in the last 7 days
+        if (!dbError) {
+            try {
+                console.log('\nChecking for stale collections...');
+                await db.deactivateStaleCollections();
+            } catch (err) {
+                console.error(`Error deactivating stale collections: ${err.message}`);
+            }
+        }
+        
         // Close database connection
         if (!dbError) {
             try {

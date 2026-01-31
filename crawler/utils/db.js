@@ -733,6 +733,29 @@ async function insertAssets(client, collectionId, assets) {
 
 
 /**
+ * Mark collections as inactive if they haven't been updated in the last 7 days
+ * Should be called after a crawl completes to deactivate stale collections
+ * @async
+ * @function deactivateStaleCollections
+ * @returns {Promise<number>} Number of collections marked as inactive
+ */
+async function deactivateStaleCollections() {
+  const result = await pool.query(`
+    UPDATE collection
+    SET is_active = false
+    WHERE updated_at < NOW() - INTERVAL '7 days'
+      AND is_active = true
+  `);
+  
+  const count = result.rowCount;
+  if (count > 0) {
+    console.log(`Marked ${count} collection(s) as inactive (not updated in last 7 days)`);
+  }
+  
+  return count;
+}
+
+/**
  * Close the database connection pool
  * Should be called when the application shuts down
  * @async
@@ -756,6 +779,7 @@ export default {
   markCatalogCrawled,
   clearCrawllogCollection,
   clearAllCrawllogs,
+  deactivateStaleCollections,
   close, 
   pool 
 };
