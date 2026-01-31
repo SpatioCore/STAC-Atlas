@@ -185,7 +185,7 @@ onMounted(() => {
           </button>
           
           <span class="pagination-info">
-            Page {{ currentPage }} of {{ totalPages }} ({{ totalCollections }} total)
+            {{ currentPage }} of {{ totalPages }} ({{ totalCollections }} total)
           </span>
         </div>
       </template>
