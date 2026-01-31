@@ -58,14 +58,13 @@ CREATE TABLE assets (
     metadata JSONB
 );
 
--- Crawl log for collections: Tracks when each collection was last crawled for updates
+-- Crawl log for collections: Tracks the last crawled state of each collection and references the matching catalog
 -- Used to schedule re-crawling and maintain freshness of collection data
--- (same usecase as the crawllog for catalogs)
 CREATE TABLE crawllog_collection (
     id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-    collection_id INTEGER REFERENCES collection(id) ON DELETE CASCADE,
-    source_url TEXT,
-    last_crawled TIMESTAMP
+    FOREIGN KEY (collection_id) INTEGER REFERENCES collection(id) ON DELETE CASCADE,
+    source_url TEXT UNIQUE NOT NULL,
+    FOREIGN KEY (catalog_id) REFERENCES catalog_id(id) ON DELETE CASCADE,
 );
 
 -- ========================================

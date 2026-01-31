@@ -2,23 +2,6 @@
 -- These indexes optimize common query patterns and improve search performance
 
 -- ========================================
--- CATALOG INDEXES
--- ========================================
-
--- Basic catalog lookups
-CREATE INDEX idx_catalog_title ON catalog (title);
-CREATE INDEX idx_catalog_updated_at ON catalog (updated_at);
-
--- Full-text search index on computed search_vector column (includes title, description, and keywords)
-CREATE INDEX idx_catalog_search_vector ON catalog USING GIN (search_vector);
-
-CREATE INDEX idx_catalog_links_catalog_id ON catalog_links (catalog_id);
-CREATE INDEX idx_catalog_keywords_catalog ON catalog_keywords (catalog_id);
-CREATE INDEX idx_catalog_stac_ext_catalog ON catalog_stac_extension (catalog_id);
-
-CREATE INDEX idx_crawllog_catalog_last ON crawllog_catalog (last_crawled);
-
--- ========================================
 -- COLLECTION INDEXES
 -- ========================================
 
@@ -40,9 +23,6 @@ CREATE INDEX idx_collection_keywords_collection ON collection_keywords (collecti
 CREATE INDEX idx_collection_stac_ext_collection ON collection_stac_extension (collection_id);
 CREATE INDEX idx_collection_providers_collection ON collection_providers (collection_id);
 CREATE INDEX idx_collection_assets_collection ON collection_assets (collection_id);
-
-CREATE INDEX idx_crawllog_collection_last ON crawllog_collection (last_crawled);
-CREATE INDEX idx_crawllog_collection_source_url ON crawllog_collection (source_url);
 
 -- ========================================
 -- PROVIDER & ASSET INDEXES
