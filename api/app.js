@@ -17,6 +17,7 @@ const indexRouter = require('./routes/index');
 const conformanceRouter = require('./routes/conformance');
 const collectionsRouter = require('./routes/collections');
 const queryablesRouter = require('./routes/queryables');
+const healthRouter = require('./routes/health');
 
 const app = express();
 
@@ -71,6 +72,7 @@ app.use('/', indexRouter);
 app.use('/conformance', conformanceRouter);
 app.use('/collections', collectionsRouter);
 app.use('/collections-queryables', queryablesRouter);
+app.use('/health', healthRouter);
 
 // 404 handler - must be after all routes
 app.use((req, res, next) => {

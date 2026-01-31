@@ -44,6 +44,12 @@ router.get('/', (req, res) => {
         title: 'STAC Collections'
       },
       {
+        rel: 'health', // Health check endpoint
+        href: `${baseUrl}/health`,
+        type: 'application/json',
+        title: 'Health Check'
+      },
+      {
         rel: 'queryables',
         href: `${baseUrl}/collections-queryables`, //updated path
         type: 'application/schema+json',
