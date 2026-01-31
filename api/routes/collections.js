@@ -269,6 +269,11 @@ router.get('/', validateCollectionSearchParams, async (req, res, next) => {
     res.json({
       collections,
       links,
+      context: {
+        returned,
+        limit,
+        matched
+      }
     });
   } catch (error) {
     next(error);
