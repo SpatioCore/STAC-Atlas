@@ -6,17 +6,20 @@ const db = require('../db/db_APIconnection');
  * Health check endpoint for the STAC Atlas API
  * 
  * Provides liveness and readiness probes for Kubernetes-style health checks.
+ * Returns STAC-compliant JSON with links to related endpoints.
  * - Liveness: Returns 200 if the service is running
  * - Readiness: Returns 200 if the service and database are operational, 503 if degraded
  * 
  * @route GET /health
  * @param {Object} req - Express request object
  * @param {Object} res - Express response object
- * @returns {Object} Health status object
+ * @returns {Object} STAC-compliant health status object
+ * @returns {string} returns.type - STAC type: 'Health'
+ * @returns {string} returns.id - Health check identifier
+ * @returns {string} returns.title - Health check title
+ * @returns {string} returns.description - Health check description
  * @returns {string} returns.status - Overall status: 'ok' or 'degraded'
  * @returns {boolean} returns.ready - Readiness flag indicating if service is ready for traffic
- * @returns {string} returns.service - Service name from SERVICE_NAME environment variable
- * @returns {string} returns.version - API version from npm_package_version
  * @returns {number} returns.uptimeSec - Service uptime in seconds
  * @returns {string} returns.timestamp - ISO 8601 timestamp of health check
  * @returns {number} [returns.latencyMs] - Total latency in milliseconds (included on error)
@@ -27,6 +30,7 @@ const db = require('../db/db_APIconnection');
  * @returns {number} returns.checks.db.latencyMs - Database query latency in milliseconds
  * @returns {string} [returns.checks.db.code] - Error code from database (on error)
  * @returns {string} [returns.checks.db.message] - Error message for database connectivity failure
+ * @returns {Array} returns.links - STAC-compliant links to related resources
  * 
  * @throws {503} Service Unavailable - Returns degraded status when database is unreachable
  * @throws {200} OK - Returns ok status when all checks pass
@@ -34,17 +38,40 @@ const db = require('../db/db_APIconnection');
 router.get('/', async (req, res) => {
   const startedAt = Date.now();
   const timestamp = new Date().toISOString();
+  const baseUrl = `${req.protocol}://${req.get('host')}`;
 
   const result = {
+    type: 'Health',
+    id: 'stac-atlas-health',
+    title: 'STAC Atlas API Health Check',
+    description: 'Health status and readiness information for the STAC Atlas API',
     status: 'ok',
     ready: true, // readiness flag
-    service: process.env.SERVICE_NAME || 'stac-atlas-api',
-    version: process.env.npm_package_version,
     uptimeSec: Math.floor(process.uptime()),
     timestamp,
     checks: {
       alive: { status: 'ok' } // liveness is OK if this handler runs
-    }
+    },
+    links: [
+      {
+        rel: 'self',
+        href: `${baseUrl}/health`,
+        type: 'application/json',
+        title: 'This health check endpoint'
+      },
+      {
+        rel: 'root',
+        href: baseUrl,
+        type: 'application/json',
+        title: 'STAC Atlas root catalog'
+      },
+      {
+        rel: 'parent',
+        href: baseUrl,
+        type: 'application/json',
+        title: 'STAC Atlas root catalog'
+      },
+    ]
   };
 
   // Readiness check: DB

@@ -66,6 +66,12 @@ router.get('/', (req, res) => {
         href: `${baseUrl}/openapi.yaml`,
         type: 'application/vnd.oai.openapi+json;version=3.0',
         title: 'OpenAPI specification'
+      },
+      {
+        rel: 'health',
+        href: `${baseUrl}/health`,
+        type: 'application/json',
+        title: 'API Health Check'
       }
     ]
   });
