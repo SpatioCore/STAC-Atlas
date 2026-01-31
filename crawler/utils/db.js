@@ -399,7 +399,7 @@ async function _insertOrUpdateCollectionInternal(collection) {
         `UPDATE collection SET 
           stac_id = $1,
           stac_version = $2,
-          type = $3,
+          title = $3,
           description = $4,
           license = $5,
           spatial_extent = ST_GeomFromEWKT($6),
@@ -414,7 +414,7 @@ async function _insertOrUpdateCollectionInternal(collection) {
         [
           stacId,
           collection.stac_version || null,
-          collection.type || 'Collection',
+          collectionTitle,
           collection.description || null,
           collection.license || null,
           spatialExtent,
@@ -432,16 +432,15 @@ async function _insertOrUpdateCollectionInternal(collection) {
       // since we know the data is current as of this crawl
       const collectionResult = await client.query(
         `INSERT INTO collection (
-          stac_id, stac_version, type, title, description, license,
+          stac_id, stac_version, title, description, license,
           spatial_extent, temporal_extent_start, temporal_extent_end,
           is_api, is_active, source_url, full_json
         )
-        VALUES ($1, $2, $3, $4, $5, $6, ST_GeomFromEWKT($7), $8, $9, $10, $11, $12, $13)
+        VALUES ($1, $2, $3, $4, $5, ST_GeomFromEWKT($6), $7, $8, $9, $10, $11, $12)
         RETURNING id`,
         [
           stacId,
           collection.stac_version || null,
-          collection.type || 'Collection',
           collectionTitle,
           collection.description || null,
           collection.license || null,
