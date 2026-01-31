@@ -15,7 +15,7 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--muted);
+  background: transparent;
   border-radius: var(--radius-sm);
 }
 
@@ -31,7 +31,7 @@ body {
 /* Firefox scrollbar */
 * {
   scrollbar-width: thin;
-  scrollbar-color: var(--primary) var(--muted);
+  scrollbar-color: var(--primary) transparent;
 }
 
 #app {
