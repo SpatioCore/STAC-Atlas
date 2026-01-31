@@ -14,6 +14,7 @@ import {
     logDomainStats 
 } from '../utils/parallel.js';
 import globalStats from '../utils/globalStats.js';
+import { isShutdownRequested } from '../index.js';
 
 /**
  * Creates and runs a single Crawlee HttpCrawler for a specific domain
@@ -143,7 +144,8 @@ async function crawlSingleDomain(catalogs, domain, config = {}) {
             depth: 0,
             catalogId: catalog.id,
             catalogTitle: catalog.title,
-            catalogSlug: catalog.slug
+            catalogSlug: catalog.slug,
+            crawllogCatalogId: catalog.crawllogCatalogId  // Pass for linking collections to crawllog_catalog
         }
     }));
 
@@ -203,12 +205,20 @@ async function crawlCatalogs(initialCatalogs, config = {}) {
     console.log(`Theoretical max throughput: ${parallelDomains * maxRequestsPerMinutePerDomain} req/min across all domains`);
     console.log(`===============================================\n`);
     
-    // Create tasks for each domain
+    // Create tasks for each domain, with shutdown check
     const domainTasks = Array.from(domainMap.entries()).map(([domain, catalogs]) => {
-        return () => crawlSingleDomain(catalogs, domain, config);
+        return async () => {
+            // Check if shutdown was requested before starting this domain
+            if (isShutdownRequested()) {
+                console.log(`  [${domain}] Skipped (shutdown requested)`);
+                return { stats: { totalRequests: 0, successfulRequests: 0, failedRequests: 0, collectionsFound: 0, collectionsSaved: 0, collectionsFailed: 0, catalogsProcessed: 0, stacCompliant: 0, nonCompliant: 0 } };
+            }
+            return crawlSingleDomain(catalogs, domain, config);
+        };
     });
     
     console.log(`Starting parallel crawl of ${domainMap.size} domains (${parallelDomains} at a time)...\n`);
+    console.log(`Press Ctrl+C to pause (will stop after current batch and resume on next run)\n`);
     
     // Track total runtime for throughput calculation
     const crawlStartTime = Date.now();
@@ -218,7 +228,11 @@ async function crawlCatalogs(initialCatalogs, config = {}) {
         domainTasks, 
         parallelDomains,
         (completed, total) => {
-            console.log(`\n>>> Domain progress: ${completed}/${total} domains completed <<<\n`);
+            if (isShutdownRequested()) {
+                console.log(`\n>>> Shutdown requested. Stopping after current domains complete... <<<\n`);
+            } else {
+                console.log(`\n>>> Domain progress: ${completed}/${total} domains completed <<<\n`);
+            }
         }
     );
     

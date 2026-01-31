@@ -16,8 +16,9 @@
  * @param {Object} log - Logger
  * @param {string} indent - Indentation for logging
  * @param {string} catalogSlug - Slug of the source catalog for unique ID generation
+ * @param {number} crawllogCatalogId - ID from crawllog_catalog for linking collections
  */
-export async function tryCollectionEndpoints(stacCatalog, baseUrl, catalogId, depth, crawler, log, indent, catalogSlug = null) {
+export async function tryCollectionEndpoints(stacCatalog, baseUrl, catalogId, depth, crawler, log, indent, catalogSlug = null, crawllogCatalogId = null) {
     let collectionUrl = null;
 
     // Try to find collection endpoint from STAC links (proper STAC discovery)
@@ -80,6 +81,7 @@ export async function tryCollectionEndpoints(stacCatalog, baseUrl, catalogId, de
             catalogUrl: baseUrl,
             catalogId,
             catalogSlug,
+            crawllogCatalogId,
             depth
         }
     }]);

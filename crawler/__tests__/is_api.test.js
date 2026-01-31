@@ -17,9 +17,15 @@ jest.unstable_mockModule('../utils/normalization.js', () => ({
 
 // Mock db module
 const mockInsertOrUpdateCollection = jest.fn();
+const mockInsertOrUpdateCatalog = jest.fn();
+const mockIsCollectionUrlCrawled = jest.fn().mockResolvedValue(false);
+const mockGetCrawledCollectionUrls = jest.fn().mockResolvedValue(new Set());
 jest.unstable_mockModule('../utils/db.js', () => ({
     default: {
-        insertOrUpdateCollection: mockInsertOrUpdateCollection
+        insertOrUpdateCollection: mockInsertOrUpdateCollection,
+        insertOrUpdateCatalog: mockInsertOrUpdateCatalog,
+        isCollectionUrlCrawled: mockIsCollectionUrlCrawled,
+        getCrawledCollectionUrls: mockGetCrawledCollectionUrls
     }
 }));
 

@@ -83,6 +83,168 @@ async function insertOrUpdateCatalog(catalog) {
 }
 
 /**
+ * Insert or update a catalog/API entry in crawllog_catalog table
+ * This stores the URL queue for re-crawling and the slug for stac_id generation
+ * @param {Object} catalogInfo - Catalog info object
+ * @param {string} catalogInfo.slug - The STAC Index slug for this catalog
+ * @param {string} catalogInfo.url - The source URL of the catalog/API
+ * @param {boolean} catalogInfo.isApi - Whether this is an API (true) or static catalog (false)
+ * @returns {Promise<number>} The crawllog_catalog id
+ */
+async function saveCrawllogCatalog(catalogInfo) {
+  if (!catalogInfo || !catalogInfo.url) {
+    throw new Error('Catalog info with url is required');
+  }
+
+  const { slug, url, isApi = false } = catalogInfo;
+  
+  const result = await pool.query(
+    `INSERT INTO crawllog_catalog (slug, source_url, is_api, updated_at)
+     VALUES ($1, $2, $3, now())
+     ON CONFLICT (source_url) DO UPDATE SET
+       slug = COALESCE(EXCLUDED.slug, crawllog_catalog.slug),
+       is_api = EXCLUDED.is_api,
+       updated_at = now()
+     RETURNING id`,
+    [slug || null, url, isApi]
+  );
+  
+  return result.rows[0].id;
+}
+
+/**
+ * Get all catalogs from crawllog_catalog for re-crawling
+ * @param {Object} options - Query options
+ * @param {boolean} options.isApi - If provided, filter by API status
+ * @returns {Promise<Array>} Array of catalog objects with id, slug, source_url, is_api
+ */
+async function getCrawllogCatalogs(options = {}) {
+  let query = 'SELECT id, slug, source_url, is_api FROM crawllog_catalog';
+  const params = [];
+  
+  if (options.isApi !== undefined) {
+    query += ' WHERE is_api = $1';
+    params.push(options.isApi);
+  }
+  
+  query += ' ORDER BY id';
+  
+  const result = await pool.query(query, params);
+  return result.rows.map(row => ({
+    id: row.id,
+    slug: row.slug,
+    url: row.source_url,
+    isApi: row.is_api
+  }));
+}
+
+/**
+ * Get the crawllog_catalog id for a given source URL
+ * @param {string} sourceUrl - The source URL to look up
+ * @returns {Promise<number|null>} The crawllog_catalog id or null if not found
+ */
+async function getCrawllogCatalogIdByUrl(sourceUrl) {
+  if (!sourceUrl) return null;
+  
+  const result = await pool.query(
+    'SELECT id FROM crawllog_catalog WHERE source_url = $1',
+    [sourceUrl]
+  );
+  
+  return result.rows.length > 0 ? result.rows[0].id : null;
+}
+
+/**
+ * Get the slug for a given crawllog_catalog id
+ * Used to generate stac_id for collections
+ * @param {number} crawllogCatalogId - The crawllog_catalog id
+ * @returns {Promise<string|null>} The slug or null if not found
+ */
+async function getSlugByCrawllogCatalogId(crawllogCatalogId) {
+  if (!crawllogCatalogId) return null;
+  
+  const result = await pool.query(
+    'SELECT slug FROM crawllog_catalog WHERE id = $1',
+    [crawllogCatalogId]
+  );
+  
+  return result.rows.length > 0 ? result.rows[0].slug : null;
+}
+
+/**
+ * Get all already-crawled collection URLs for a given crawllog_catalog
+ * Used for pause/resume functionality - skip URLs that have already been processed
+ * @param {number} crawllogCatalogId - The crawllog_catalog id
+ * @returns {Promise<Set<string>>} Set of source URLs already in crawllog_collection
+ */
+async function getCrawledCollectionUrls(crawllogCatalogId) {
+  if (!crawllogCatalogId) return new Set();
+  
+  const result = await pool.query(
+    'SELECT source_url FROM crawllog_collection WHERE crawllog_catalog_id = $1 AND source_url IS NOT NULL',
+    [crawllogCatalogId]
+  );
+  
+  return new Set(result.rows.map(row => row.source_url));
+}
+
+/**
+ * Check if a specific collection URL has already been crawled
+ * @param {string} sourceUrl - The source URL to check
+ * @returns {Promise<boolean>} True if URL exists in crawllog_collection
+ */
+async function isCollectionUrlCrawled(sourceUrl) {
+  if (!sourceUrl) return false;
+  
+  const result = await pool.query(
+    'SELECT 1 FROM crawllog_collection WHERE source_url = $1 LIMIT 1',
+    [sourceUrl]
+  );
+  
+  return result.rows.length > 0;
+}
+
+/**
+ * Update the updated_at timestamp for a crawllog_catalog entry
+ * Called when a catalog has been fully processed
+ * @param {number} crawllogCatalogId - The crawllog_catalog id
+ */
+async function markCatalogCrawled(crawllogCatalogId) {
+  if (!crawllogCatalogId) return;
+  
+  await pool.query(
+    'UPDATE crawllog_catalog SET updated_at = now() WHERE id = $1',
+    [crawllogCatalogId]
+  );
+}
+
+/**
+ * Clear all entries from crawllog_collection table
+ * Used for fresh crawl - forces re-crawling of all collections
+ * @returns {Promise<number>} Number of rows deleted
+ */
+async function clearCrawllogCollection() {
+  const result = await pool.query('DELETE FROM crawllog_collection');
+  return result.rowCount;
+}
+
+/**
+ * Clear all entries from both crawllog tables
+ * Used for complete fresh start
+ * @returns {Promise<{catalogs: number, collections: number}>} Number of rows deleted from each table
+ */
+async function clearAllCrawllogs() {
+  // Delete collections first (foreign key constraint)
+  const collectionsResult = await pool.query('DELETE FROM crawllog_collection');
+  const catalogsResult = await pool.query('DELETE FROM crawllog_catalog');
+  
+  return {
+    catalogs: catalogsResult.rowCount,
+    collections: collectionsResult.rowCount
+  };
+}
+
+/**
  * Check if an error is a PostgreSQL deadlock error
  * @param {Error} error - The error to check
  * @returns {boolean} true if it's a deadlock error
@@ -208,32 +370,21 @@ async function _insertOrUpdateCollectionInternal(collection) {
       sourceUrl = selfLink?.href || rootLink?.href || null;
     }
     
-    // Check if collection with same stac_id from same source already exists
-    // This allows collections with the same title from different sources to coexist
+    // Check if collection with same stac_id already exists - stac_id is the unique key for upsert
+    // stac_id format: {sourceSlug}_{collection.id} ensures uniqueness across sources
     let existingCollection;
-    if (stacId && sourceUrl) {
-      // Best case: match by stac_id + source_url (most precise)
+    if (stacId) {
+      // Primary matching: stac_id is unique, so match by stac_id alone
       existingCollection = await client.query(
-        'SELECT id FROM collection WHERE stac_id = $1 AND full_json->>\'links\' LIKE $2',
-        [stacId, `%${sourceUrl}%`]
+        'SELECT id FROM collection WHERE stac_id = $1',
+        [stacId]
       );
-    }
-    
-    // Fallback: if no stac_id or source_url, check by title only (legacy behavior)
-    if (!existingCollection || existingCollection.rows.length === 0) {
-      if (stacId) {
-        // Try matching by stac_id + title combination
-        existingCollection = await client.query(
-          'SELECT id FROM collection WHERE stac_id = $1 AND title = $2',
-          [stacId, collectionTitle]
-        );
-      } else {
-        // Last resort: match by title only (for collections without stac_id)
-        existingCollection = await client.query(
-          'SELECT id FROM collection WHERE title = $1 AND stac_id IS NULL',
-          [collectionTitle]
-        );
-      }
+    } else {
+      // Fallback for collections without stac_id: match by title + source_url
+      existingCollection = await client.query(
+        'SELECT id FROM collection WHERE stac_id IS NULL AND title = $1 AND source_url = $2',
+        [collectionTitle, sourceUrl]
+      );
     }
     
     // Use originalJson if available (from normalizeCollection), otherwise use the collection object
@@ -334,15 +485,42 @@ async function _insertOrUpdateCollectionInternal(collection) {
       await insertAssets(client, collectionId, collection.assets);
     }
 
-    // Update crawl log
+    // Update crawl log with source_url and link to crawllog_catalog
+    // First, find the crawllog_catalog_id based on the source URL or parent catalog URL
+    let crawllogCatalogId = null;
+    if (collection.crawllogCatalogId) {
+      // Use the directly provided crawllog_catalog_id from the crawler
+      crawllogCatalogId = collection.crawllogCatalogId;
+    } else if (sourceUrl) {
+      // Try to find the crawllog_catalog_id by matching parent URL
+      // Extract the base URL (remove /collections/X if present)
+      const baseUrl = sourceUrl.replace(/\/collections\/[^/]+$/, '').replace(/\/collections\/?$/, '');
+      const catalogLookup = await client.query(
+        'SELECT id FROM crawllog_catalog WHERE source_url = $1 OR source_url = $2',
+        [sourceUrl, baseUrl]
+      );
+      if (catalogLookup.rows.length > 0) {
+        crawllogCatalogId = catalogLookup.rows[0].id;
+      }
+    }
+    
+    // Delete existing crawllog entry and insert new one with source_url
     await client.query(
       'DELETE FROM crawllog_collection WHERE collection_id = $1',
       [collectionId]
     );
-    await client.query(
-      'INSERT INTO crawllog_collection (collection_id, last_crawled) VALUES ($1, now())',
-      [collectionId]
-    );
+    
+    // Only insert into crawllog_collection if we have a source_url
+    if (sourceUrl) {
+      await client.query(
+        `INSERT INTO crawllog_collection (collection_id, source_url, crawllog_catalog_id)
+         VALUES ($1, $2, $3)
+         ON CONFLICT (source_url) DO UPDATE SET
+           collection_id = EXCLUDED.collection_id,
+           crawllog_catalog_id = EXCLUDED.crawllog_catalog_id`,
+        [collectionId, sourceUrl, crawllogCatalogId]
+      );
+    }
 
     await client.query('COMMIT');
     return collectionId;
@@ -560,8 +738,15 @@ export default {
   initDb, 
   insertOrUpdateCatalog, 
   insertOrUpdateCollection,
+  saveCrawllogCatalog,
+  getCrawllogCatalogs,
+  getCrawllogCatalogIdByUrl,
+  getSlugByCrawllogCatalogId,
+  getCrawledCollectionUrls,
+  isCollectionUrlCrawled,
+  markCatalogCrawled,
+  clearCrawllogCollection,
+  clearAllCrawllogs,
   close, 
   pool 
 };
-
-

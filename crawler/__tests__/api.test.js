@@ -13,6 +13,19 @@ jest.unstable_mockModule('../utils/handlers.js', () => ({
     handleCollections: jest.fn()
 }));
 
+// Mock db module
+jest.unstable_mockModule('../utils/db.js', () => ({
+    default: {
+        isCollectionUrlCrawled: jest.fn().mockResolvedValue(false),
+        getCrawledCollectionUrls: jest.fn().mockResolvedValue(new Set())
+    }
+}));
+
+// Mock index.js to avoid side effects from main module
+jest.unstable_mockModule('../index.js', () => ({
+    isShutdownRequested: jest.fn().mockReturnValue(false)
+}));
+
 // Import the actual module to test
 const { checkAndFlushApi, BATCH_SIZE, API_CLEAR_BATCH_SIZE } = await import('../apis/api.js');
 

@@ -40,6 +40,8 @@ export function parseCliArgs() {
             config.maxRequestsPerMinutePerDomain = parseInt(args[++i], 10);
         } else if (arg === '--concurrency-per-domain') {
             config.maxConcurrencyPerDomain = parseInt(args[++i], 10);
+        } else if (arg === '--fresh' || arg === '-f') {
+            config.fresh = true;
         } else if (arg === '--help' || arg === '-h') {
             printHelp();
             process.exit(0);
@@ -69,6 +71,10 @@ STAC Crawler Configuration Options:
   --rpm-per-domain <number>      Max requests per minute PER DOMAIN (default: 120)
                                  Total throughput = parallel-domains × rpm-per-domain
   --concurrency-per-domain <n>   Max concurrent requests per domain (default: 10)
+  
+  Resume/Fresh Options:
+  -f, --fresh                    Clear crawl log and start fresh (ignore previous progress)
+                                 Without this flag, crawler resumes from where it left off
   
   Legacy Rate Limiting Options (still supported):
   --max-concurrency <number>     Maximum concurrent requests (default: 5)
