@@ -6,11 +6,11 @@
 CREATE TABLE collection (
     id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     stac_version TEXT,
-    stac_id TEXT,
-    type TEXT,
+    stac_id TEXT UNIQUE,
     title TEXT,
     description TEXT,
     license TEXT,
+    source_url TEXT,
     created_at TIMESTAMP DEFAULT now(),
     updated_at TIMESTAMP DEFAULT now(),
 
@@ -33,7 +33,6 @@ CREATE TABLE collection_summaries (
     collection_id INTEGER REFERENCES collection(id) ON DELETE CASCADE,
     name TEXT,
     kind TEXT,
-    source_url TEXT,
     range_min NUMERIC,
     range_max NUMERIC,
     set_value TEXT,
@@ -58,13 +57,13 @@ CREATE TABLE assets (
     metadata JSONB
 );
 
--- Crawl log for collections: Tracks when each collection was last crawled for updates
+-- Crawl log for collections: Tracks the last crawled state of each collection and references the matching catalog
 -- Used to schedule re-crawling and maintain freshness of collection data
--- (same usecase as the crawllog for catalogs)
 CREATE TABLE crawllog_collection (
     id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-    collection_id INTEGER REFERENCES collection(id) ON DELETE CASCADE,
-    last_crawled TIMESTAMP
+    FOREIGN KEY (collection_id) INTEGER REFERENCES collection(id) ON DELETE CASCADE,
+    source_url TEXT UNIQUE NOT NULL,
+    FOREIGN KEY (catalog_id) REFERENCES catalog_id(id) ON DELETE CASCADE,
 );
 
 -- ========================================

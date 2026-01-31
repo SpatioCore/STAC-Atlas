@@ -66,6 +66,11 @@
  *
  * @param {string|undefined} params.license
  *        License identifier to filter collections by `collection.license`.
+ * 
+ * @param {{sql: string, values: any[]}|undefined} params.cqlFilter
+ *        Pre-parsed CQL2 filter SQL fragment and values.
+ *        The SQL fragment uses 1-based placeholders ($1, $2...) relative to its own values.
+ *        This function will re-index them to match the main query's parameter sequence.
  *
  * @returns {{ sql: string, values: any[] }}
  *          sql    – complete parameterized SQL string
@@ -82,7 +87,9 @@ function buildCollectionSearchQuery(params) {
     license,
     sortby,
     limit,
-    token
+    token,
+    collectionId,
+    cqlFilter
   } = params;
 
   // Base SELECT columns. We may append a relevance `rank` column below when `q` is present.
@@ -104,6 +111,10 @@ function buildCollectionSearchQuery(params) {
       c.description,
       c.license,
       c.spatial_extend,
+      ST_XMin(c.spatial_extend) AS minx,
+      ST_YMin(c.spatial_extend) AS miny,
+      ST_XMax(c.spatial_extend) AS maxx,
+      ST_YMax(c.spatial_extend) AS maxy,
       c.temporal_extend_start,
       c.temporal_extend_end,
       c.created_at,
@@ -124,9 +135,15 @@ function buildCollectionSearchQuery(params) {
   let i = 1;
 
   if (id !== undefined && id !== null) {
-    where.push(`id = $${i}`);
+    where.push(`c.id = $${i}`);
     values.push(id);
     i++;
+  }
+
+  if (collectionId !== undefined && collectionId !== null && collectionId !== '') {
+    where.push(`c.full_json->>'id' = $${i}`);
+    values.push(collectionId);
+    i += 1;
   }
 
   // Full-text search using weighted tsvector across title (weight A) and description (weight B).
@@ -224,6 +241,22 @@ function buildCollectionSearchQuery(params) {
     where.push(`c.license = $${i}`);
     values.push(license);
     i++;
+  }
+
+  // CQL2 Filter
+  if (cqlFilter && cqlFilter.sql) {
+    // Re-index placeholders in cqlFilter.sql
+    // Current index is i.
+    // cqlFilter.sql has $1, $2...
+    // We need to replace $1 with $i, $2 with $(i+1)...
+    
+    const reindexedSql = cqlFilter.sql.replace(/\$(\d+)/g, (match, num) => {
+      return '$' + (parseInt(num) + i - 1);
+    });
+    
+    where.push(`(${reindexedSql})`);
+    values.push(...cqlFilter.values);
+    i += cqlFilter.values.length;
   }
 
   // Build final SQL from selectPart and add FROM clause with LATERAL JOINs.
