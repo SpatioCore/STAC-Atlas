@@ -249,55 +249,18 @@ Die Tabellen enthalten jeweils Primärschlüssel zur eindeutigen Identifikation 
 
 ### Tabellenbereich „Catalogs“ <!-- VI SöHo -->
 
-Der Bereich **Catalogs** bildet die hierarchische Struktur der STAC-Kataloge ab. Jeder Katalog speichert seine Metadaten inklusive Versionierung, Typ, Beschreibung und zugehöriger Links. Über Zwischentabellen werden Erweiterungen (STAC Extensions) referenziert.  
+Der Crawllog_catalog dient als persistenten Speicher für den Fortschritt des Crawlers. Er protokolliert, welche Kataloge bereits besucht wurden und speichert den aktuellen Status. Dadurch weiß der Crawler bei einem Neustart oder nach einem Abbruch genau, an welcher Stelle er den Crawling-Prozess fortsetzen muss, ohne von vorne beginnen zu müssen. 
 
-#### Tabelle: `catalog` <!-- VI SöHo -->
+#### Tabelle: `crawllog_catalog` <!-- VI SöHo -->
 
-| Spalte        | Beschreibung / Inhalt                   | Datentyp / Format     |
-|---------------|------------------------------------------|------------------------|
-| **id**        | Eindeutige Identifikationsnummer des Katalogs | integer (PK)          |
-| stac_version  | STAC-Versionsnummer                     | text                  |
-| type          | Typ des STAC-Objekts                   | text                  |
-| title         | Titel des Katalogs                     | text                  |
-| description   | Beschreibung des Kataloginhalts         | text                  |
-| created_at    | Zeitpunkt der Erstellung                | timestamp             |
-| updated_at    | Zeitpunkt der letzten Änderung          | timestamp             |
-| search_vector | Effizientere Bestimmung und Verarbeitung der Vektordaten | tsvector |
-
-Die Haupttabelle `catalog` bildet den zentralen Einstiegspunkt der Kataloghierarchie. Sie speichert allgemeine Metadaten und dient als Ankerpunkt für die zugehörigen Relationen. Diese Tabelle ist notwenidg um zu schauen, ob der crawler die aktueller Version des `catalogs` gespeichert hat, oder diesen `catalog` erneut crawlen muss. Somit kann der crawler bei einem erneuten crawl effektiver und schneller arbeiten.
-
-#### Tabelle: `catalog_links` <!-- VI SöHo -->
-
-| Spalte       | Beschreibung / Inhalt                        | Datentyp / Format     |
-|---------------|----------------------------------------------|------------------------|
-| **id**        | Eindeutige Identifikationsnummer des Links   | integer (PK)          |
-| catalog_id    | Verweis auf den zugehörigen Katalog         | integer (FK)          |
-| source_url    | schnellere Bestimmung des Ursprungs-Catalog | text                  |
-| rel           | Beziehungstyp (z. B. *parent*, *child*, *self*) | text              |
-| href          | Ziel-URL des Links                          | text                  |
-| type          | MIME-Type des Zielobjekts                   | text                  |
-| title         | Titel oder Name des Links                   | text                  |
-
-Die Tabelle `catalog_links` beschreibt die Verknüpfungen zwischen einzelnen Katalogen oder externen Referenzen und implementiert damit die STAC-Link-Struktur.
-
-#### Tabelle: catalog:stac_extension <!-- VI SöHo -->
-
-| Spalte              | Beschreibung / Inhalt                    | Datentyp / Format |
-|----------------------|------------------------------------------|-------------------|
-| **catalog_id**       | Referenz auf `catalog.id`                | integer (FK)      |
-| **stac_extension_id**| Referenz auf `stac_extension.id`         | integer (FK)      |
-
-Diese Relation beschreibt, welche STAC-Erweiterungen in einem bestimmten Katalog verwendet werden. Hier wird eine eigene Tabelle benötigt da hier eine (n:n)-Beziehung zwischen den beiden tabellen vorliegt.
-
-#### Tabelle: crawllog_catalog <!-- VI SöHo -->
-
-| Spalte       | Beschreibung / Inhalt                    | Datentyp / Format |
-|---------------|------------------------------------------|-------------------|
-| **id**        | Eindeutige ID des Crawlvorgangs          | integer (PK)      |
-| catalog_id    | Referenz auf `catalog.id`                | integer (FK)      |
-| last_crawled  | Zeitpunkt des letzten Crawls             | timestamp         | 
-
-Protokolliert die Zeitpunkte der letzten Crawling-Vorgänge für jeden Katalog. 
+| Spalte        | Beschreibung / Inhalt                     | Datentyp / Format     |
+|---------------|------------------------------------------ |-----------------------|
+| **id**        | Eindeutige Identifikationsnummer des Katalogs | integer (PK)      |
+| slug          | eindeutiger URL-freundlicher Identifikator| text                  |
+| source_url    | sperichert die URL der Quelle             | text                  |
+| is_api        | checkt ob der catalog eine API ist        | BOOLEAN               |
+| created_at    | Zeitpunkt der Erstellung                  | timestamp             |
+| updated_at    | Zeitpunkt der letzten Änderung            | timestamp             |
 
 ---
 
@@ -321,9 +284,8 @@ Der Bereich **Collections** bildet die Sammlungen von Collections innerhalb eine
 | spatial_extent         | Räumliche Ausdehnung (Bounding Box)                     | bbox (geometry)    |
 | temporal_extent_start  | Startzeitpunkt des zeitlichen Gültigkeitsbereichs        | timestamp          |
 | temporal_extent_end    | Endzeitpunkt des zeitlichen Gültigkeitsbereichs          | timestamp          |
-| is_api                 | ist die collection in einem catalog oder api          | boolean          |
-| is_active              | ist die collection noch aktuell, oder wurde diese gelöscht          | boolean          |
-| is_valid               | nur valide collections sind stac konform, daher müssen diese unterschieden werden  | boolean          |
+| is_api                 | ist die collection in einem static-catalog oder einer api| boolean          |
+| is_active              | ist die collection noch aktuell, oder wurde diese gelöscht | boolean          |
 | full_json              | Hier werden alle JSON-Daten einer collection gespeichert    | JSONB           |
 | search_vector          | Effizientere Bestimmung und Verarbeitung der Vektordaten    | tsvector        |
 
@@ -388,9 +350,10 @@ Definiert die Zuordnung von Datenanbietern (Providern) zu einzelnen Collections.
 |---------------|------------------------------------------|-------------------|
 | **id**        | Eindeutige ID des Crawlvorgangs          | integer (PK)      |
 | collection_id | Referenz auf `collection.id`             | integer (FK)      |
-| last_crawled  | Zeitpunkt des letzten Crawls             | timestamp         |
+| crawllog_catalog_id | Referenz auf `crawllog_catalog.id` | integer (FK)      |
+| source_url  | Quelle der Collection             | TEXT         |
 
-Analog zur vorherigen Tabelle dient `crawllog_collection` der Nachverfolgung der Crawling-Zyklen für Collections.  
+Die Tabelle `crawllog_collection` dient der Nachverfolgung der Crawling-Zyklen für Collections.  
 
 ---
 
@@ -692,8 +655,7 @@ Die Ergebnisse werden in einer PostgreSQL-Datenbank gespeichert. <!-- VI HuHi --
 
 ### 9.2 Datenbank-Komponente <!-- Sönke --> 
 Die Datenbankkomponente stellt die zentrale Grundlage für die Speicherung, Verwaltung und Abfrage aller vom Crawler erfassten Metadaten dar. Sie dient der persistenten Ablage sämtlicher Inhalte, einschließlich der vollständigen STAC-JSON-Strukturen, und ermöglicht deren effiziente Weiterverarbeitung innerhalb der Gesamtarchitektur. Als Datenbanksystem wird **PostgreSQL** in Kombination mit der Erweiterung **PostGIS** eingesetzt, um sowohl relationale als auch geographische Abfragen performant unterstützen zu können. <!-- VI SöHo -->
-<!-- PR: der 2. Satz macht so wie er hier steht keinen Sinn (mehr). Das müsste umformuliert werden: jeweils die Haupttabellen catalog und collection und dazu dann Erweiterungen, die die effizenz der DB erhöhen -->
-Die Struktur der Datenbank ist in mehrere logisch voneinander getrennte Teiltabellen gegliedert. Neben der Haupttabelle, in der alle grundlegenden Informationen abgelegt werden, existieren Tabellen wie `collection`, `catalog`, sowie vielen anderen (vgl. 5. Produktdaten). Diese Unterteilung sorgt für eine klare Trennung der Metadatenbereiche und ermöglicht eine performante Abfrage durch gezielte Normalisierung. Über Primär- und Fremdschlüsselbeziehungen sind die Tabellen miteinander verknüpft, sodass alle relevanten Daten effizient referenziert werden können. <!-- VI SöHo -->
+Die Struktur der Datenbank ist in mehrere logisch voneinander getrennte Teiltabellen gegliedert. Neben der Haupttabelle, in der alle grundlegenden Informationen abgelegt werden, existieren Tabellen wie `collection`, `crawllog_catalog`, sowie vielen anderen (vgl. 5. Produktdaten). Diese Unterteilung sorgt für eine klare Trennung der Metadatenbereiche und ermöglicht eine performante Abfrage durch gezielte Normalisierung sowie eine effizientere Crawling-Struktur. Bei einem Abbruch oder Stop des Crawler kann nun gezieht an der richtigen Stelle weiter gecrawled werden. Über Primär- und Fremdschlüsselbeziehungen sind die Tabellen miteinander verknüpft, sodass alle relevanten Daten effizient referenziert werden können. <!-- VI SöHo -->
 
 Um eine schnelle und ressourcenschonende Datensuche zu gewährleisten, werden verschiedene Indizes eingerichtet. Neben klassischen **B-Tree-Indizes** für ID- und Zeitspalten kommen **GIN-** und **GiST-Indizes** zum Einsatz, um Text- und Geometrieabfragen zu optimieren. Dies betrifft insbesondere die Felder für Titel, Beschreibung, Keywords, zeitliche Angaben sowie die räumlichen Geometrien. Die Implementierung einer **Volltextsuche** auf Basis von **PostgreSQL-TSVector** ermöglicht zudem eine performante Freitextsuche über Titel, Beschreibungen und Schlagwörter, einschließlich Relevanzbewertung und optionaler Mehrsprachigkeit. <!-- VI SöHo -->
 
@@ -830,9 +792,9 @@ Zur Auslieferung und Reproduzierbarkeit der Laufzeitumgebung wird Docker genutzt
 Die Architektur ist modular aufgebaut und besteht aus folgenden Komponenten: 
 Der Source Manager persistiert Quellendaten (URL, Typ, Crawl‑Intervall, Status, letzte Ausführung) sowie manuelle Trigger bereit.
 Der Scheduler plant die periodischen Crawls gemäß der konfigurierten Intervalle. <!-- NI HuHi --> <!-- NI LeKr --> 
-Die Crawler Engine lädt STAC‑Kataloge und STAC‑APIs asynchron, folgt relevanten Link‑Relationen (child, catalog, collection) und beachtet dabei Rate‑Limits, mögliche robots.txt‑Regeln sowie Parallelitätsgrenzen. <!-- VI HuHi -->  <!-- NVI-80, keine Robots.txt wird beachtet soweit ich weiß.  JaWo --> <!-- VI LeKr --> 
+Die Crawler Engine lädt STAC‑Kataloge und STAC‑APIs asynchron, folgt relevanten Link‑Relationen (child, crawllog_catalog, collection) und beachtet dabei Rate‑Limits, mögliche robots.txt‑Regeln sowie Parallelitätsgrenzen. <!-- VI HuHi -->  <!-- NVI-80, keine Robots.txt wird beachtet soweit ich weiß.  JaWo --> <!-- VI LeKr --> 
 Der Metadata Extractor / Normalizer migriert STAC‑Versionen mit stac‑migrate, modelliert Objekte (z. B. mit stac‑js) und extrahiert die relevanten Felder. <!-- VI HuHi --> <!-- VI LeKr --> 
-Der Validator prüft die Objekte gegen die STAC JSON‑Schemas (z. B. mit `ajv)` und protokolliert Validierungsfehler samt Persistenz der Rohdaten zur Analyse. <!-- VI HuHi -->
+Der Validator prüft die Objekte gegen die STAC JSON‑Schemas (z. B. mit `ajv`) und protokolliert Validierungsfehler samt Persistenz der Rohdaten zur Analyse. <!-- VI HuHi -->
 Der Database Writer verwaltet Indizes und Transaktionen. Die Logger / Monitor‑Komponente erfasst Fehler, Durchsatz, Latenzen und stellt Health‑Checks bzw. Metriken bereit. <!-- VI HuHi --> <!-- VI LeKr --> 
 Optional existiert eine Admin UI / API zur Anzeige von Quellen, Fehlerlogs und für manuelle Resets. <!-- NI HuHi -->
 
@@ -875,7 +837,7 @@ Die Implementierung folgt einem klar strukturierten Vorgehen in mehreren Phasen,
 #### Phasen und Meilensteine
 
 1. **Analyse- und Entwurfsphase (M1)**  
-   In dieser Phase werden das Datenmodell und die Schnittstellenanforderungen definiert. Die STAC-konformen Metadatenstrukturen werden analysiert und in ein relationales Schema überführt. Hierzu wird ein erstes **Prisma-Datenmodell** erstellt, das alle Tabellen (z.B. `collection`, `catalog`, `keywords` usw.) sowie deren Beziehungen enthält. 
+   In dieser Phase werden das Datenmodell und die Schnittstellenanforderungen definiert. Die STAC-konformen Metadatenstrukturen werden analysiert und in ein relationales Schema überführt. Hierzu wird ein erstes **Prisma-Datenmodell** erstellt, das alle Tabellen (z.B. `collection`, `crawllog_catalog`, `keywords` usw.) sowie deren Beziehungen enthält. 
    Ergebnis: Validiertes ER-Diagramm und initiales Datenmodell (`schema.prisma`). <!-- UVI-60 SöHo -->
 
 2. **Implementierungsphase (M2)** 
