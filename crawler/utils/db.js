@@ -391,6 +391,14 @@ async function _insertOrUpdateCollectionInternal(collection) {
     // This ensures the full original STAC JSON is stored, not the normalized version
     const fullJsonData = collection.originalJson || collection;
     
+    // Determine is_api based on source_url
+    // If source_url ends with .json, it's NOT an API (static file)
+    // Otherwise, it's an API endpoint
+    let isApi = false;
+    if (sourceUrl) {
+      isApi = !sourceUrl.toLowerCase().endsWith('.json');
+    }
+    
     let collectionId;
     if (existingCollection.rows.length > 0) {
       // Update existing collection
@@ -408,8 +416,9 @@ async function _insertOrUpdateCollectionInternal(collection) {
           is_active = $9,
           source_url = $10,
           full_json = $11,
+          is_api = $12,
           updated_at = now()
-         WHERE id = $12`,
+         WHERE id = $13`,
         [
           stacId,
           collection.stac_version || null,
@@ -422,6 +431,7 @@ async function _insertOrUpdateCollectionInternal(collection) {
           true, // is_active
           sourceUrl,
           JSON.stringify(fullJsonData),
+          isApi,
           collectionId
         ]
       );
@@ -432,9 +442,9 @@ async function _insertOrUpdateCollectionInternal(collection) {
         `INSERT INTO collection (
           stac_id, stac_version, title, description, license,
           spatial_extent, temporal_extent_start, temporal_extent_end,
-          is_active, source_url, full_json
+          is_active, source_url, full_json, is_api
         )
-        VALUES ($1, $2, $3, $4, $5, ST_GeomFromEWKT($6), $7, $8, $9, $10, $11)
+        VALUES ($1, $2, $3, $4, $5, ST_GeomFromEWKT($6), $7, $8, $9, $10, $11, $12)
         RETURNING id`,
         [
           stacId,
@@ -447,7 +457,8 @@ async function _insertOrUpdateCollectionInternal(collection) {
           temporalEnd,
           true, // is_active
           sourceUrl,
-          JSON.stringify(fullJsonData)
+          JSON.stringify(fullJsonData),
+          isApi
         ]
       );
       collectionId = collectionResult.rows[0].id;
@@ -520,16 +531,6 @@ async function _insertOrUpdateCollectionInternal(collection) {
     }
 
     await client.query('COMMIT');
-    
-    // Sync is_api value from crawllog_catalog after successful commit
-    if (crawllogCatalogId) {
-      try {
-        await syncIsApiFromCatalog();
-      } catch (syncError) {
-        // Log but don't fail - collection was already saved successfully
-        console.warn(`Warning: Failed to sync is_api for collection ${collectionId}: ${syncError.message}`);
-      }
-    }
     
     return collectionId;
   } catch (error) {
@@ -732,27 +733,6 @@ async function insertAssets(client, collectionId, assets) {
 
 
 /**
- * Sync is_api values from crawllog_catalog to collection table
- * Copies the is_api value from crawllog_catalog to associated collections
- * via the crawllog_collection join table
- * @async
- * @function syncIsApiFromCatalog
- * @returns {Promise<number>} Number of collections updated
- */
-async function syncIsApiFromCatalog() {
-  const result = await pool.query(`
-UPDATE collection c
-    SET is_api = cc.is_api
-    FROM crawllog_collection clc
-    JOIN crawllog_catalog cc ON clc.crawllog_catalog_id = cc.id
-    WHERE clc.collection_id = c.id
-      AND c.is_api IS DISTINCT FROM cc.is_api
-  `);
-  
-  return result.rowCount;
-}
-
-/**
  * Close the database connection pool
  * Should be called when the application shuts down
  * @async
@@ -776,7 +756,6 @@ export default {
   markCatalogCrawled,
   clearCrawllogCollection,
   clearAllCrawllogs,
-  syncIsApiFromCatalog,
   close, 
   pool 
 };
