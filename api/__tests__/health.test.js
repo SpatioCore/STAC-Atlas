@@ -37,6 +37,15 @@ describe('Health Check Endpoint', () => {
     expect(response.type).toBe('application/json');
   });
 
+  test('GET /health response contains STAC-compliant structure', async () => {
+    const response = await request(app).get('/health');
+    expect(response.body.type).toBe('Health');
+    expect(response.body.id).toBe('stac-atlas-health');
+    expect(response.body.title).toBe('STAC Atlas API Health Check');
+    expect(response.body.description).toBeDefined();
+    expect(typeof response.body.description).toBe('string');
+  });
+
   test('GET /health response contains liveness + readiness fields', async () => {
     const response = await request(app).get('/health');
     expect(response.body.status).toBe('ok');
@@ -52,9 +61,34 @@ describe('Health Check Endpoint', () => {
     expect(new Date(response.body.timestamp).toISOString()).toBe(response.body.timestamp);
   });
 
-  test('GET /health response contains service name', async () => {
+  test('GET /health response contains uptime', async () => {
     const response = await request(app).get('/health');
-    expect(response.body.service).toBe('STAC Atlas API');
+    expect(response.body.uptimeSec).toBeDefined();
+    expect(typeof response.body.uptimeSec).toBe('number');
+    expect(response.body.uptimeSec).toBeGreaterThanOrEqual(0);
+  });
+
+  test('GET /health response contains STAC links', async () => {
+    const response = await request(app).get('/health');
+    expect(response.body.links).toBeDefined();
+    expect(Array.isArray(response.body.links)).toBe(true);
+    expect(response.body.links.length).toBeGreaterThan(0);
+
+    // Check for required link relations
+    const linkRels = response.body.links.map(link => link.rel);
+    expect(linkRels).toContain('self');
+    expect(linkRels).toContain('root');
+    expect(linkRels).toContain('parent');
+
+    // Validate link structure
+    response.body.links.forEach(link => {
+      expect(link).toHaveProperty('rel');
+      expect(link).toHaveProperty('href');
+      expect(link).toHaveProperty('type');
+      expect(link).toHaveProperty('title');
+      expect(typeof link.href).toBe('string');
+      expect(link.href.length).toBeGreaterThan(0);
+    });
   });
 
   test('GET /health returns 503 when DB ping fails', async () => {

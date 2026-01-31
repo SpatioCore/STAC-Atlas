@@ -101,7 +101,6 @@ describe('cql2ToSql', () => {
                 'providers': 'prov.providers',
                 'assets': 'a.assets',
                 'summaries': 's.summaries',
-                'last_crawled': 'cl.last_crawled'
             };
             
             Object.entries(mappings).forEach(([prop, expected]) => {

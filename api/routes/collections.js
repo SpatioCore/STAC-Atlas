@@ -24,7 +24,7 @@ function toStacCollection(row, baseHost) {
   collection.id = row.stac_id;
   collection.stac_id = row.stac_id;
 
-  // TODO: Add is_active, is_api, last_crawled fields if needed
+  // TODO: Add is_active, is_api, fields if needed
 
   // Add Links incase a baseHost is provided
   if (baseHost !== undefined) {

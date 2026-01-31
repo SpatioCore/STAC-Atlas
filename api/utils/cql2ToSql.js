@@ -185,7 +185,6 @@ function mapProperty(propName) {
         'providers': 'prov.providers',
         'assets': 'a.assets',
         'summaries': 's.summaries',
-        'last_crawled': 'cl.last_crawled'
     };
 
     if (columnMap[propName]) {
