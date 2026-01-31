@@ -187,6 +187,24 @@ function buildCollectionsQueryablesSchema(baseUrl) {
         'x-ogc-property': 'c.is_active'
       },
 
+      active: {
+        title: 'Active (Alias)',
+        description: 'Alias for is_active. Filter for active collections. Maps to c.is_active.',
+        type: 'boolean',
+        'x-ogc-operators': OPS_BOOLEAN,
+        'x-ogc-property': 'c.is_active',
+        'x-ogc-alias-of': 'is_active'
+      },
+
+      api: {
+        title: 'API (Alias)',
+        description: 'Alias for is_api. Filter for API-based collections. Maps to c.is_api.',
+        type: 'boolean',
+        'x-ogc-operators': OPS_BOOLEAN,
+        'x-ogc-property': 'c.is_api',
+        'x-ogc-alias-of': 'is_api'
+      },
+
       // ==================== Aggregated Fields (LATERAL JOINs) ====================
 
       keywords: {
@@ -325,6 +343,14 @@ function buildCollectionsQueryablesSchema(baseUrl) {
           description: 'Filter by license identifier',
           type: 'string',
           maxLength: 255
+        },
+        active: {
+          description: 'Filter by active status (true/false)',
+          type: 'boolean'
+        },
+        api: {
+          description: 'Filter by API status (true/false)',
+          type: 'boolean'
         },
         filter: {
           description: 'CQL2 filter expression',
