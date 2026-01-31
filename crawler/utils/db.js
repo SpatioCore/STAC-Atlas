@@ -1,6 +1,14 @@
 /**
- * DB helper for crawler using `pg` Pool
- * Exposes: initDb(), insertOrUpdateCatalog(), close()
+ * @fileoverview Database helper module for STAC crawler using PostgreSQL connection pool
+ * Provides functions for database initialization, collection/catalog management, and connection handling
+ * @module utils/db
+ * 
+ * Exports:
+ * - initDb() - Initialize and test database connection
+ * - insertOrUpdateCatalog() - Process catalog (currently skips saving)
+ * - insertOrUpdateCollection() - Insert or update STAC collection with retry logic
+ * - close() - Close database connection pool
+ * - pool - PostgreSQL connection pool instance
  */
 import pkg from 'pg';
 const { Pool } = pkg;
@@ -16,6 +24,14 @@ const pool = new Pool({
   max: 10,
 });
 
+/**
+ * Initialize and test database connection
+ * Tests the connection by executing a simple query and logs the result
+ * @async
+ * @function initDb
+ * @returns {Promise<void>}
+ * @throws {Error} If database connection fails
+ */
 async function initDb() {
   const host = process.env.PGHOST;
   const port = parseInt(process.env.PGPORT, 10);
@@ -345,7 +361,15 @@ async function _insertOrUpdateCollectionInternal(collection) {
 
 
 /**
- * Helper function to insert keywords
+ * Insert or update keywords for a collection
+ * Deletes existing keywords for the parent and inserts new ones
+ * @async
+ * @function insertKeywords
+ * @param {Object} client - PostgreSQL client from connection pool
+ * @param {number} parentId - Parent entity ID (collection ID)
+ * @param {string[]} keywords - Array of keyword strings
+ * @param {string} type - Entity type ('collection')
+ * @returns {Promise<void>}
  */
 async function insertKeywords(client, parentId, keywords, type) {
   await client.query(
@@ -372,7 +396,15 @@ async function insertKeywords(client, parentId, keywords, type) {
 }
 
 /**
- * Helper function to insert STAC extensions
+ * Insert or update STAC extensions for a collection
+ * Deletes existing extensions for the parent and inserts new ones
+ * @async
+ * @function insertStacExtensions
+ * @param {Object} client - PostgreSQL client from connection pool
+ * @param {number} parentId - Parent entity ID (collection ID)
+ * @param {string[]} extensions - Array of STAC extension URLs
+ * @param {string} type - Entity type ('collection')
+ * @returns {Promise<void>}
  */
 async function insertStacExtensions(client, parentId, extensions, type) {
   await client.query(
@@ -400,7 +432,15 @@ async function insertStacExtensions(client, parentId, extensions, type) {
 
 
 /**
- * Helper function to insert collection summaries
+ * Insert a single collection summary entry
+ * Automatically determines the summary type (range, set, schema, or value) based on the value
+ * @async
+ * @function insertSummary
+ * @param {Object} client - PostgreSQL client from connection pool
+ * @param {number} collectionId - Collection ID
+ * @param {string} name - Summary property name
+ * @param {*} value - Summary value (can be array, object, or primitive)
+ * @returns {Promise<void>}
  */
 async function insertSummary(client, collectionId, name, value) {
   let kind = 'unknown';
@@ -433,7 +473,14 @@ async function insertSummary(client, collectionId, name, value) {
 }
 
 /**
- * Helper function to insert providers
+ * Insert or update providers for a collection
+ * Deletes existing provider links and creates new ones
+ * @async
+ * @function insertProviders
+ * @param {Object} client - PostgreSQL client from connection pool
+ * @param {number} collectionId - Collection ID
+ * @param {Object[]} providers - Array of provider objects with name and roles
+ * @returns {Promise<void>}
  */
 async function insertProviders(client, collectionId, providers) {
   await client.query('DELETE FROM collection_providers WHERE collection_id = $1', [collectionId]);
@@ -458,7 +505,14 @@ async function insertProviders(client, collectionId, providers) {
 }
 
 /**
- * Helper function to insert assets
+ * Insert or update assets for a collection
+ * Deletes existing asset links and creates new ones
+ * @async
+ * @function insertAssets
+ * @param {Object} client - PostgreSQL client from connection pool
+ * @param {number} collectionId - Collection ID
+ * @param {Object} assets - Object mapping asset names to asset data (href, type, roles, metadata)
+ * @returns {Promise<void>}
  */
 async function insertAssets(client, collectionId, assets) {
   await client.query('DELETE FROM collection_assets WHERE collection_id = $1', [collectionId]);
@@ -491,6 +545,13 @@ async function insertAssets(client, collectionId, assets) {
 
 
 
+/**
+ * Close the database connection pool
+ * Should be called when the application shuts down
+ * @async
+ * @function close
+ * @returns {Promise<void>}
+ */
 async function close() {
   await pool.end();
 }
