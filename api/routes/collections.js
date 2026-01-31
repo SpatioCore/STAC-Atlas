@@ -223,6 +223,7 @@ router.get('/', validateCollectionSearchParams, async (req, res, next) => {
       datetime,
       provider,
       license,
+      cqlFilter,   // Include CQL2 filter for accurate count
       limit: null, // No limit for count
       sortby: null, // No sorting for count
       token: null   // No offset for count
