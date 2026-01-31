@@ -57,7 +57,7 @@ export function normalizeCatalog(catalog, index) {
         ...Object.fromEntries(
             Object.entries(catalog).filter(([key]) => 
                 !['id', 'url', 'slug', 'title', 'summary', 'access', 'created', 
-                  'updated', 'isPrivate', 'isApi', 'accessInfo'].includes(key)
+                  'updated', 'isPrivate', 'isApi', 'accessInfo', 'stac_version'].includes(key)
             )
         )
     };
@@ -145,6 +145,8 @@ export function normalizeCollection(colObj, index) {
     } else if (Array.isArray(rawData?.links)) {
         links = rawData.links;
     }
+    
+    
     
     return {
         index,

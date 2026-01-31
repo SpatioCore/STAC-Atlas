@@ -6,11 +6,11 @@
 CREATE TABLE collection (
     id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     stac_version TEXT,
-    stac_id INTEGER,
-    type TEXT,
+    stac_id TEXT UNIQUE,
     title TEXT,
     description TEXT,
     license TEXT,
+    source_url TEXT,
     created_at TIMESTAMP DEFAULT now(),
     updated_at TIMESTAMP DEFAULT now(),
 
@@ -25,6 +25,20 @@ CREATE TABLE collection (
     search_vector tsvector
 );
 
+-- Keywords lookup table: Stores unique searchable keywords
+-- Used by both catalogs and collections for categorization and search
+CREATE TABLE keywords (
+    id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    keyword TEXT UNIQUE
+);
+
+-- STAC extensions lookup table: Stores unique STAC extension identifiers
+-- Extensions provide additional standardized fields beyond core STAC spec
+CREATE TABLE stac_extensions (
+    id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    stac_extension TEXT UNIQUE
+);
+
 -- Collection summaries: Stores summaries for collection properties
 -- represent ranges (min/max), sets of values, or JSON schemas
 -- Used to describe the range of values found in collection items
@@ -33,7 +47,6 @@ CREATE TABLE collection_summaries (
     collection_id INTEGER REFERENCES collection(id) ON DELETE CASCADE,
     name TEXT,
     kind TEXT,
-    source_url TEXT,
     range_min NUMERIC,
     range_max NUMERIC,
     set_value TEXT,
@@ -58,13 +71,13 @@ CREATE TABLE assets (
     metadata JSONB
 );
 
--- Crawl log for collections: Tracks when each collection was last crawled for updates
+-- Crawl log for collections: Tracks the last crawled state of each collection and references the matching catalog
 -- Used to schedule re-crawling and maintain freshness of collection data
--- (same usecase as the crawllog for catalogs)
 CREATE TABLE crawllog_collection (
     id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     collection_id INTEGER REFERENCES collection(id) ON DELETE CASCADE,
-    last_crawled TIMESTAMP
+    source_url TEXT UNIQUE NOT NULL,
+    crawllog_catalog_id INTEGER REFERENCES crawllog_catalog(id) ON DELETE CASCADE
 );
 
 -- ========================================

@@ -17,7 +17,29 @@ describe('GET /collections/:id - Single collection retrieval', () => {
 
     return res.body.collections[0].id;
   }
+  
+  test('should return 400 for too long collection id', async () => {
+    const tooLong = 'a'.repeat(257);
+    const res = await request(app).get(`/collections/${tooLong}`).expect(400);
+  
+    expect(res.body.code).toBeDefined();
+    expect(res.body.description).toMatch(/too long/i);
+  });
 
+  test('should return 400 for collection id with invalid characters', async () => {
+    const res = await request(app).get('/collections/vege!tation').expect(400);
+  
+    expect(res.body.code).toBeDefined();
+    expect(res.body.description).toMatch(/invalid characters/i);
+  });
+
+  test('should return 400 for empty/whitespace collection id', async () => {
+    const res = await request(app).get('/collections/%20').expect(400);
+    
+    expect(res.body.code).toBeDefined();
+    expect(res.body.description).toMatch(/required/i);
+  });
+  
   test('should return a single collection with matching id and STAC-style links', async () => {
     const existingId = await getAnyExistingCollectionId();
 
@@ -51,25 +73,14 @@ describe('GET /collections/:id - Single collection retrieval', () => {
     expect(selfLink.href).toContain(`/collections/${existingId}`);
   });
 
-  test('should return 400 for an invalid (non-numeric) id', async () => {
+  test('should return 404 for non-existing collection id', async () => {
   const res = await request(app)
     .get('/collections/not-a-number')
-    .expect(400);
+    .expect(404);
 
-  expect(res.body).toHaveProperty('code', 'InvalidParameter');
-  expect(res.body.description).toMatch(/id/i);
+  expect(res.body).toHaveProperty('code', 'NotFound');
+  expect(res.body).toHaveProperty('id', 'not-a-number');
 });
-
-  test('should return 400 for a negative id', async () => {
-  const negativeId = '-1';
-
-  const res = await request(app)
-    .get(`/collections/${encodeURIComponent(negativeId)}`)
-    .expect(400);
-
-  expect(res.body).toHaveProperty('code', 'InvalidParameter');
-  expect(res.body.description).toMatch(/id/i);
-})
   
   test('should return 404 for a non-existing numeric id', async () => {
     // use a very large id that is unlikely to exist
