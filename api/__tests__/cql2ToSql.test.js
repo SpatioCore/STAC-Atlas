@@ -60,6 +60,48 @@ describe('cql2ToSql', () => {
             expect(values).toEqual(['MIT', 'Apache-2.0', 'CC-BY-4.0']);
         });
         
+        test('converts LIKE operator with wildcard pattern', () => {
+            const cql = {
+                op: 'like',
+                args: [
+                    { property: 'title' },
+                    '%Sentinel%'
+                ]
+            };
+            const values = [];
+            const sql = cql2ToSql(cql, values);
+            expect(sql).toBe("c.title LIKE $1");
+            expect(values).toEqual(['%Sentinel%']);
+        });
+        
+        test('converts LIKE operator with prefix pattern', () => {
+            const cql = {
+                op: 'like',
+                args: [
+                    { property: 'description' },
+                    'USGS%'
+                ]
+            };
+            const values = [];
+            const sql = cql2ToSql(cql, values);
+            expect(sql).toBe("c.description LIKE $1");
+            expect(values).toEqual(['USGS%']);
+        });
+        
+        test('converts LIKE operator with suffix pattern', () => {
+            const cql = {
+                op: 'like',
+                args: [
+                    { property: 'title' },
+                    '%L2A'
+                ]
+            };
+            const values = [];
+            const sql = cql2ToSql(cql, values);
+            expect(sql).toBe("c.title LIKE $1");
+            expect(values).toEqual(['%L2A']);
+        });
+        
         test('maps unknown properties to full_json JSONB column', () => {
             const cql = { op: '=', args: [{ property: 'custom_field' }, 'some_value'] };
             const values = [];
@@ -101,7 +143,6 @@ describe('cql2ToSql', () => {
                 'providers': 'prov.providers',
                 'assets': 'a.assets',
                 'summaries': 's.summaries',
-                'last_crawled': 'cl.last_crawled'
             };
             
             Object.entries(mappings).forEach(([prop, expected]) => {

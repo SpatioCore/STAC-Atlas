@@ -67,6 +67,16 @@
  * @param {string|undefined} params.license
  *        License identifier to filter collections by `collection.license`.
  * 
+ * @param {boolean|undefined} params.active
+ *        Filter collections by active status (is_active column).
+ *        When true, only active collections are returned.
+ *        When false, only inactive collections are returned.
+ * 
+ * @param {boolean|undefined} params.api
+ *        Filter collections by API status (is_api column).
+ *        When true, only collections from APIs are returned.
+ *        When false, only collections from static catalogs are returned.
+ * 
  * @param {{sql: string, values: any[]}|undefined} params.cqlFilter
  *        Pre-parsed CQL2 filter SQL fragment and values.
  *        The SQL fragment uses 1-based placeholders ($1, $2...) relative to its own values.
@@ -85,6 +95,8 @@ function buildCollectionSearchQuery(params) {
     datetime,
     provider,
     license,
+    active,
+    api,
     sortby,
     limit,
     token,
@@ -106,7 +118,6 @@ function buildCollectionSearchQuery(params) {
       c.stac_version,
       c.stac_id,
       c.source_url,
-      c.type,
       c.title,
       c.description,
       c.license,
@@ -126,8 +137,7 @@ function buildCollectionSearchQuery(params) {
       ext.stac_extensions,
       prov.providers,
       a.assets,
-      s.summaries,
-      cl.last_crawled
+      s.summaries
   `;
 
   const where = [];
@@ -237,6 +247,20 @@ function buildCollectionSearchQuery(params) {
     i++;
   }
 
+  // Active filter: filter by is_active status
+  if (active !== undefined && active !== null) {
+    where.push(`c.is_active = $${i}`);
+    values.push(active);
+    i++;
+  }
+
+  // API filter: filter by is_api status
+  if (api !== undefined && api !== null) {
+    where.push(`c.is_api = $${i}`);
+    values.push(api);
+    i++;
+  }
+
   // CQL2 Filter
   if (cqlFilter && cqlFilter.sql) {
     // Re-index placeholders in cqlFilter.sql
@@ -311,11 +335,6 @@ function buildCollectionSearchQuery(params) {
         WHERE cs.collection_id = c.id
       ) s
     ) s ON TRUE
-    LEFT JOIN LATERAL (
-      SELECT MAX(clc.last_crawled) AS last_crawled
-      FROM crawllog_collection clc
-      WHERE clc.collection_id = c.id
-    ) cl ON TRUE
   `;
 
   if (where.length > 0) {

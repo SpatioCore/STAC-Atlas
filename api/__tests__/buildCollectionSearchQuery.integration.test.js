@@ -48,7 +48,6 @@ describe('Integration: Collection Search with Aggregated Fields', () => {
         expect(firstRow).toHaveProperty('providers');
         expect(firstRow).toHaveProperty('assets');
         expect(firstRow).toHaveProperty('summaries');
-        expect(firstRow).toHaveProperty('last_crawled');
       }
     });
   });
@@ -138,19 +137,6 @@ describe('Integration: Collection Search with Aggregated Fields', () => {
         }
       });
     });
-
-    test('last_crawled should be timestamp or null', async () => {
-      const { sql, values } = buildCollectionSearchQuery({ limit: 10, token: 0 });
-      const result = await query(sql, values);
-
-      result.rows.forEach(row => {
-        if (row.last_crawled !== null) {
-          // Should be a valid Date or parseable timestamp
-          const date = new Date(row.last_crawled);
-          expect(date.toString()).not.toBe('Invalid Date');
-        }
-      });
-    });
   });
 
   describe('Filter Compatibility with Aggregated Fields', () => {
@@ -179,7 +165,6 @@ describe('Integration: Collection Search with Aggregated Fields', () => {
       result.rows.forEach(row => {
         expect(row).toHaveProperty('stac_extensions');
         expect(row).toHaveProperty('summaries');
-        expect(row).toHaveProperty('last_crawled');
       });
     });
 
@@ -212,7 +197,6 @@ describe('Integration: Collection Search with Aggregated Fields', () => {
         expect(row).toHaveProperty('providers');
         expect(row).toHaveProperty('assets');
         expect(row).toHaveProperty('summaries');
-        expect(row).toHaveProperty('last_crawled');
       });
     });
   });
