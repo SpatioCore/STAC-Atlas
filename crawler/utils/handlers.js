@@ -346,6 +346,16 @@ export async function handleCatalog({ request, json, crawler, log, indent, resul
                     const linkTitle = typeof link.title === 'string' && link.title.length > 0 
                         ? link.title 
                         : `child-${idx}`;
+
+                    // Persist child catalog URL in DB queue
+                    if (childUrl) {
+                        db.enqueueCollectionUrl({
+                            sourceUrl: childUrl,
+                            crawllogCatalogId: crawllogCatalogId
+                        }).catch(err => {
+                            log.warning(`${indent}Failed to enqueue child catalog URL: ${err.message}`);
+                        });
+                    }
                     
                     return {
                         url: childUrl,
@@ -381,6 +391,13 @@ export async function handleCatalog({ request, json, crawler, log, indent, resul
     
     // Ensure memory is cleared periodically even if no collections were found
     await checkAndFlush(results, log);
+
+    // Remove processed catalog URL from DB queue (if present)
+    try {
+        await db.removeFromCollectionQueue(request.url);
+    } catch (err) {
+        log.warning(`${indent}Failed to remove catalog URL from queue: ${err.message}`);
+    }
     
     // Help garbage collector by dereferencing large objects
     stacCatalog = null;
@@ -523,6 +540,13 @@ export async function handleCollections({ request, json, crawler, log, indent, r
         
         // Check if we should flush to database
         await checkAndFlush(results, log);
+    }
+
+    // Remove processed collections endpoint URL from DB queue (if present)
+    try {
+        await db.removeFromCollectionQueue(request.url);
+    } catch (err) {
+        log.warning(`${indent}Failed to remove collections URL from queue: ${err.message}`);
     }
     
     // Help garbage collector by dereferencing large objects

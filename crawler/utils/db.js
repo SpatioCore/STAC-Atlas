@@ -318,6 +318,23 @@ async function claimCollectionQueueBatch({ limit = 900, isApi } = {}) {
 }
 
 /**
+ * Remove a URL from crawllog_collection queue
+ * Used when a URL was processed outside of DB batch claiming
+ * @param {string} sourceUrl - URL to remove
+ * @returns {Promise<number>} Number of rows deleted
+ */
+async function removeFromCollectionQueue(sourceUrl) {
+  if (!sourceUrl) return 0;
+
+  const result = await pool.query(
+    'DELETE FROM crawllog_collection WHERE source_url = $1',
+    [sourceUrl]
+  );
+
+  return result.rowCount;
+}
+
+/**
  * Update the updated_at timestamp for a crawllog_catalog entry
  * Called when a catalog has been fully processed
  * @param {number} crawllogCatalogId - The crawllog_catalog id
@@ -862,6 +879,7 @@ export default {
   enqueueCollectionUrl,
   getPendingCollectionSeeds,
   claimCollectionQueueBatch,
+  removeFromCollectionQueue,
   markCatalogCrawled,
   clearCrawllogCollection,
   clearAllCrawllogs,
