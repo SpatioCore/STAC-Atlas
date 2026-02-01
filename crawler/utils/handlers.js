@@ -239,6 +239,16 @@ export async function handleCatalog({ request, json, crawler, log, indent, resul
     // If this is a STAC Collection (not a catalog), extract and store it
     // Collections don't have /collections endpoints, so we skip tryCollectionEndpoints for them
     if (isCollection) {
+        // Persist collection URL in crawllog_collection queue
+        try {
+            await db.enqueueCollectionUrl({
+                sourceUrl: request.url,
+                crawllogCatalogId: crawllogCatalogId
+            });
+        } catch (err) {
+            log.warning(`${indent}Failed to enqueue collection URL: ${err.message}`);
+        }
+
         // Check if this collection URL was already crawled (pause/resume support)
         const alreadyCrawled = await db.isCollectionUrlCrawled(request.url);
         if (alreadyCrawled) {
@@ -449,22 +459,13 @@ export async function handleCollections({ request, json, crawler, log, indent, r
         // Remove trailing /collections from the request URL to get the API base
         const baseUrl = request.url.replace(/\/collections\/?$/, '');
 
-        // Get already-crawled URLs for this catalog to enable pause/resume
-        let crawledUrls = new Set();
-        if (crawllogCatalogId) {
-            try {
-                crawledUrls = await db.getCrawledCollectionUrls(crawllogCatalogId);
-                if (crawledUrls.size > 0) {
-                    log.info(`${indent}Found ${crawledUrls.size} already-crawled collection URLs for this catalog`);
-                }
-            } catch (err) {
-                log.warning(`${indent}Failed to get crawled URLs: ${err.message}`);
-            }
-        }
+        // Note: crawllog_collection is a queue only; already-crawled URLs are stored in collection table
         
         // Normalize and store collections, skipping already-crawled ones
         let skippedCount = 0;
-        const collections = collectionsData.map((colObj, index) => {
+        const collections = [];
+        for (let index = 0; index < collectionsData.length; index++) {
+            const colObj = collectionsData[index];
             const collection = normalizeCollection(colObj, index);
             // Add the catalog slug to the collection for unique stac_id generation
             collection.sourceSlug = catalogSlug;
@@ -483,19 +484,30 @@ export async function handleCollections({ request, json, crawler, log, indent, r
                 }
             } else {
                 collection.crawledUrl = `${baseUrl}/collections/${collection.id}`;
-            } 
+            }
+
+            // Persist discovered collection URL in crawllog_collection queue
+            try {
+                await db.enqueueCollectionUrl({
+                    sourceUrl: collection.crawledUrl,
+                    crawllogCatalogId: crawllogCatalogId
+                });
+            } catch (err) {
+                log.warning(`${indent}Failed to enqueue collection URL: ${err.message}`);
+            }
             
             // Skip if this URL was already crawled (pause/resume support)
-            if (crawledUrls.has(collection.crawledUrl)) {
+            const alreadyCrawled = await db.isCollectionUrlCrawled(collection.crawledUrl);
+            if (alreadyCrawled) {
                 skippedCount++;
-                return null;
+                continue;
             }
             
             // Mark collection as API or static catalog based on context
             collection.is_api = isApi;
             
-            return collection;
-        }).filter(Boolean);  // Remove nulls (skipped collections)
+            collections.push(collection);
+        }
         
         if (skippedCount > 0) {
             log.info(`${indent}Skipped ${skippedCount} already-crawled collections (resume mode)`);

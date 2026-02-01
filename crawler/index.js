@@ -159,8 +159,11 @@ export const crawler = async () => {
         console.log('\n=== Loading catalogs from crawllog_catalog for crawling ===');
         const crawllogCatalogs = await db.getCrawllogCatalogs({ isApi: false });
         const crawllogApis = await db.getCrawllogCatalogs({ isApi: true });
+        const pendingCatalogCollections = await db.getPendingCollectionSeeds({ isApi: false });
+        const pendingApiCollections = await db.getPendingCollectionSeeds({ isApi: true });
         
-        console.log(`Loaded ${crawllogCatalogs.length} catalogs and ${crawllogApis.length} APIs from crawllog_catalog\n`);
+        console.log(`Loaded ${crawllogCatalogs.length} catalogs and ${crawllogApis.length} APIs from crawllog_catalog`);
+        console.log(`Loaded ${pendingCatalogCollections.length} pending catalog-collections and ${pendingApiCollections.length} pending API-collections from crawllog_collection\n`);
         
         // Merge original catalog metadata with crawllog entries for crawling
         // We need the full catalog info (title, etc.) for processing
@@ -176,6 +179,13 @@ export const crawler = async () => {
                 crawllogCatalogId: cl.id  // Pass the crawllog_catalog id for linking
             };
         });
+
+        const pendingCatalogSeeds = pendingCatalogCollections.map((seed, idx) => ({
+            id: `pending-collection-${idx}`,
+            slug: seed.slug,
+            url: seed.url,
+            crawllogCatalogId: seed.crawllogCatalogId
+        }));
         
         const realApis = crawllogApis.map(cl => {
             const original = catalogUrlMap.get(cl.url) || {};
@@ -187,20 +197,27 @@ export const crawler = async () => {
                 crawllogCatalogId: cl.id  // Pass the crawllog_catalog id for linking
             };
         });
+
+        const pendingApiSeeds = pendingApiCollections.map((seed, idx) => ({
+            id: `pending-collection-${idx}`,
+            slug: seed.slug,
+            url: seed.url,
+            crawllogCatalogId: seed.crawllogCatalogId
+        }));
         
         console.log(`\nCatalog Classification (from crawllog_catalog):`);
-        console.log(`  Catalogs: ${regularCatalogs.length}`);
-        console.log(`  APIs: ${realApis.length}\n`);
+        console.log(`  Catalogs: ${regularCatalogs.length} (+${pendingCatalogSeeds.length} pending collections)`);
+        console.log(`  APIs: ${realApis.length} (+${pendingApiSeeds.length} pending collections)\n`);
         
         // Start global statistics tracking (no periodic logging, only final stats)
-        const totalItems = [...regularCatalogs, ...realApis].length;
+        const totalItems = [...regularCatalogs, ...pendingCatalogSeeds, ...realApis, ...pendingApiSeeds].length;
         globalStats.start(totalItems);
         
         // Crawl catalogs if mode is 'catalogs' or 'both'
         if (config.mode === 'catalogs' || config.mode === 'both') {
             console.log('\nCrawling collections and nested catalogs with Crawlee...\n');
             
-            const allCatalogsToProcess = regularCatalogs;
+            const allCatalogsToProcess = [...regularCatalogs, ...pendingCatalogSeeds];
             
             // Note: MAX_CATALOGS limit is for debugging purposes only
             // Set maxCatalogs to 0 or use --max-catalogs 0 for unlimited catalog crawling
@@ -224,7 +241,7 @@ export const crawler = async () => {
         if (config.mode === 'apis' || config.mode === 'both') {
             console.log('\nCrawling APIs...');
             // Pass full API objects (including slug and crawllogCatalogId) instead of just URLs
-            const apiObjects = realApis.map(api => ({ 
+            const apiObjects = [...realApis, ...pendingApiSeeds].map(api => ({ 
                 url: api.url, 
                 slug: api.slug, 
                 title: api.title,
@@ -235,7 +252,7 @@ export const crawler = async () => {
                 // Note: MAX_APIS limit is for debugging purposes only
                 // Set maxApis to 0 or use --max-apis 0 for unlimited API crawling
                 const apisToProcess = config.maxApis === 0 ? apiObjects : apiObjects.slice(0, config.maxApis);
-                console.log(`Found ${realApis.length} APIs. Processing ${apisToProcess.length} (max: ${config.maxApis === 0 ? 'unlimited' : config.maxApis})...`);
+                console.log(`Found ${apiObjects.length} APIs/collections. Processing ${apisToProcess.length} (max: ${config.maxApis === 0 ? 'unlimited' : config.maxApis})...`);
                 
                 try {
                     await crawlApis(apisToProcess, true, config);

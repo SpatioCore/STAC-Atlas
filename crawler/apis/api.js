@@ -368,6 +368,16 @@ async function handleApiRoot({ request, json, crawler, log, indent, results, max
     
     // If this is a STAC Collection directly, extract and store it
     if (typeof stacObj.isCollection === 'function' && stacObj.isCollection()) {
+        // Persist collection URL in crawllog_collection queue
+        try {
+            await db.enqueueCollectionUrl({
+                sourceUrl: request.url,
+                crawllogCatalogId: crawllogCatalogId
+            });
+        } catch (err) {
+            log.warning(`${indent}Failed to enqueue collection URL: ${err.message}`);
+        }
+
         // Check if this collection URL was already crawled (pause/resume support)
         const alreadyCrawled = await db.isCollectionUrlCrawled(request.url);
         if (alreadyCrawled) {
@@ -435,6 +445,7 @@ async function handleApiRoot({ request, json, crawler, log, indent, results, max
                 return;
             }
             
+            const enqueuePromises = [];
             const childRequests = childLinks
                 .map((link, idx) => {
                     let childUrl;
@@ -476,7 +487,7 @@ async function handleApiRoot({ request, json, crawler, log, indent, results, max
                     const rel = link.rel || '';
                     const label = rel === 'child' || rel === 'item' ? 'API_ROOT' : 'API_COLLECTION';
                     
-                    return {
+                    const childRequest = {
                         url: childUrl,
                         label: label,
                         userData: {
@@ -489,10 +500,26 @@ async function handleApiRoot({ request, json, crawler, log, indent, results, max
                             depth: nextDepth
                         }
                     };
+
+                    if (label === 'API_COLLECTION') {
+                        enqueuePromises.push(db.enqueueCollectionUrl({
+                            sourceUrl: childUrl,
+                            crawllogCatalogId: crawllogCatalogId
+                        }));
+                    }
+
+                    return childRequest;
                 })
                 .filter(Boolean);
             
             if (childRequests.length > 0) {
+                if (enqueuePromises.length > 0) {
+                    try {
+                        await Promise.all(enqueuePromises);
+                    } catch (err) {
+                        log.warning(`${indent}Failed to enqueue child collection URLs: ${err.message}`);
+                    }
+                }
                 await crawler.addRequests(childRequests);
                 log.info(`${indent}Enqueued ${childRequests.length} child catalogs/collections`);
             }
@@ -512,6 +539,16 @@ async function handleApiCollection({ request, json, crawler, log, indent, result
     const apiSlug = request.userData?.apiSlug || request.userData?.catalogSlug || null;
     const crawllogCatalogId = request.userData?.crawllogCatalogId || null;
     
+    // Persist collection URL in crawllog_collection queue
+    try {
+        await db.enqueueCollectionUrl({
+            sourceUrl: request.url,
+            crawllogCatalogId: crawllogCatalogId
+        });
+    } catch (err) {
+        log.warning(`${indent}Failed to enqueue collection URL: ${err.message}`);
+    }
+
     // Check if this collection URL was already crawled (pause/resume support)
     const alreadyCrawled = await db.isCollectionUrlCrawled(request.url);
     if (alreadyCrawled) {
