@@ -16,6 +16,8 @@ import {
     logDomainStats 
 } from '../utils/parallel.js';
 import globalStats from '../utils/globalStats.js';
+import db from '../utils/db.js';
+import { isShutdownRequested } from '../index.js';
 
 /**
  * Batch size for saving collections to database during API crawling
@@ -181,6 +183,7 @@ async function crawlSingleApiDomain(apis, domain, config = {}) {
             apiId: `${domain}-api-${index}`,
             apiUrl: api.url,
             apiSlug: api.slug,
+            crawllogCatalogId: api.crawllogCatalogId,  // Link to crawllog_catalog for collections
             depth: 0
         }
     }));
@@ -257,12 +260,20 @@ async function crawlApis(apis, isApi, config = {}) {
     console.log(`Theoretical max throughput: ${parallelDomains * maxRequestsPerMinutePerDomain} req/min across all domains`);
     console.log(`============================================\n`);
     
-    // Create tasks for each domain (pass full API objects including slug)
+    // Create tasks for each domain (pass full API objects including slug), with shutdown check
     const domainTasks = Array.from(domainMap.entries()).map(([domain, domainApis]) => {
-        return () => crawlSingleApiDomain(domainApis, domain, config);
+        return async () => {
+            // Check if shutdown was requested before starting this domain
+            if (isShutdownRequested()) {
+                console.log(`  [${domain}] Skipped (shutdown requested)`);
+                return { stats: { totalRequests: 0, successfulRequests: 0, failedRequests: 0, collectionsFound: 0, collectionsSaved: 0, collectionsFailed: 0, apisProcessed: 0, stacCompliant: 0, nonCompliant: 0 } };
+            }
+            return crawlSingleApiDomain(domainApis, domain, config);
+        };
     });
     
     console.log(`Starting parallel API crawl of ${domainMap.size} domains (${parallelDomains} at a time)...\n`);
+    console.log(`Press Ctrl+C to pause (will stop after current batch and resume on next run)\n`);
     
     // Track total runtime for throughput calculation
     const crawlStartTime = Date.now();
@@ -272,7 +283,11 @@ async function crawlApis(apis, isApi, config = {}) {
         domainTasks, 
         parallelDomains,
         (completed, total) => {
-            console.log(`\n>>> Domain progress: ${completed}/${total} domains completed <<<\n`);
+            if (isShutdownRequested()) {
+                console.log(`\n>>> Shutdown requested. Stopping after current domains complete... <<<\n`);
+            } else {
+                console.log(`\n>>> Domain progress: ${completed}/${total} domains completed <<<\n`);
+            }
         }
     );
     
@@ -319,6 +334,7 @@ async function handleApiRoot({ request, json, crawler, log, indent, results, max
     const apiId = request.userData?.apiId || 'unknown';
     const apiUrl = request.userData?.apiUrl || request.url;
     const apiSlug = request.userData?.apiSlug || null;
+    const crawllogCatalogId = request.userData?.crawllogCatalogId || null;
     const depth = request.userData?.depth || 0;
     
     log.info(`${indent}Processing API: ${apiId} at ${apiUrl} (depth: ${depth})`);
@@ -352,11 +368,22 @@ async function handleApiRoot({ request, json, crawler, log, indent, results, max
     
     // If this is a STAC Collection directly, extract and store it
     if (typeof stacObj.isCollection === 'function' && stacObj.isCollection()) {
+        // Check if this collection URL was already crawled (pause/resume support)
+        const alreadyCrawled = await db.isCollectionUrlCrawled(request.url);
+        if (alreadyCrawled) {
+            log.info(`${indent}Skipping already-crawled collection: ${stacObj.id} (resume mode)`);
+            return;
+        }
+        
         const collection = normalizeCollection(stacObj, results.collections.length);
         // Add the API slug to the collection for unique stac_id generation
         collection.sourceSlug = apiSlug;
         // Mark as API collection
         collection.is_api = true;
+        // Link to crawllog_catalog
+        collection.crawllogCatalogId = crawllogCatalogId;
+        // Store the crawled URL
+        collection.crawledUrl = request.url;
         results.collections.push(collection);
         results.stats.collectionsFound++;
         log.info(`${indent}Extracted collection: ${collection.id} - ${collection.title}`);
@@ -390,7 +417,8 @@ async function handleApiRoot({ request, json, crawler, log, indent, results, max
         userData: {
             apiId: apiId,
             apiUrl: apiUrl,
-            catalogSlug: apiSlug  // Use catalogSlug for compatibility with handleCollections
+            catalogSlug: apiSlug,  // Use catalogSlug for compatibility with handleCollections
+            crawllogCatalogId: crawllogCatalogId  // Link to crawllog_catalog for collections
         }
     }]);
     
@@ -456,6 +484,7 @@ async function handleApiRoot({ request, json, crawler, log, indent, results, max
                             apiUrl: apiUrl,
                             apiSlug: apiSlug,
                             catalogSlug: apiSlug,  // Use catalogSlug for compatibility with handleCollections
+                            crawllogCatalogId: crawllogCatalogId,  // Link to crawllog_catalog for collections
                             parentId: apiId,
                             depth: nextDepth
                         }
@@ -481,6 +510,14 @@ async function handleApiRoot({ request, json, crawler, log, indent, results, max
 async function handleApiCollection({ request, json, crawler, log, indent, results }) {
     const apiId = request.userData?.apiId || 'unknown';
     const apiSlug = request.userData?.apiSlug || request.userData?.catalogSlug || null;
+    const crawllogCatalogId = request.userData?.crawllogCatalogId || null;
+    
+    // Check if this collection URL was already crawled (pause/resume support)
+    const alreadyCrawled = await db.isCollectionUrlCrawled(request.url);
+    if (alreadyCrawled) {
+        log.info(`${indent}Skipping already-crawled collection at ${request.url} (resume mode)`);
+        return;
+    }
     
     let stacObj;
     try {
@@ -492,6 +529,10 @@ async function handleApiCollection({ request, json, crawler, log, indent, result
             collection.sourceSlug = apiSlug;
             // Mark as API collection
             collection.is_api = true;
+            // Link to crawllog_catalog
+            collection.crawllogCatalogId = crawllogCatalogId;
+            // Store the crawled URL
+            collection.crawledUrl = request.url;
             results.collections.push(collection);
             results.stats.collectionsFound++;
             log.info(`${indent}Extracted collection: ${collection.id} - ${collection.title}`);

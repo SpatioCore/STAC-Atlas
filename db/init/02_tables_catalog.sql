@@ -9,5 +9,5 @@ CREATE TABLE crawllog_catalog (
     source_url TEXT UNIQUE NOT NULL,
     is_api BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT now(),
-    updated_at TIMESTAMP DEFAULT now(),
+    updated_at TIMESTAMP DEFAULT now()
 );

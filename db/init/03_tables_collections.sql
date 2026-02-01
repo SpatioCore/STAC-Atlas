@@ -25,6 +25,20 @@ CREATE TABLE collection (
     search_vector tsvector
 );
 
+-- Keywords lookup table: Stores unique searchable keywords
+-- Used by both catalogs and collections for categorization and search
+CREATE TABLE keywords (
+    id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    keyword TEXT UNIQUE
+);
+
+-- STAC extensions lookup table: Stores unique STAC extension identifiers
+-- Extensions provide additional standardized fields beyond core STAC spec
+CREATE TABLE stac_extensions (
+    id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    stac_extension TEXT UNIQUE
+);
+
 -- Collection summaries: Stores summaries for collection properties
 -- represent ranges (min/max), sets of values, or JSON schemas
 -- Used to describe the range of values found in collection items
@@ -61,9 +75,9 @@ CREATE TABLE assets (
 -- Used to schedule re-crawling and maintain freshness of collection data
 CREATE TABLE crawllog_collection (
     id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-    FOREIGN KEY (collection_id) INTEGER REFERENCES collection(id) ON DELETE CASCADE,
+    collection_id INTEGER REFERENCES collection(id) ON DELETE CASCADE,
     source_url TEXT UNIQUE NOT NULL,
-    FOREIGN KEY (catalog_id) REFERENCES catalog_id(id) ON DELETE CASCADE,
+    crawllog_catalog_id INTEGER REFERENCES crawllog_catalog(id) ON DELETE CASCADE
 );
 
 -- ========================================

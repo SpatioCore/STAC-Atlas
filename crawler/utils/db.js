@@ -1,6 +1,14 @@
 /**
- * DB helper for crawler using `pg` Pool
- * Exposes: initDb(), insertOrUpdateCatalog(), close()
+ * @fileoverview Database helper module for STAC crawler using PostgreSQL connection pool
+ * Provides functions for database initialization, collection/catalog management, and connection handling
+ * @module utils/db
+ * 
+ * Exports:
+ * - initDb() - Initialize and test database connection
+ * - insertOrUpdateCatalog() - Process catalog (currently skips saving)
+ * - insertOrUpdateCollection() - Insert or update STAC collection with retry logic
+ * - close() - Close database connection pool
+ * - pool - PostgreSQL connection pool instance
  */
 import pkg from 'pg';
 const { Pool } = pkg;
@@ -16,6 +24,14 @@ const pool = new Pool({
   max: 10,
 });
 
+/**
+ * Initialize and test database connection
+ * Tests the connection by executing a simple query and logs the result
+ * @async
+ * @function initDb
+ * @returns {Promise<void>}
+ * @throws {Error} If database connection fails
+ */
 async function initDb() {
   const host = process.env.PGHOST;
   const port = parseInt(process.env.PGPORT, 10);
@@ -64,6 +80,168 @@ async function insertOrUpdateCatalog(catalog) {
   console.log(`Skipping catalog save (used for traversal only): ${catalog.title || catalog.id}`);
   
   return null;
+}
+
+/**
+ * Insert or update a catalog/API entry in crawllog_catalog table
+ * This stores the URL queue for re-crawling and the slug for stac_id generation
+ * @param {Object} catalogInfo - Catalog info object
+ * @param {string} catalogInfo.slug - The STAC Index slug for this catalog
+ * @param {string} catalogInfo.url - The source URL of the catalog/API
+ * @param {boolean} catalogInfo.isApi - Whether this is an API (true) or static catalog (false)
+ * @returns {Promise<number>} The crawllog_catalog id
+ */
+async function saveCrawllogCatalog(catalogInfo) {
+  if (!catalogInfo || !catalogInfo.url) {
+    throw new Error('Catalog info with url is required');
+  }
+
+  const { slug, url, isApi = false } = catalogInfo;
+  
+  const result = await pool.query(
+    `INSERT INTO crawllog_catalog (slug, source_url, is_api, updated_at)
+     VALUES ($1, $2, $3, now())
+     ON CONFLICT (source_url) DO UPDATE SET
+       slug = COALESCE(EXCLUDED.slug, crawllog_catalog.slug),
+       is_api = EXCLUDED.is_api,
+       updated_at = now()
+     RETURNING id`,
+    [slug || null, url, isApi]
+  );
+  
+  return result.rows[0].id;
+}
+
+/**
+ * Get all catalogs from crawllog_catalog for re-crawling
+ * @param {Object} options - Query options
+ * @param {boolean} options.isApi - If provided, filter by API status
+ * @returns {Promise<Array>} Array of catalog objects with id, slug, source_url, is_api
+ */
+async function getCrawllogCatalogs(options = {}) {
+  let query = 'SELECT id, slug, source_url, is_api FROM crawllog_catalog';
+  const params = [];
+  
+  if (options.isApi !== undefined) {
+    query += ' WHERE is_api = $1';
+    params.push(options.isApi);
+  }
+  
+  query += ' ORDER BY id';
+  
+  const result = await pool.query(query, params);
+  return result.rows.map(row => ({
+    id: row.id,
+    slug: row.slug,
+    url: row.source_url,
+    isApi: row.is_api
+  }));
+}
+
+/**
+ * Get the crawllog_catalog id for a given source URL
+ * @param {string} sourceUrl - The source URL to look up
+ * @returns {Promise<number|null>} The crawllog_catalog id or null if not found
+ */
+async function getCrawllogCatalogIdByUrl(sourceUrl) {
+  if (!sourceUrl) return null;
+  
+  const result = await pool.query(
+    'SELECT id FROM crawllog_catalog WHERE source_url = $1',
+    [sourceUrl]
+  );
+  
+  return result.rows.length > 0 ? result.rows[0].id : null;
+}
+
+/**
+ * Get the slug for a given crawllog_catalog id
+ * Used to generate stac_id for collections
+ * @param {number} crawllogCatalogId - The crawllog_catalog id
+ * @returns {Promise<string|null>} The slug or null if not found
+ */
+async function getSlugByCrawllogCatalogId(crawllogCatalogId) {
+  if (!crawllogCatalogId) return null;
+  
+  const result = await pool.query(
+    'SELECT slug FROM crawllog_catalog WHERE id = $1',
+    [crawllogCatalogId]
+  );
+  
+  return result.rows.length > 0 ? result.rows[0].slug : null;
+}
+
+/**
+ * Get all already-crawled collection URLs for a given crawllog_catalog
+ * Used for pause/resume functionality - skip URLs that have already been processed
+ * @param {number} crawllogCatalogId - The crawllog_catalog id
+ * @returns {Promise<Set<string>>} Set of source URLs already in crawllog_collection
+ */
+async function getCrawledCollectionUrls(crawllogCatalogId) {
+  if (!crawllogCatalogId) return new Set();
+  
+  const result = await pool.query(
+    'SELECT source_url FROM crawllog_collection WHERE crawllog_catalog_id = $1 AND source_url IS NOT NULL',
+    [crawllogCatalogId]
+  );
+  
+  return new Set(result.rows.map(row => row.source_url));
+}
+
+/**
+ * Check if a specific collection URL has already been crawled
+ * @param {string} sourceUrl - The source URL to check
+ * @returns {Promise<boolean>} True if URL exists in crawllog_collection
+ */
+async function isCollectionUrlCrawled(sourceUrl) {
+  if (!sourceUrl) return false;
+  
+  const result = await pool.query(
+    'SELECT 1 FROM crawllog_collection WHERE source_url = $1 LIMIT 1',
+    [sourceUrl]
+  );
+  
+  return result.rows.length > 0;
+}
+
+/**
+ * Update the updated_at timestamp for a crawllog_catalog entry
+ * Called when a catalog has been fully processed
+ * @param {number} crawllogCatalogId - The crawllog_catalog id
+ */
+async function markCatalogCrawled(crawllogCatalogId) {
+  if (!crawllogCatalogId) return;
+  
+  await pool.query(
+    'UPDATE crawllog_catalog SET updated_at = now() WHERE id = $1',
+    [crawllogCatalogId]
+  );
+}
+
+/**
+ * Clear all entries from crawllog_collection table
+ * Used for fresh crawl - forces re-crawling of all collections
+ * @returns {Promise<number>} Number of rows deleted
+ */
+async function clearCrawllogCollection() {
+  const result = await pool.query('DELETE FROM crawllog_collection');
+  return result.rowCount;
+}
+
+/**
+ * Clear all entries from both crawllog tables
+ * Used for complete fresh start
+ * @returns {Promise<{catalogs: number, collections: number}>} Number of rows deleted from each table
+ */
+async function clearAllCrawllogs() {
+  // Delete collections first (foreign key constraint)
+  const collectionsResult = await pool.query('DELETE FROM crawllog_collection');
+  const catalogsResult = await pool.query('DELETE FROM crawllog_catalog');
+  
+  return {
+    catalogs: catalogsResult.rowCount,
+    collections: collectionsResult.rowCount
+  };
 }
 
 /**
@@ -192,37 +370,34 @@ async function _insertOrUpdateCollectionInternal(collection) {
       sourceUrl = selfLink?.href || rootLink?.href || null;
     }
     
-    // Check if collection with same stac_id from same source already exists
-    // This allows collections with the same title from different sources to coexist
+    // Check if collection with same stac_id already exists - stac_id is the unique key for upsert
+    // stac_id format: {sourceSlug}_{collection.id} ensures uniqueness across sources
     let existingCollection;
-    if (stacId && sourceUrl) {
-      // Best case: match by stac_id + source_url (most precise)
+    if (stacId) {
+      // Primary matching: stac_id is unique, so match by stac_id alone
       existingCollection = await client.query(
-        'SELECT id FROM collection WHERE stac_id = $1 AND full_json->>\'links\' LIKE $2',
-        [stacId, `%${sourceUrl}%`]
+        'SELECT id FROM collection WHERE stac_id = $1',
+        [stacId]
       );
-    }
-    
-    // Fallback: if no stac_id or source_url, check by title only (legacy behavior)
-    if (!existingCollection || existingCollection.rows.length === 0) {
-      if (stacId) {
-        // Try matching by stac_id + title combination
-        existingCollection = await client.query(
-          'SELECT id FROM collection WHERE stac_id = $1 AND title = $2',
-          [stacId, collectionTitle]
-        );
-      } else {
-        // Last resort: match by title only (for collections without stac_id)
-        existingCollection = await client.query(
-          'SELECT id FROM collection WHERE title = $1 AND stac_id IS NULL',
-          [collectionTitle]
-        );
-      }
+    } else {
+      // Fallback for collections without stac_id: match by title + source_url
+      existingCollection = await client.query(
+        'SELECT id FROM collection WHERE stac_id IS NULL AND title = $1 AND source_url = $2',
+        [collectionTitle, sourceUrl]
+      );
     }
     
     // Use originalJson if available (from normalizeCollection), otherwise use the collection object
     // This ensures the full original STAC JSON is stored, not the normalized version
     const fullJsonData = collection.originalJson || collection;
+    
+    // Determine is_api based on source_url
+    // If source_url ends with .json, it's NOT an API (static file)
+    // Otherwise, it's an API endpoint
+    let isApi = false;
+    if (sourceUrl) {
+      isApi = !sourceUrl.toLowerCase().endsWith('.json');
+    }
     
     let collectionId;
     if (existingCollection.rows.length > 0) {
@@ -232,31 +407,31 @@ async function _insertOrUpdateCollectionInternal(collection) {
         `UPDATE collection SET 
           stac_id = $1,
           stac_version = $2,
-          type = $3,
+          title = $3,
           description = $4,
           license = $5,
           spatial_extent = ST_GeomFromEWKT($6),
           temporal_extent_start = $7,
           temporal_extent_end = $8,
-          is_api = $9,
-          is_active = $10,
-          source_url = $11,
-          full_json = $12,
+          is_active = $9,
+          source_url = $10,
+          full_json = $11,
+          is_api = $12,
           updated_at = now()
          WHERE id = $13`,
         [
           stacId,
           collection.stac_version || null,
-          collection.type || 'Collection',
+          collectionTitle,
           collection.description || null,
           collection.license || null,
           spatialExtent,
           temporalStart,
           temporalEnd,
-          collection.is_api !== undefined ? collection.is_api : false, // is_api - set by crawler
           true, // is_active
           sourceUrl,
           JSON.stringify(fullJsonData),
+          isApi,
           collectionId
         ]
       );
@@ -265,26 +440,25 @@ async function _insertOrUpdateCollectionInternal(collection) {
       // since we know the data is current as of this crawl
       const collectionResult = await client.query(
         `INSERT INTO collection (
-          stac_id, stac_version, type, title, description, license,
+          stac_id, stac_version, title, description, license,
           spatial_extent, temporal_extent_start, temporal_extent_end,
-          is_api, is_active, source_url, full_json
+          is_active, source_url, full_json, is_api
         )
-        VALUES ($1, $2, $3, $4, $5, $6, ST_GeomFromEWKT($7), $8, $9, $10, $11, $12, $13)
+        VALUES ($1, $2, $3, $4, $5, ST_GeomFromEWKT($6), $7, $8, $9, $10, $11, $12)
         RETURNING id`,
         [
           stacId,
           collection.stac_version || null,
-          collection.type || 'Collection',
           collectionTitle,
           collection.description || null,
           collection.license || null,
           spatialExtent,
           temporalStart,
           temporalEnd,
-          collection.is_api !== undefined ? collection.is_api : false, // is_api - set by crawler
           true, // is_active
           sourceUrl,
-          JSON.stringify(fullJsonData)
+          JSON.stringify(fullJsonData),
+          isApi
         ]
       );
       collectionId = collectionResult.rows[0].id;
@@ -318,17 +492,46 @@ async function _insertOrUpdateCollectionInternal(collection) {
       await insertAssets(client, collectionId, collection.assets);
     }
 
-    // Update crawl log
+    // Update crawl log with source_url and link to crawllog_catalog
+    // First, find the crawllog_catalog_id based on the source URL or parent catalog URL
+    let crawllogCatalogId = null;
+    if (collection.crawllogCatalogId) {
+      // Use the directly provided crawllog_catalog_id from the crawler
+      crawllogCatalogId = collection.crawllogCatalogId;
+    } else if (sourceUrl) {
+      // Try to find the crawllog_catalog_id by matching parent URL
+      // Extract the base URL (remove /collections/X if present)
+      const baseUrl = sourceUrl.replace(/\/collections\/[^/]+$/, '').replace(/\/collections\/?$/, '');
+      const catalogLookup = await client.query(
+        'SELECT id FROM crawllog_catalog WHERE source_url = $1 OR source_url = $2',
+        [sourceUrl, baseUrl]
+      );
+      if (catalogLookup.rows.length > 0) {
+        crawllogCatalogId = catalogLookup.rows[0].id;
+      }
+    }
+    
+    // Delete existing crawllog entry and insert new one with source_url
     await client.query(
       'DELETE FROM crawllog_collection WHERE collection_id = $1',
       [collectionId]
     );
-    await client.query(
-      'INSERT INTO crawllog_collection (collection_id, last_crawled) VALUES ($1, now())',
-      [collectionId]
-    );
+    
+    // Only insert into crawllog_collection if we have a source_url
+    if (sourceUrl) {
+      await client.query(
+        `INSERT INTO crawllog_collection (collection_id, source_url, crawllog_catalog_id)
+         VALUES ($1, $2, $3)
+         ON CONFLICT (source_url) DO UPDATE SET
+           collection_id = EXCLUDED.collection_id,
+           crawllog_catalog_id = EXCLUDED.crawllog_catalog_id`,
+        [collectionId, sourceUrl, crawllogCatalogId]
+      );
+      
+    }
 
     await client.query('COMMIT');
+    
     return collectionId;
   } catch (error) {
     await client.query('ROLLBACK');
@@ -345,7 +548,15 @@ async function _insertOrUpdateCollectionInternal(collection) {
 
 
 /**
- * Helper function to insert keywords
+ * Insert or update keywords for a collection
+ * Deletes existing keywords for the parent and inserts new ones
+ * @async
+ * @function insertKeywords
+ * @param {Object} client - PostgreSQL client from connection pool
+ * @param {number} parentId - Parent entity ID (collection ID)
+ * @param {string[]} keywords - Array of keyword strings
+ * @param {string} type - Entity type ('collection')
+ * @returns {Promise<void>}
  */
 async function insertKeywords(client, parentId, keywords, type) {
   await client.query(
@@ -372,7 +583,15 @@ async function insertKeywords(client, parentId, keywords, type) {
 }
 
 /**
- * Helper function to insert STAC extensions
+ * Insert or update STAC extensions for a collection
+ * Deletes existing extensions for the parent and inserts new ones
+ * @async
+ * @function insertStacExtensions
+ * @param {Object} client - PostgreSQL client from connection pool
+ * @param {number} parentId - Parent entity ID (collection ID)
+ * @param {string[]} extensions - Array of STAC extension URLs
+ * @param {string} type - Entity type ('collection')
+ * @returns {Promise<void>}
  */
 async function insertStacExtensions(client, parentId, extensions, type) {
   await client.query(
@@ -400,7 +619,15 @@ async function insertStacExtensions(client, parentId, extensions, type) {
 
 
 /**
- * Helper function to insert collection summaries
+ * Insert a single collection summary entry
+ * Automatically determines the summary type (range, set, schema, or value) based on the value
+ * @async
+ * @function insertSummary
+ * @param {Object} client - PostgreSQL client from connection pool
+ * @param {number} collectionId - Collection ID
+ * @param {string} name - Summary property name
+ * @param {*} value - Summary value (can be array, object, or primitive)
+ * @returns {Promise<void>}
  */
 async function insertSummary(client, collectionId, name, value) {
   let kind = 'unknown';
@@ -433,7 +660,14 @@ async function insertSummary(client, collectionId, name, value) {
 }
 
 /**
- * Helper function to insert providers
+ * Insert or update providers for a collection
+ * Deletes existing provider links and creates new ones
+ * @async
+ * @function insertProviders
+ * @param {Object} client - PostgreSQL client from connection pool
+ * @param {number} collectionId - Collection ID
+ * @param {Object[]} providers - Array of provider objects with name and roles
+ * @returns {Promise<void>}
  */
 async function insertProviders(client, collectionId, providers) {
   await client.query('DELETE FROM collection_providers WHERE collection_id = $1', [collectionId]);
@@ -458,7 +692,14 @@ async function insertProviders(client, collectionId, providers) {
 }
 
 /**
- * Helper function to insert assets
+ * Insert or update assets for a collection
+ * Deletes existing asset links and creates new ones
+ * @async
+ * @function insertAssets
+ * @param {Object} client - PostgreSQL client from connection pool
+ * @param {number} collectionId - Collection ID
+ * @param {Object} assets - Object mapping asset names to asset data (href, type, roles, metadata)
+ * @returns {Promise<void>}
  */
 async function insertAssets(client, collectionId, assets) {
   await client.query('DELETE FROM collection_assets WHERE collection_id = $1', [collectionId]);
@@ -491,6 +732,36 @@ async function insertAssets(client, collectionId, assets) {
 
 
 
+/**
+ * Mark collections as inactive if they haven't been updated in the last 7 days
+ * Should be called after a crawl completes to deactivate stale collections
+ * @async
+ * @function deactivateStaleCollections
+ * @returns {Promise<number>} Number of collections marked as inactive
+ */
+async function deactivateStaleCollections() {
+  const result = await pool.query(`
+    UPDATE collection
+    SET is_active = false
+    WHERE updated_at < NOW() - INTERVAL '7 days'
+      AND is_active = true
+  `);
+  
+  const count = result.rowCount;
+  if (count > 0) {
+    console.log(`Marked ${count} collection(s) as inactive (not updated in last 7 days)`);
+  }
+  
+  return count;
+}
+
+/**
+ * Close the database connection pool
+ * Should be called when the application shuts down
+ * @async
+ * @function close
+ * @returns {Promise<void>}
+ */
 async function close() {
   await pool.end();
 }
@@ -499,8 +770,16 @@ export default {
   initDb, 
   insertOrUpdateCatalog, 
   insertOrUpdateCollection,
+  saveCrawllogCatalog,
+  getCrawllogCatalogs,
+  getCrawllogCatalogIdByUrl,
+  getSlugByCrawllogCatalogId,
+  getCrawledCollectionUrls,
+  isCollectionUrlCrawled,
+  markCatalogCrawled,
+  clearCrawllogCollection,
+  clearAllCrawllogs,
+  deactivateStaleCollections,
   close, 
   pool 
 };
-
-

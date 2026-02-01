@@ -76,6 +76,9 @@ function getConfig() {
         maxConcurrencyPerDomain: cliArgs.maxConcurrencyPerDomain !== undefined ? cliArgs.maxConcurrencyPerDomain :
                                  (process.env.MAX_CONCURRENCY_PER_DOMAIN ? parseInt(process.env.MAX_CONCURRENCY_PER_DOMAIN, 10) : defaults.maxConcurrencyPerDomain),
         
+        // Fresh start option - clear crawl log and recrawl everything
+        fresh: cliArgs.fresh || process.env.FRESH_CRAWL === 'true' || false,
+        
         // Legacy rate limiting options
         maxConcurrency: cliArgs.maxConcurrency !== undefined ? cliArgs.maxConcurrency :
                         (process.env.MAX_CONCURRENCY ? parseInt(process.env.MAX_CONCURRENCY, 10) : defaults.maxConcurrency),
