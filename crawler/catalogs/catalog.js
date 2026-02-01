@@ -61,6 +61,7 @@ async function crawlSingleDomain(catalogs, domain, config = {}) {
     const DB_QUEUE_TARGET = 1000;
     const DB_QUEUE_LOW_WATERMARK = 100;
     const DB_QUEUE_BATCH_SIZE = 900;
+    const domainCatalogIds = catalogs.map(catalog => catalog.crawllogCatalogId).filter(Boolean);
 
     function getCatalogQueueLabel(url) {
         if (typeof url === 'string' && /\/collections\/?$/.test(url)) {
@@ -80,7 +81,11 @@ async function crawlSingleDomain(catalogs, domain, config = {}) {
         const toFetch = Math.min(DB_QUEUE_BATCH_SIZE, Math.max(DB_QUEUE_TARGET - pending, 0));
         if (toFetch <= 0) return;
 
-        const batch = await db.claimCollectionQueueBatch({ limit: toFetch, isApi: false });
+        const batch = await db.claimCollectionQueueBatch({ 
+            limit: toFetch, 
+            isApi: false,
+            crawllogCatalogIds: domainCatalogIds.length > 0 ? domainCatalogIds : undefined
+        });
         if (batch.length === 0) return;
 
         const requests = batch.map((item, idx) => ({
@@ -180,17 +185,19 @@ async function crawlSingleDomain(catalogs, domain, config = {}) {
     });
 
     // Seed the crawler with catalog requests for this domain
-    const initialRequests = catalogs.map(catalog => ({
-        url: catalog.url,
-        label: 'CATALOG',
-        userData: {
-            depth: 0,
-            catalogId: catalog.id,
-            catalogTitle: catalog.title,
-            catalogSlug: catalog.slug,
-            crawllogCatalogId: catalog.crawllogCatalogId  // Pass for linking collections to crawllog_catalog
-        }
-    }));
+    const initialRequests = catalogs
+        .filter(catalog => !catalog.hasPendingQueue)
+        .map(catalog => ({
+            url: catalog.url,
+            label: 'CATALOG',
+            userData: {
+                depth: 0,
+                catalogId: catalog.id,
+                catalogTitle: catalog.title,
+                catalogSlug: catalog.slug,
+                crawllogCatalogId: catalog.crawllogCatalogId  // Pass for linking collections to crawllog_catalog
+            }
+        }));
 
     await crawler.addRequests(initialRequests);
 

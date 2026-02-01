@@ -103,8 +103,7 @@ async function saveCrawllogCatalog(catalogInfo) {
      VALUES ($1, $2, $3, now())
      ON CONFLICT (source_url) DO UPDATE SET
        slug = COALESCE(EXCLUDED.slug, crawllog_catalog.slug),
-       is_api = EXCLUDED.is_api,
-       updated_at = now()
+       is_api = EXCLUDED.is_api
      RETURNING id`,
     [slug || null, url, isApi]
   );
@@ -119,7 +118,7 @@ async function saveCrawllogCatalog(catalogInfo) {
  * @returns {Promise<Array>} Array of catalog objects with id, slug, source_url, is_api
  */
 async function getCrawllogCatalogs(options = {}) {
-  let query = 'SELECT id, slug, source_url, is_api FROM crawllog_catalog';
+  let query = 'SELECT id, slug, source_url, is_api, created_at, updated_at FROM crawllog_catalog';
   const params = [];
   
   if (options.isApi !== undefined) {
@@ -134,8 +133,35 @@ async function getCrawllogCatalogs(options = {}) {
     id: row.id,
     slug: row.slug,
     url: row.source_url,
-    isApi: row.is_api
+    isApi: row.is_api,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at
   }));
+}
+
+/**
+ * Get crawllog_catalog ids that still have pending queue entries
+ * @param {Object} options
+ * @param {boolean} options.isApi - If provided, filter by API status
+ * @returns {Promise<Array<number>>} Array of crawllog_catalog ids
+ */
+async function getCrawllogCatalogIdsWithPendingQueue(options = {}) {
+  let query = `
+    SELECT DISTINCT cc.crawllog_catalog_id
+    FROM crawllog_collection cc
+    JOIN crawllog_catalog c ON c.id = cc.crawllog_catalog_id
+    WHERE cc.source_url IS NOT NULL
+      AND cc.collection_id IS NULL
+  `;
+  const params = [];
+
+  if (options.isApi !== undefined) {
+    query += ' AND c.is_api = $1';
+    params.push(options.isApi);
+  }
+
+  const result = await pool.query(query, params);
+  return result.rows.map(row => row.crawllog_catalog_id);
 }
 
 /**
@@ -276,17 +302,24 @@ async function getPendingCollectionSeeds(options = {}) {
  * @param {boolean} options.isApi - If provided, filter by API status
  * @returns {Promise<Array>} Array of claimed queue items
  */
-async function claimCollectionQueueBatch({ limit = 900, isApi } = {}) {
+async function claimCollectionQueueBatch({ limit = 900, isApi, crawllogCatalogIds } = {}) {
   if (!limit || limit <= 0) return [];
 
   const params = [];
   let apiFilter = '';
+  let catalogFilter = '';
   let limitParam = '$1';
 
   if (isApi !== undefined) {
     apiFilter = 'AND c.is_api = $1';
     params.push(isApi);
     limitParam = '$2';
+  }
+
+  if (Array.isArray(crawllogCatalogIds) && crawllogCatalogIds.length > 0) {
+    params.push(crawllogCatalogIds);
+    catalogFilter = `AND cc.crawllog_catalog_id = ANY($${params.length})`;
+    limitParam = `$${params.length + 1}`;
   }
 
   params.push(limit);
@@ -298,6 +331,7 @@ async function claimCollectionQueueBatch({ limit = 900, isApi } = {}) {
       JOIN crawllog_catalog c ON c.id = cc.crawllog_catalog_id
       WHERE cc.source_url IS NOT NULL
       ${apiFilter}
+      ${catalogFilter}
       ORDER BY cc.id
       LIMIT ${limitParam}
     )
@@ -872,6 +906,7 @@ export default {
   insertOrUpdateCollection,
   saveCrawllogCatalog,
   getCrawllogCatalogs,
+  getCrawllogCatalogIdsWithPendingQueue,
   getCrawllogCatalogIdByUrl,
   getSlugByCrawllogCatalogId,
   getCrawledCollectionUrls,

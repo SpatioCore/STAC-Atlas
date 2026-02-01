@@ -253,6 +253,11 @@ export async function handleCatalog({ request, json, crawler, log, indent, resul
         const alreadyCrawled = await db.isCollectionUrlCrawled(request.url);
         if (alreadyCrawled) {
             log.info(`${indent}Skipping already-crawled collection: ${stacCatalog.id} (resume mode)`);
+            try {
+                await db.markCatalogCrawled(crawllogCatalogId);
+            } catch (err) {
+                log.warning(`${indent}Failed to mark catalog as crawled: ${err.message}`);
+            }
             return;
         }
         
@@ -290,6 +295,11 @@ export async function handleCatalog({ request, json, crawler, log, indent, resul
                 log.info(`${indent}Max depth (${maxDepth}) reached, skipping ${childLinks.length} child catalogs`);
                 // Clear memory and return early - don't enqueue children
                 await checkAndFlush(results, log);
+                try {
+                    await db.markCatalogCrawled(crawllogCatalogId);
+                } catch (err) {
+                    log.warning(`${indent}Failed to mark catalog as crawled: ${err.message}`);
+                }
                 return;
             }
             
@@ -385,6 +395,12 @@ export async function handleCatalog({ request, json, crawler, log, indent, resul
         await db.removeFromCollectionQueue(request.url);
     } catch (err) {
         log.warning(`${indent}Failed to remove catalog URL from queue: ${err.message}`);
+    }
+
+    try {
+        await db.markCatalogCrawled(crawllogCatalogId);
+    } catch (err) {
+        log.warning(`${indent}Failed to mark catalog as crawled: ${err.message}`);
     }
     
     // Help garbage collector by dereferencing large objects
@@ -535,6 +551,12 @@ export async function handleCollections({ request, json, crawler, log, indent, r
         await db.removeFromCollectionQueue(request.url);
     } catch (err) {
         log.warning(`${indent}Failed to remove collections URL from queue: ${err.message}`);
+    }
+
+    try {
+        await db.markCatalogCrawled(crawllogCatalogId);
+    } catch (err) {
+        log.warning(`${indent}Failed to mark catalog as crawled: ${err.message}`);
     }
     
     // Help garbage collector by dereferencing large objects
