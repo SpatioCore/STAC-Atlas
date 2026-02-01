@@ -85,16 +85,5 @@ export async function tryCollectionEndpoints(stacCatalog, baseUrl, catalogId, de
         log.warning(`${indent}Failed to enqueue collections endpoint: ${err.message}`);
     }
 
-    // Enqueue single collection request
-    await crawler.addRequests([{
-        url: collectionUrl,
-        label: 'COLLECTIONS',
-        userData: {
-            catalogUrl: baseUrl,
-            catalogId,
-            catalogSlug,
-            crawllogCatalogId,
-            depth
-        }
-    }]);
+    // Collection request will be pulled from DB queue in batch mode
 }

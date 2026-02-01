@@ -303,7 +303,8 @@ export async function handleCatalog({ request, json, crawler, log, indent, resul
                 });
             }
             
-            const childRequests = childLinks
+            let queuedCount = 0;
+            childLinks
                 .map((link, idx) => {
                     let childUrl;
                     try {
@@ -349,6 +350,7 @@ export async function handleCatalog({ request, json, crawler, log, indent, resul
 
                     // Persist child catalog URL in DB queue
                     if (childUrl) {
+                        queuedCount++;
                         db.enqueueCollectionUrl({
                             sourceUrl: childUrl,
                             crawllogCatalogId: crawllogCatalogId
@@ -371,21 +373,7 @@ export async function handleCatalog({ request, json, crawler, log, indent, resul
                 })
                 .filter(Boolean); // Remove null entries
             
-            log.info(`${indent}Valid child requests: ${childRequests.length}/${childLinks.length}`);
-            
-            if (childRequests.length > 0) {
-                try {
-                    await crawler.addRequests(childRequests);
-                    log.info(`${indent}Successfully enqueued ${childRequests.length} child catalogs`);
-                } catch (error) {
-                    log.error(`${indent}Failed to add child requests: ${error.message}`);
-                    // Log the actual requests that failed
-                    childRequests.forEach((req, idx) => {
-                        log.error(`${indent}  [${idx}] url="${req.url}" label="${req.label}" userData=${JSON.stringify(req.userData)}`);
-                    });
-                    throw error;
-                }
-            }
+            log.info(`${indent}Queued ${queuedCount}/${childLinks.length} child catalogs into DB queue`);
         }
     }
     

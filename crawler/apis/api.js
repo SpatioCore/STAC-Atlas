@@ -100,6 +100,13 @@ async function crawlSingleApiDomain(apis, domain, config = {}) {
     const DB_QUEUE_LOW_WATERMARK = 100;
     const DB_QUEUE_BATCH_SIZE = 900;
 
+    function getApiQueueLabel(url) {
+        if (typeof url !== 'string') return 'API_ROOT';
+        if (/\/collections\/?$/.test(url)) return 'API_COLLECTIONS';
+        if (/\/collections\//.test(url)) return 'API_COLLECTION';
+        return 'API_ROOT';
+    }
+
     async function ensureDbQueueBuffer(crawler, log) {
         if (!crawler?.requestQueue?.getInfo) return;
 
@@ -116,7 +123,7 @@ async function crawlSingleApiDomain(apis, domain, config = {}) {
 
         const requests = batch.map((item, idx) => ({
             url: item.url,
-            label: 'API_COLLECTION',
+            label: getApiQueueLabel(item.url),
             userData: {
                 apiId: `queued-collection-${idx}`,
                 apiUrl: item.url,
@@ -458,17 +465,15 @@ async function handleApiRoot({ request, json, crawler, log, indent, results, max
         log.debug(`${indent}No collections link found, using fallback: ${collectionsEndpoint}`);
     }
     
-    // Enqueue single collections request
-    await crawler.addRequests([{
-        url: collectionsEndpoint,
-        label: 'API_COLLECTIONS',
-        userData: {
-            apiId: apiId,
-            apiUrl: apiUrl,
-            catalogSlug: apiSlug,  // Use catalogSlug for compatibility with handleCollections
-            crawllogCatalogId: crawllogCatalogId  // Link to crawllog_catalog for collections
-        }
-    }]);
+    // Persist collections endpoint in DB queue (batch-loaded into RAM)
+    try {
+        await db.enqueueCollectionUrl({
+            sourceUrl: collectionsEndpoint,
+            crawllogCatalogId: crawllogCatalogId
+        });
+    } catch (err) {
+        log.warning(`${indent}Failed to enqueue collections endpoint: ${err.message}`);
+    }
     
     // Also check for child links (nested catalogs)
     if (typeof stacObj.getChildLinks === 'function') {
@@ -484,7 +489,7 @@ async function handleApiRoot({ request, json, crawler, log, indent, results, max
             }
             
             const enqueuePromises = [];
-            const childRequests = childLinks
+            childLinks
                 .map((link, idx) => {
                     let childUrl;
                     try {
@@ -522,44 +527,22 @@ async function handleApiRoot({ request, json, crawler, log, indent, results, max
                         return null;
                     }
                     
-                    const rel = link.rel || '';
-                    const label = rel === 'child' || rel === 'item' ? 'API_ROOT' : 'API_COLLECTION';
-                    
-                    const childRequest = {
-                        url: childUrl,
-                        label: label,
-                        userData: {
-                            apiId: `${apiId}-child-${idx}`,
-                            apiUrl: apiUrl,
-                            apiSlug: apiSlug,
-                            catalogSlug: apiSlug,  // Use catalogSlug for compatibility with handleCollections
-                            crawllogCatalogId: crawllogCatalogId,  // Link to crawllog_catalog for collections
-                            parentId: apiId,
-                            depth: nextDepth
-                        }
-                    };
+                    enqueuePromises.push(db.enqueueCollectionUrl({
+                        sourceUrl: childUrl,
+                        crawllogCatalogId: crawllogCatalogId
+                    }));
 
-                    if (label === 'API_COLLECTION') {
-                        enqueuePromises.push(db.enqueueCollectionUrl({
-                            sourceUrl: childUrl,
-                            crawllogCatalogId: crawllogCatalogId
-                        }));
-                    }
-
-                    return childRequest;
+                    return childUrl;
                 })
                 .filter(Boolean);
             
-            if (childRequests.length > 0) {
-                if (enqueuePromises.length > 0) {
-                    try {
-                        await Promise.all(enqueuePromises);
-                    } catch (err) {
-                        log.warning(`${indent}Failed to enqueue child collection URLs: ${err.message}`);
-                    }
+            if (enqueuePromises.length > 0) {
+                try {
+                    await Promise.all(enqueuePromises);
+                    log.info(`${indent}Queued ${enqueuePromises.length} child catalogs/collections into DB queue`);
+                } catch (err) {
+                    log.warning(`${indent}Failed to enqueue child catalog/collection URLs: ${err.message}`);
                 }
-                await crawler.addRequests(childRequests);
-                log.info(`${indent}Enqueued ${childRequests.length} child catalogs/collections`);
             }
         }
     }

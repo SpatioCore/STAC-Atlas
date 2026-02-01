@@ -62,6 +62,13 @@ async function crawlSingleDomain(catalogs, domain, config = {}) {
     const DB_QUEUE_LOW_WATERMARK = 100;
     const DB_QUEUE_BATCH_SIZE = 900;
 
+    function getCatalogQueueLabel(url) {
+        if (typeof url === 'string' && /\/collections\/?$/.test(url)) {
+            return 'COLLECTIONS';
+        }
+        return 'CATALOG';
+    }
+
     async function ensureDbQueueBuffer(crawler, log) {
         if (!crawler?.requestQueue?.getInfo) return;
 
@@ -78,7 +85,7 @@ async function crawlSingleDomain(catalogs, domain, config = {}) {
 
         const requests = batch.map((item, idx) => ({
             url: item.url,
-            label: 'CATALOG',
+            label: getCatalogQueueLabel(item.url),
             userData: {
                 depth: 0,
                 catalogId: `queued-collection-${idx}`,
