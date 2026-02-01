@@ -241,10 +241,12 @@ export async function handleCatalog({ request, json, crawler, log, indent, resul
     if (isCollection) {
         // Persist collection URL in crawllog_collection queue
         try {
-            await db.enqueueCollectionUrl({
-                sourceUrl: request.url,
-                crawllogCatalogId: crawllogCatalogId
-            });
+            if (typeof db.enqueueCollectionUrl === 'function') {
+                await db.enqueueCollectionUrl({
+                    sourceUrl: request.url,
+                    crawllogCatalogId: crawllogCatalogId
+                });
+            }
         } catch (err) {
             log.warning(`${indent}Failed to enqueue collection URL: ${err.message}`);
         }
@@ -254,7 +256,9 @@ export async function handleCatalog({ request, json, crawler, log, indent, resul
         if (alreadyCrawled) {
             log.info(`${indent}Skipping already-crawled collection: ${stacCatalog.id} (resume mode)`);
             try {
-                await db.markCatalogCrawled(crawllogCatalogId);
+                if (typeof db.markCatalogCrawled === 'function') {
+                    await db.markCatalogCrawled(crawllogCatalogId);
+                }
             } catch (err) {
                 log.warning(`${indent}Failed to mark catalog as crawled: ${err.message}`);
             }
@@ -296,7 +300,9 @@ export async function handleCatalog({ request, json, crawler, log, indent, resul
                 // Clear memory and return early - don't enqueue children
                 await checkAndFlush(results, log);
                 try {
-                    await db.markCatalogCrawled(crawllogCatalogId);
+                    if (typeof db.markCatalogCrawled === 'function') {
+                        await db.markCatalogCrawled(crawllogCatalogId);
+                    }
                 } catch (err) {
                     log.warning(`${indent}Failed to mark catalog as crawled: ${err.message}`);
                 }
@@ -361,12 +367,14 @@ export async function handleCatalog({ request, json, crawler, log, indent, resul
                     // Persist child catalog URL in DB queue
                     if (childUrl) {
                         queuedCount++;
-                        db.enqueueCollectionUrl({
-                            sourceUrl: childUrl,
-                            crawllogCatalogId: crawllogCatalogId
-                        }).catch(err => {
-                            log.warning(`${indent}Failed to enqueue child catalog URL: ${err.message}`);
-                        });
+                        if (typeof db.enqueueCollectionUrl === 'function') {
+                            db.enqueueCollectionUrl({
+                                sourceUrl: childUrl,
+                                crawllogCatalogId: crawllogCatalogId
+                            }).catch(err => {
+                                log.warning(`${indent}Failed to enqueue child catalog URL: ${err.message}`);
+                            });
+                        }
                     }
                     
                     return {
@@ -392,13 +400,17 @@ export async function handleCatalog({ request, json, crawler, log, indent, resul
 
     // Remove processed catalog URL from DB queue (if present)
     try {
-        await db.removeFromCollectionQueue(request.url);
+        if (typeof db.removeFromCollectionQueue === 'function') {
+            await db.removeFromCollectionQueue(request.url);
+        }
     } catch (err) {
         log.warning(`${indent}Failed to remove catalog URL from queue: ${err.message}`);
     }
 
     try {
-        await db.markCatalogCrawled(crawllogCatalogId);
+        if (typeof db.markCatalogCrawled === 'function') {
+            await db.markCatalogCrawled(crawllogCatalogId);
+        }
     } catch (err) {
         log.warning(`${indent}Failed to mark catalog as crawled: ${err.message}`);
     }
@@ -509,10 +521,12 @@ export async function handleCollections({ request, json, crawler, log, indent, r
 
             // Persist discovered collection URL in crawllog_collection queue
             try {
-                await db.enqueueCollectionUrl({
-                    sourceUrl: collection.crawledUrl,
-                    crawllogCatalogId: crawllogCatalogId
-                });
+                if (typeof db.enqueueCollectionUrl === 'function') {
+                    await db.enqueueCollectionUrl({
+                        sourceUrl: collection.crawledUrl,
+                        crawllogCatalogId: crawllogCatalogId
+                    });
+                }
             } catch (err) {
                 log.warning(`${indent}Failed to enqueue collection URL: ${err.message}`);
             }
@@ -548,13 +562,17 @@ export async function handleCollections({ request, json, crawler, log, indent, r
 
     // Remove processed collections endpoint URL from DB queue (if present)
     try {
-        await db.removeFromCollectionQueue(request.url);
+        if (typeof db.removeFromCollectionQueue === 'function') {
+            await db.removeFromCollectionQueue(request.url);
+        }
     } catch (err) {
         log.warning(`${indent}Failed to remove collections URL from queue: ${err.message}`);
     }
 
     try {
-        await db.markCatalogCrawled(crawllogCatalogId);
+        if (typeof db.markCatalogCrawled === 'function') {
+            await db.markCatalogCrawled(crawllogCatalogId);
+        }
     } catch (err) {
         log.warning(`${indent}Failed to mark catalog as crawled: ${err.message}`);
     }
