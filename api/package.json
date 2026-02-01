@@ -8,6 +8,7 @@
     "dev": "nodemon ./bin/www",
     "test": "jest",
     "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage --no-cache --runInBand",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write \"**/*.{js,json,md}\""
