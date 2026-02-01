@@ -269,6 +269,55 @@ async function getPendingCollectionSeeds(options = {}) {
 }
 
 /**
+ * Claim and remove a batch of pending collection URLs from crawllog_collection
+ * Used to feed the in-memory queue in controlled batches
+ * @param {Object} options
+ * @param {number} options.limit - Maximum number of URLs to claim
+ * @param {boolean} options.isApi - If provided, filter by API status
+ * @returns {Promise<Array>} Array of claimed queue items
+ */
+async function claimCollectionQueueBatch({ limit = 900, isApi } = {}) {
+  if (!limit || limit <= 0) return [];
+
+  const params = [];
+  let apiFilter = '';
+  let limitParam = '$1';
+
+  if (isApi !== undefined) {
+    apiFilter = 'AND c.is_api = $1';
+    params.push(isApi);
+    limitParam = '$2';
+  }
+
+  params.push(limit);
+
+  const query = `
+    WITH cte AS (
+      SELECT cc.id
+      FROM crawllog_collection cc
+      JOIN crawllog_catalog c ON c.id = cc.crawllog_catalog_id
+      WHERE cc.source_url IS NOT NULL
+      ${apiFilter}
+      ORDER BY cc.id
+      LIMIT ${limitParam}
+    )
+    DELETE FROM crawllog_collection cc
+    USING cte, crawllog_catalog c
+    WHERE cc.id = cte.id
+      AND c.id = cc.crawllog_catalog_id
+    RETURNING cc.source_url, cc.crawllog_catalog_id, c.slug, c.is_api;
+  `;
+
+  const result = await pool.query(query, params);
+  return result.rows.map(row => ({
+    url: row.source_url,
+    crawllogCatalogId: row.crawllog_catalog_id,
+    slug: row.slug,
+    isApi: row.is_api
+  }));
+}
+
+/**
  * Update the updated_at timestamp for a crawllog_catalog entry
  * Called when a catalog has been fully processed
  * @param {number} crawllogCatalogId - The crawllog_catalog id
@@ -812,6 +861,7 @@ export default {
   isCollectionUrlCrawled,
   enqueueCollectionUrl,
   getPendingCollectionSeeds,
+  claimCollectionQueueBatch,
   markCatalogCrawled,
   clearCrawllogCollection,
   clearAllCrawllogs,

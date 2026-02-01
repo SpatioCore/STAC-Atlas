@@ -336,7 +336,7 @@ The crawler stores collections in PostgreSQL with the following key tables:
 - `collection_stac_extension` - STAC extensions used
 - `collection_providers` - Data providers
 - `collection_assets` - Collection assets
-- `crawllog_collection` - Crawl history and timestamps
+- `crawllog_collection` - Active queue of pending collection URLs (drained in batches to keep RAM stable)
 
 ### Scheduler Workflow
 
