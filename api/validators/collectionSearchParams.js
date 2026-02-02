@@ -199,7 +199,7 @@ function validateSortby(sortby) {
   // Map API field names to database column names
   const fieldMapping = {
     'title': 'title',
-    'id': 'id',
+    'id': 'stac_id',
     'license': 'license',
     'created': 'created_at',
     'updated': 'updated_at'
@@ -313,6 +313,66 @@ function validateLicense(license) {
 }
 
 /**
+ * Validates active parameter (boolean filter for is_active)
+ * @param {string|boolean} active - Whether to filter by active status
+ * @returns {Object} { valid: boolean, error?: string, normalized?: boolean }
+ */
+function validateActive(active) {
+  if (active === undefined || active === null || active === '') {
+    return { valid: true }; // optional parameter
+  }
+
+  // Handle boolean values directly
+  if (typeof active === 'boolean') {
+    return { valid: true, normalized: active };
+  }
+
+  // Handle string values
+  if (typeof active === 'string') {
+    const lower = active.toLowerCase().trim();
+    if (lower === 'true' || lower === '1' || lower === 'yes') {
+      return { valid: true, normalized: true };
+    }
+    if (lower === 'false' || lower === '0' || lower === 'no') {
+      return { valid: true, normalized: false };
+    }
+    return { valid: false, error: 'Parameter "active" must be a boolean (true/false)' };
+  }
+
+  return { valid: false, error: 'Parameter "active" must be a boolean (true/false)' };
+}
+
+/**
+ * Validates api parameter (boolean filter for is_api)
+ * @param {string|boolean} api - Whether to filter by API status
+ * @returns {Object} { valid: boolean, error?: string, normalized?: boolean }
+ */
+function validateApi(api) {
+  if (api === undefined || api === null || api === '') {
+    return { valid: true }; // optional parameter
+  }
+
+  // Handle boolean values directly
+  if (typeof api === 'boolean') {
+    return { valid: true, normalized: api };
+  }
+
+  // Handle string values
+  if (typeof api === 'string') {
+    const lower = api.toLowerCase().trim();
+    if (lower === 'true' || lower === '1' || lower === 'yes') {
+      return { valid: true, normalized: true };
+    }
+    if (lower === 'false' || lower === '0' || lower === 'no') {
+      return { valid: true, normalized: false };
+    }
+    return { valid: false, error: 'Parameter "api" must be a boolean (true/false)' };
+  }
+
+  return { valid: false, error: 'Parameter "api" must be a boolean (true/false)' };
+}
+
+/**
  * Validates filter parameter (CQL2)
  * @param {string|Object} filter - CQL2 filter
  * @returns {Object} { valid: boolean, error?: string, normalized?: string|Object }
@@ -348,6 +408,8 @@ module.exports = {
   validateToken,
   validateProvider,
   validateLicense,
+  validateActive,
+  validateApi,
   validateFilter,
   validateFilterLang
 };
