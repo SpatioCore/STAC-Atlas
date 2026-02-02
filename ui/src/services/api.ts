@@ -23,6 +23,10 @@ export interface CollectionSearchParams {
   provider?: string
   /** Filter by license identifier */
   license?: string
+  /** Filter by active status (true/false) */
+  active?: boolean
+  /** Filter by API status (true/false) */
+  api?: boolean
   /** CQL2 filter expression for advanced queries */
   filter?: string
   /** Filter language: 'cql2-text' or 'cql2-json' */

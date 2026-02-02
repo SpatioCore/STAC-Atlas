@@ -6,6 +6,8 @@ export interface FilterState {
   datetime?: string
   provider?: string
   license?: string
+  active?: boolean
+  api?: boolean
   q?: string
   filter?: string
   'filter-lang'?: 'cql2-text' | 'cql2-json'
@@ -19,6 +21,8 @@ export const useFilterStore = defineStore('filters', () => {
   const endDate = ref('')
   const selectedProvider = ref('')
   const selectedLicense = ref('')
+  const activeFilter = ref<string>('true') // 'true', 'false' - default to active
+  const apiFilter = ref<string>('') // '', 'true', 'false'
   const searchQuery = ref('')
   const cql2Filter = ref('')
 
@@ -59,6 +63,8 @@ export const useFilterStore = defineStore('filters', () => {
     datetime: datetime.value,
     provider: selectedProvider.value || undefined,
     license: selectedLicense.value || undefined,
+    active: activeFilter.value ? activeFilter.value === 'true' : undefined,
+    api: apiFilter.value ? apiFilter.value === 'true' : undefined,
     q: searchQuery.value.trim() || undefined,
     filter: cql2Filter.value.trim() || undefined,
     'filter-lang': cql2FilterLang.value
@@ -96,6 +102,8 @@ export const useFilterStore = defineStore('filters', () => {
     endDate.value = ''
     selectedProvider.value = ''
     selectedLicense.value = ''
+    activeFilter.value = 'true' // Reset to active by default
+    apiFilter.value = ''
     searchQuery.value = ''
     cql2Filter.value = ''
     currentPage.value = 1
@@ -131,6 +139,8 @@ export const useFilterStore = defineStore('filters', () => {
     endDate,
     selectedProvider,
     selectedLicense,
+    activeFilter,
+    apiFilter,
     searchQuery,
     cql2Filter,
     currentPage,

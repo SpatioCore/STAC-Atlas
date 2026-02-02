@@ -98,6 +98,31 @@
           />
         </div>
       </div>
+
+      <div class="filter-group">
+        <h3 class="filter-title">
+          <Settings class="filter-icon" :size="20" />
+          Collection Status
+        </h3>
+        <div class="filter-field">
+          <label class="filter-label" for="active-filter">Active Status</label>
+          <CustomSelect
+            id="active-filter"
+            v-model="activeFilter"
+            :options="activeOptions"
+            placeholder="Active"
+          />
+        </div>
+        <div class="filter-field">
+          <label class="filter-label" for="api-filter">API Status</label>
+          <CustomSelect
+            id="api-filter"
+            v-model="apiFilter"
+            :options="apiOptions"
+            placeholder="All"
+          />
+        </div>
+      </div>
     </div>
 
     <div class="filter-bottom">
@@ -116,7 +141,7 @@
           ></textarea>
           <p class="filter-hint" :class="{ 'formatting': isFormattingJson }">
             <template v-if="isFormattingJson">Formatting JSON...</template>
-            <template v-else>CQL2-Text or CQL2-JSON (auto-detected if starts with {)</template>
+            <template v-else>CQL2-Text or CQL2-JSON</template>
           </p>
         </div>
       </div>
@@ -137,9 +162,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onUnmounted } from 'vue'
+import { ref, computed, watch, onUnmounted, onMounted } from 'vue'
 import { storeToRefs } from 'pinia'
-import { MapPin, Calendar, Box, X, Code } from 'lucide-vue-next'
+import { MapPin, Calendar, Box, X, Code, Settings } from 'lucide-vue-next'
 import CustomSelect from '@/components/CustomSelect.vue'
 import BoundingBoxModal from '@/components/BoundingBoxModal.vue'
 import { useFilterStore } from '@/stores/filterStore'
@@ -154,12 +179,21 @@ const filterStore = useFilterStore()
 const { 
   selectedRegion, 
   selectedProvider, 
-  selectedLicense, 
+  selectedLicense,
+  activeFilter,
+  apiFilter,
   startDate, 
   endDate, 
   drawnBbox,
   cql2Filter
 } = storeToRefs(filterStore)
+
+// Ensure activeFilter has the default value on mount
+onMounted(() => {
+  if (!activeFilter.value) {
+    activeFilter.value = 'true'
+  }
+})
 
 // Load providers and licenses from static file (auto-refreshes every 15 min)
 const { queryables, providerOptions, licenseOptions, updateOptions } = useQueryables()
@@ -266,5 +300,17 @@ const regionOptions = [
   { value: '-170,-56,-30,84', label: 'Americas' },
   { value: '110,-50,180,-10', label: 'Oceania' },
   { value: '-180,-90,180,90', label: 'Global' }
+]
+
+// Active/API status filter options
+const activeOptions = [
+  { value: 'true', label: 'Active' },
+  { value: 'false', label: 'Inactive' }
+]
+
+const apiOptions = [
+  { value: '', label: 'All' },
+  { value: 'true', label: 'API Enabled' },
+  { value: 'false', label: 'API Disabled' }
 ]
 </script>
