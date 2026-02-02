@@ -3,32 +3,31 @@
 
 #TODO: add docker-compose files for UI and Crawler components
 
-version: "3.9"
-
 networks:
-  stac_net:
+  stac_network:
+    name: stac-network
+    driver: bridge
 
 services:
   db:
     extends:
       file: db/docker-compose.yml
       service: database
-    networks: [stac_net]
+    networks: [stac-network]
 
-  #crawler:
-  #  extends:
-  #    file: crawler/docker-compose.yml
-  #    service: crawler
-  #  networks: [stac_net]
-
+  crawler:
+    extends:
+      file: crawler/docker-compose.yml
+      service: crawler
+    networks: [stac-network]
   api:
     extends:
       file: api/docker-compose.yml
       service: api
-    networks: [stac_net]
+    networks: [stac-network]
 
-  #ui:
-  #  extends:
-  #    file: ui/docker-compose.yml
-  #    service: ui
-  #  networks: [stac_net] 
+  ui:
+    extends:
+      file: ui/docker-compose.yml
+      service: ui
+    networks: [stac-network]
