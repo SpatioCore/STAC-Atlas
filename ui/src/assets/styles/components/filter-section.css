@@ -22,14 +22,14 @@
 .filter-top {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-sm);
+  gap: var(--spacing-md);
 }
 
 .filter-group {
   display: flex;
   flex-direction: column;
   height: 100%;
-  gap: var(--spacing-sm);
+  gap: var(--spacing-xs);
 }
 
 .filter-title {
