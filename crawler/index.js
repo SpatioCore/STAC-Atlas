@@ -25,9 +25,33 @@ let shutdownRequested = false;
 
 /**
  * Check if shutdown was requested (can be used by crawlers to stop early)
+ * @returns {boolean} True if shutdown was requested
  */
 export function isShutdownRequested() {
     return shutdownRequested;
+}
+
+/**
+ * Request a graceful shutdown of the crawler
+ * The crawler will stop after completing the current batch
+ */
+export function requestShutdown() {
+    if (!shutdownRequested) {
+        console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        console.log('GRACEFUL SHUTDOWN REQUESTED');
+        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        console.log('The crawler will stop after the current batch completes.');
+        console.log('Already-crawled collections are saved in crawllog_collection.');
+        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+        shutdownRequested = true;
+    }
+}
+
+/**
+ * Reset the shutdown flag (for scheduler to start a new crawl)
+ */
+export function resetShutdownFlag() {
+    shutdownRequested = false;
 }
 
 /**
@@ -233,6 +257,16 @@ export const crawler = async () => {
     } finally {
         // Stop global statistics tracking and log final stats
         globalStats.stop();
+        
+        // Deactivate collections that haven't been updated in the last 7 days
+        if (!dbError) {
+            try {
+                console.log('\nChecking for stale collections...');
+                await db.deactivateStaleCollections();
+            } catch (err) {
+                console.error(`Error deactivating stale collections: ${err.message}`);
+            }
+        }
         
         // Close database connection
         if (!dbError) {

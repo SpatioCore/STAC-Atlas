@@ -1,6 +1,14 @@
 /**
- * DB helper for crawler using `pg` Pool
- * Exposes: initDb(), insertOrUpdateCatalog(), close()
+ * @fileoverview Database helper module for STAC crawler using PostgreSQL connection pool
+ * Provides functions for database initialization, collection/catalog management, and connection handling
+ * @module utils/db
+ * 
+ * Exports:
+ * - initDb() - Initialize and test database connection
+ * - insertOrUpdateCatalog() - Process catalog (currently skips saving)
+ * - insertOrUpdateCollection() - Insert or update STAC collection with retry logic
+ * - close() - Close database connection pool
+ * - pool - PostgreSQL connection pool instance
  */
 import pkg from 'pg';
 const { Pool } = pkg;
@@ -16,6 +24,14 @@ const pool = new Pool({
   max: 10,
 });
 
+/**
+ * Initialize and test database connection
+ * Tests the connection by executing a simple query and logs the result
+ * @async
+ * @function initDb
+ * @returns {Promise<void>}
+ * @throws {Error} If database connection fails
+ */
 async function initDb() {
   const host = process.env.PGHOST;
   const port = parseInt(process.env.PGPORT, 10);
@@ -375,6 +391,14 @@ async function _insertOrUpdateCollectionInternal(collection) {
     // This ensures the full original STAC JSON is stored, not the normalized version
     const fullJsonData = collection.originalJson || collection;
     
+    // Determine is_api based on source_url
+    // If source_url ends with .json, it's NOT an API (static file)
+    // Otherwise, it's an API endpoint
+    let isApi = false;
+    if (sourceUrl) {
+      isApi = !sourceUrl.toLowerCase().endsWith('.json');
+    }
+    
     let collectionId;
     if (existingCollection.rows.length > 0) {
       // Update existing collection
@@ -383,31 +407,31 @@ async function _insertOrUpdateCollectionInternal(collection) {
         `UPDATE collection SET 
           stac_id = $1,
           stac_version = $2,
-          type = $3,
+          title = $3,
           description = $4,
           license = $5,
           spatial_extent = ST_GeomFromEWKT($6),
           temporal_extent_start = $7,
           temporal_extent_end = $8,
-          is_api = $9,
-          is_active = $10,
-          source_url = $11,
-          full_json = $12,
+          is_active = $9,
+          source_url = $10,
+          full_json = $11,
+          is_api = $12,
           updated_at = now()
          WHERE id = $13`,
         [
           stacId,
           collection.stac_version || null,
-          collection.type || 'Collection',
+          collectionTitle,
           collection.description || null,
           collection.license || null,
           spatialExtent,
           temporalStart,
           temporalEnd,
-          collection.is_api !== undefined ? collection.is_api : false, // is_api - set by crawler
           true, // is_active
           sourceUrl,
           JSON.stringify(fullJsonData),
+          isApi,
           collectionId
         ]
       );
@@ -416,26 +440,25 @@ async function _insertOrUpdateCollectionInternal(collection) {
       // since we know the data is current as of this crawl
       const collectionResult = await client.query(
         `INSERT INTO collection (
-          stac_id, stac_version, type, title, description, license,
+          stac_id, stac_version, title, description, license,
           spatial_extent, temporal_extent_start, temporal_extent_end,
-          is_api, is_active, source_url, full_json
+          is_active, source_url, full_json, is_api
         )
-        VALUES ($1, $2, $3, $4, $5, $6, ST_GeomFromEWKT($7), $8, $9, $10, $11, $12, $13)
+        VALUES ($1, $2, $3, $4, $5, ST_GeomFromEWKT($6), $7, $8, $9, $10, $11, $12)
         RETURNING id`,
         [
           stacId,
           collection.stac_version || null,
-          collection.type || 'Collection',
           collectionTitle,
           collection.description || null,
           collection.license || null,
           spatialExtent,
           temporalStart,
           temporalEnd,
-          collection.is_api !== undefined ? collection.is_api : false, // is_api - set by crawler
           true, // is_active
           sourceUrl,
-          JSON.stringify(fullJsonData)
+          JSON.stringify(fullJsonData),
+          isApi
         ]
       );
       collectionId = collectionResult.rows[0].id;
@@ -504,9 +527,11 @@ async function _insertOrUpdateCollectionInternal(collection) {
            crawllog_catalog_id = EXCLUDED.crawllog_catalog_id`,
         [collectionId, sourceUrl, crawllogCatalogId]
       );
+      
     }
 
     await client.query('COMMIT');
+    
     return collectionId;
   } catch (error) {
     await client.query('ROLLBACK');
@@ -523,7 +548,15 @@ async function _insertOrUpdateCollectionInternal(collection) {
 
 
 /**
- * Helper function to insert keywords
+ * Insert or update keywords for a collection
+ * Deletes existing keywords for the parent and inserts new ones
+ * @async
+ * @function insertKeywords
+ * @param {Object} client - PostgreSQL client from connection pool
+ * @param {number} parentId - Parent entity ID (collection ID)
+ * @param {string[]} keywords - Array of keyword strings
+ * @param {string} type - Entity type ('collection')
+ * @returns {Promise<void>}
  */
 async function insertKeywords(client, parentId, keywords, type) {
   await client.query(
@@ -550,7 +583,15 @@ async function insertKeywords(client, parentId, keywords, type) {
 }
 
 /**
- * Helper function to insert STAC extensions
+ * Insert or update STAC extensions for a collection
+ * Deletes existing extensions for the parent and inserts new ones
+ * @async
+ * @function insertStacExtensions
+ * @param {Object} client - PostgreSQL client from connection pool
+ * @param {number} parentId - Parent entity ID (collection ID)
+ * @param {string[]} extensions - Array of STAC extension URLs
+ * @param {string} type - Entity type ('collection')
+ * @returns {Promise<void>}
  */
 async function insertStacExtensions(client, parentId, extensions, type) {
   await client.query(
@@ -578,7 +619,15 @@ async function insertStacExtensions(client, parentId, extensions, type) {
 
 
 /**
- * Helper function to insert collection summaries
+ * Insert a single collection summary entry
+ * Automatically determines the summary type (range, set, schema, or value) based on the value
+ * @async
+ * @function insertSummary
+ * @param {Object} client - PostgreSQL client from connection pool
+ * @param {number} collectionId - Collection ID
+ * @param {string} name - Summary property name
+ * @param {*} value - Summary value (can be array, object, or primitive)
+ * @returns {Promise<void>}
  */
 async function insertSummary(client, collectionId, name, value) {
   let kind = 'unknown';
@@ -611,7 +660,14 @@ async function insertSummary(client, collectionId, name, value) {
 }
 
 /**
- * Helper function to insert providers
+ * Insert or update providers for a collection
+ * Deletes existing provider links and creates new ones
+ * @async
+ * @function insertProviders
+ * @param {Object} client - PostgreSQL client from connection pool
+ * @param {number} collectionId - Collection ID
+ * @param {Object[]} providers - Array of provider objects with name and roles
+ * @returns {Promise<void>}
  */
 async function insertProviders(client, collectionId, providers) {
   await client.query('DELETE FROM collection_providers WHERE collection_id = $1', [collectionId]);
@@ -636,7 +692,14 @@ async function insertProviders(client, collectionId, providers) {
 }
 
 /**
- * Helper function to insert assets
+ * Insert or update assets for a collection
+ * Deletes existing asset links and creates new ones
+ * @async
+ * @function insertAssets
+ * @param {Object} client - PostgreSQL client from connection pool
+ * @param {number} collectionId - Collection ID
+ * @param {Object} assets - Object mapping asset names to asset data (href, type, roles, metadata)
+ * @returns {Promise<void>}
  */
 async function insertAssets(client, collectionId, assets) {
   await client.query('DELETE FROM collection_assets WHERE collection_id = $1', [collectionId]);
@@ -669,6 +732,36 @@ async function insertAssets(client, collectionId, assets) {
 
 
 
+/**
+ * Mark collections as inactive if they haven't been updated in the last 7 days
+ * Should be called after a crawl completes to deactivate stale collections
+ * @async
+ * @function deactivateStaleCollections
+ * @returns {Promise<number>} Number of collections marked as inactive
+ */
+async function deactivateStaleCollections() {
+  const result = await pool.query(`
+    UPDATE collection
+    SET is_active = false
+    WHERE updated_at < NOW() - INTERVAL '7 days'
+      AND is_active = true
+  `);
+  
+  const count = result.rowCount;
+  if (count > 0) {
+    console.log(`Marked ${count} collection(s) as inactive (not updated in last 7 days)`);
+  }
+  
+  return count;
+}
+
+/**
+ * Close the database connection pool
+ * Should be called when the application shuts down
+ * @async
+ * @function close
+ * @returns {Promise<void>}
+ */
 async function close() {
   await pool.end();
 }
@@ -686,6 +779,7 @@ export default {
   markCatalogCrawled,
   clearCrawllogCollection,
   clearAllCrawllogs,
+  deactivateStaleCollections,
   close, 
   pool 
 };

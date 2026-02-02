@@ -7,13 +7,12 @@ describe('buildCollectionSearchQuery - aggregated fields', () => {
     // Core collection fields should be prefixed with 'c.'
     expect(sql).toMatch(/c\.id/);
     expect(sql).toMatch(/c\.stac_version/);
-    expect(sql).toMatch(/c\.type/);
     expect(sql).toMatch(/c\.title/);
     expect(sql).toMatch(/c\.description/);
     expect(sql).toMatch(/c\.license/);
-    expect(sql).toMatch(/c\.spatial_extend/);
-    expect(sql).toMatch(/c\.temporal_extend_start/);
-    expect(sql).toMatch(/c\.temporal_extend_end/);
+    expect(sql).toMatch(/c\.spatial_extent/);
+    expect(sql).toMatch(/c\.temporal_extent_start/);
+    expect(sql).toMatch(/c\.temporal_extent_end/);
     expect(sql).toMatch(/c\.created_at/);
     expect(sql).toMatch(/c\.updated_at/);
     expect(sql).toMatch(/c\.is_api/);
@@ -30,7 +29,6 @@ describe('buildCollectionSearchQuery - aggregated fields', () => {
     expect(sql).toMatch(/prov\.providers/);
     expect(sql).toMatch(/a\.assets/);
     expect(sql).toMatch(/s\.summaries/);
-    expect(sql).toMatch(/cl\.last_crawled/);
   });
 
   test('FROM clause uses collection alias c', () => {
@@ -94,47 +92,39 @@ describe('buildCollectionSearchQuery - aggregated fields', () => {
       expect(sql).toMatch(/WHERE cs\.collection_id = c\.id/);
     });
 
-    test('includes LATERAL JOIN for last_crawled timestamp', () => {
-      const { sql } = buildCollectionSearchQuery({ limit: 10, token: 0 });
-
-      expect(sql).toMatch(/MAX\(clc\.last_crawled\) AS last_crawled/);
-      expect(sql).toMatch(/FROM crawllog_collection clc/);
-      expect(sql).toMatch(/WHERE clc\.collection_id = c\.id/);
-    });
   });
 
   describe('WHERE clauses use collection alias c', () => {
-    test('bbox filter uses c.spatial_extend', () => {
+    test('bbox filter uses c.spatial_extent', () => {
       const bbox = [-10, 40, 10, 50];
       const { sql } = buildCollectionSearchQuery({ bbox, limit: 10, token: 0 });
 
-      expect(sql).toMatch(/c\.spatial_extend/);
-      expect(sql).toMatch(/ST_Intersects\(\s*c\.spatial_extend/);
+      expect(sql).toMatch(/c\.spatial_extent/);
+      expect(sql).toMatch(/ST_Intersects\(\s*c\.spatial_extent/);
     });
 
-    test('datetime filter uses c.temporal_extend_start and c.temporal_extend_end', () => {
+    test('datetime filter uses c.temporal_extent_start and c.temporal_extent_end', () => {
       const datetime = '2020-01-01/2021-12-31';
       const { sql } = buildCollectionSearchQuery({ datetime, limit: 10, token: 0 });
 
-      expect(sql).toMatch(/c\.temporal_extend_end >= \$/);
-      expect(sql).toMatch(/c\.temporal_extend_start <= \$/);
+      expect(sql).toMatch(/c\.temporal_extent_end >= \$/);
+      expect(sql).toMatch(/c\.temporal_extent_start <= \$/);
     });
 
     test('fulltext search uses c.title and c.description', () => {
       const q = 'satellite';
       const { sql } = buildCollectionSearchQuery({ q, limit: 10, token: 0 });
 
-      expect(sql).toMatch(/coalesce\(c\.title,''\)/);
-      expect(sql).toMatch(/coalesce\(c\.description,''\)/);
-      expect(sql).toMatch(/to_tsvector\('simple', coalesce\(c\.title,''\) \|\| ' ' \|\| coalesce\(c\.description,''\)\)/);
+      expect(sql).toMatch(/c\.search_vector\s*@@\s*plainto_tsquery\('simple', \$1\)/);
+      expect(sql).toMatch(/ts_rank_cd\(c\.search_vector,\s*plainto_tsquery\('simple', \$1\)\)\s+AS\s+rank/);
     });
   });
 
   describe('ORDER BY uses collection alias c', () => {
-    test('default ORDER BY uses c.id', () => {
+    test('default ORDER BY uses c.stac_id', () => {
       const { sql } = buildCollectionSearchQuery({ limit: 10, token: 0 });
 
-      expect(sql).toMatch(/ORDER BY c\.id ASC/);
+      expect(sql).toMatch(/ORDER BY c\.stac_id ASC/);
     });
 
     test('sortby parameter uses c. prefix', () => {
@@ -144,11 +134,11 @@ describe('buildCollectionSearchQuery - aggregated fields', () => {
       expect(sql).toMatch(/ORDER BY c\.title DESC/);
     });
 
-    test('fulltext search with rank orders by rank DESC, c.id ASC', () => {
+    test('fulltext search with rank orders by rank DESC, c.stac_id ASC', () => {
       const q = 'satellite';
       const { sql } = buildCollectionSearchQuery({ q, limit: 10, token: 0 });
 
-      expect(sql).toMatch(/ORDER BY rank DESC, c\.id ASC/);
+      expect(sql).toMatch(/ORDER BY rank DESC, c\.stac_id ASC/);
     });
   });
 
@@ -215,7 +205,7 @@ describe('buildCollectionSearchQuery - aggregated fields', () => {
       // Count LEFT JOIN LATERAL occurrences (should be 6: kw, ext, prov, a, s, cl)
       const leftJoinLateralCount = (sql.match(/LEFT JOIN LATERAL/gi) || []).length;
       
-      expect(leftJoinLateralCount).toBe(6);
+      expect(leftJoinLateralCount).toBe(5);
     });
   });
 });
