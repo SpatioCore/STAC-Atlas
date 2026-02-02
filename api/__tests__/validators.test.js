@@ -8,7 +8,9 @@ const {
   validateSortby,
   validateToken,
   validateProvider,
-  validateLicense
+  validateLicense,
+  validateActive,
+  validateApi
 } = require('../validators/collectionSearchParams');
 
 describe('Collection Search Parameter Validators', () => {
@@ -480,6 +482,178 @@ describe('Collection Search Parameter Validators', () => {
       const result = validateLicense(long);
       expect(result.valid).toBe(false);
       expect(result.error).toContain('exceeds maximum length');
+    });
+  });
+
+  describe('validateActive - Active status filter', () => {
+    it('should accept true boolean', () => {
+      const result = validateActive(true);
+      expect(result.valid).toBe(true);
+      expect(result.normalized).toBe(true);
+    });
+
+    it('should accept false boolean', () => {
+      const result = validateActive(false);
+      expect(result.valid).toBe(true);
+      expect(result.normalized).toBe(false);
+    });
+
+    it('should accept "true" string', () => {
+      const result = validateActive('true');
+      expect(result.valid).toBe(true);
+      expect(result.normalized).toBe(true);
+    });
+
+    it('should accept "false" string', () => {
+      const result = validateActive('false');
+      expect(result.valid).toBe(true);
+      expect(result.normalized).toBe(false);
+    });
+
+    it('should accept "1" string', () => {
+      const result = validateActive('1');
+      expect(result.valid).toBe(true);
+      expect(result.normalized).toBe(true);
+    });
+
+    it('should accept "0" string', () => {
+      const result = validateActive('0');
+      expect(result.valid).toBe(true);
+      expect(result.normalized).toBe(false);
+    });
+
+    it('should accept "yes" string', () => {
+      const result = validateActive('yes');
+      expect(result.valid).toBe(true);
+      expect(result.normalized).toBe(true);
+    });
+
+    it('should accept "no" string', () => {
+      const result = validateActive('no');
+      expect(result.valid).toBe(true);
+      expect(result.normalized).toBe(false);
+    });
+
+    it('should accept undefined (optional parameter)', () => {
+      const result = validateActive(undefined);
+      expect(result.valid).toBe(true);
+      expect(result.normalized).toBeUndefined();
+    });
+
+    it('should accept null (optional parameter)', () => {
+      const result = validateActive(null);
+      expect(result.valid).toBe(true);
+      expect(result.normalized).toBeUndefined();
+    });
+
+    it('should accept empty string (optional parameter)', () => {
+      const result = validateActive('');
+      expect(result.valid).toBe(true);
+      expect(result.normalized).toBeUndefined();
+    });
+
+    it('should be case-insensitive', () => {
+      const result = validateActive('TRUE');
+      expect(result.valid).toBe(true);
+      expect(result.normalized).toBe(true);
+    });
+
+    it('should reject invalid string', () => {
+      const result = validateActive('invalid');
+      expect(result.valid).toBe(false);
+      expect(result.error).toContain('must be a boolean');
+    });
+
+    it('should reject number other than 0/1', () => {
+      const result = validateActive(5);
+      expect(result.valid).toBe(false);
+      expect(result.error).toContain('must be a boolean');
+    });
+  });
+
+  describe('validateApi - API status filter', () => {
+    it('should accept true boolean', () => {
+      const result = validateApi(true);
+      expect(result.valid).toBe(true);
+      expect(result.normalized).toBe(true);
+    });
+
+    it('should accept false boolean', () => {
+      const result = validateApi(false);
+      expect(result.valid).toBe(true);
+      expect(result.normalized).toBe(false);
+    });
+
+    it('should accept "true" string', () => {
+      const result = validateApi('true');
+      expect(result.valid).toBe(true);
+      expect(result.normalized).toBe(true);
+    });
+
+    it('should accept "false" string', () => {
+      const result = validateApi('false');
+      expect(result.valid).toBe(true);
+      expect(result.normalized).toBe(false);
+    });
+
+    it('should accept "1" string', () => {
+      const result = validateApi('1');
+      expect(result.valid).toBe(true);
+      expect(result.normalized).toBe(true);
+    });
+
+    it('should accept "0" string', () => {
+      const result = validateApi('0');
+      expect(result.valid).toBe(true);
+      expect(result.normalized).toBe(false);
+    });
+
+    it('should accept "yes" string', () => {
+      const result = validateApi('yes');
+      expect(result.valid).toBe(true);
+      expect(result.normalized).toBe(true);
+    });
+
+    it('should accept "no" string', () => {
+      const result = validateApi('no');
+      expect(result.valid).toBe(true);
+      expect(result.normalized).toBe(false);
+    });
+
+    it('should accept undefined (optional parameter)', () => {
+      const result = validateApi(undefined);
+      expect(result.valid).toBe(true);
+      expect(result.normalized).toBeUndefined();
+    });
+
+    it('should accept null (optional parameter)', () => {
+      const result = validateApi(null);
+      expect(result.valid).toBe(true);
+      expect(result.normalized).toBeUndefined();
+    });
+
+    it('should accept empty string (optional parameter)', () => {
+      const result = validateApi('');
+      expect(result.valid).toBe(true);
+      expect(result.normalized).toBeUndefined();
+    });
+
+    it('should be case-insensitive', () => {
+      const result = validateApi('FALSE');
+      expect(result.valid).toBe(true);
+      expect(result.normalized).toBe(false);
+    });
+
+    it('should reject invalid string', () => {
+      const result = validateApi('maybe');
+      expect(result.valid).toBe(false);
+      expect(result.error).toContain('must be a boolean');
+    });
+
+    it('should reject object', () => {
+      const result = validateApi({ value: true });
+      expect(result.valid).toBe(false);
+      expect(result.error).toContain('must be a boolean');
     });
   });
 });
