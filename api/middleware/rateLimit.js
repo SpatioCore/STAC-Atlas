@@ -10,12 +10,15 @@ const { ErrorResponses } = require('../utils/errorResponse');
  * 3. Returns RFC 7807 compliant error response
  * 4. Sets standard RateLimit headers for client awareness
  * 5. Can be configured for different limits or strategies if needed
+ * 6. Can be disabled for load testing by setting DISABLE_RATE_LIMIT=true
  *
  * @see https://www.npmjs.com/package/express-rate-limit
  */
 const rateLimitMiddleware = expressRateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 1000, // max 1000 requests per IP
+  // Skip rate limiting if disabled via environment variable (useful for load testing)
+  skip: () => process.env.DISABLE_RATE_LIMIT === 'true',
   handler: (req, res) => {
     const errorResponse = ErrorResponses.tooManyRequests(
       undefined,

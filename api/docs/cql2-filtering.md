@@ -81,13 +81,55 @@ GET /collections?filter=NOT is_active = false
 | `BETWEEN` | Value is within range (inclusive) | `id BETWEEN 10 AND 50` |
 | `IN` | Value is in a list | `license IN ('MIT', 'Apache-2.0', 'CC-BY-4.0')` |
 | `IS NULL` | Value is null | `description IS NULL` |
+| `LIKE` | Pattern matching with wildcards | `title LIKE '%Sentinel%'` |
 
 **Examples:**
 ```
 GET /collections?filter=id BETWEEN 1 AND 100
 GET /collections?filter=license IN ('MIT', 'CC0-1.0', 'CC-BY-4.0')
 GET /collections?filter=title IS NULL
+GET /collections?filter=title LIKE '%Sentinel%'
+GET /collections?filter=description LIKE '%climate%'
 ```
+
+### Pattern Matching with LIKE
+
+The `LIKE` operator supports SQL-style wildcard patterns:
+
+| Wildcard | Description | Example |
+|----------|-------------|---------|-------|
+| `%` | Matches zero or more characters | `'%Sentinel%'` matches "Sentinel-2", "Copernicus Sentinel" |
+| `_` | Matches exactly one character | `'Sentinel-_'` matches "Sentinel-1", "Sentinel-2" |
+
+**Pattern Examples:**
+
+```bash
+# Find collections with "Sentinel" anywhere in title
+GET /collections?filter=title LIKE '%Sentinel%'
+
+# Find collections starting with "USGS"
+GET /collections?filter=title LIKE 'USGS%'
+
+# Find collections ending with "L2A"
+GET /collections?filter=title LIKE '%L2A'
+
+# Combine wildcards
+GET /collections?filter=title LIKE 'Sentinel-_ %'
+```
+
+**CQL2-JSON Format:**
+
+```json
+{
+  "op": "like",
+  "args": [
+    { "property": "title" },
+    "%Sentinel%"
+  ]
+}
+```
+
+**Note:** Pattern matching is case-sensitive. For case-insensitive matching, consider using the `q` parameter for full-text search instead.
 
 ---
 
@@ -283,6 +325,17 @@ CQL2-JSON is a structured JSON format for filter expressions.
   "args": [
     { "property": "license" },
     ["MIT", "Apache-2.0", "CC-BY-4.0"]
+  ]
+}
+```
+
+**LIKE operator:**
+```json
+{
+  "op": "like",
+  "args": [
+    { "property": "title" },
+    "%Sentinel%"
   ]
 }
 ```
