@@ -159,6 +159,8 @@ export const crawler = async () => {
         console.log('\n=== Loading catalogs from crawllog_catalog for crawling ===');
         const crawllogCatalogs = await db.getCrawllogCatalogs({ isApi: false });
         const crawllogApis = await db.getCrawllogCatalogs({ isApi: true });
+        const pendingCatalogIds = new Set(await db.getCrawllogCatalogIdsWithPendingQueue({ isApi: false }));
+        const pendingApiIds = new Set(await db.getCrawllogCatalogIdsWithPendingQueue({ isApi: true }));
         
         console.log(`Loaded ${crawllogCatalogs.length} catalogs and ${crawllogApis.length} APIs from crawllog_catalog\n`);
         
@@ -173,9 +175,13 @@ export const crawler = async () => {
                 id: cl.id,
                 slug: cl.slug,
                 url: cl.url,
-                crawllogCatalogId: cl.id  // Pass the crawllog_catalog id for linking
+                crawllogCatalogId: cl.id,  // Pass the crawllog_catalog id for linking
+                createdAt: cl.createdAt,
+                updatedAt: cl.updatedAt,
+                hasPendingQueue: pendingCatalogIds.has(cl.id)
             };
         });
+
         
         const realApis = crawllogApis.map(cl => {
             const original = catalogUrlMap.get(cl.url) || {};
@@ -184,9 +190,13 @@ export const crawler = async () => {
                 id: cl.id,
                 slug: cl.slug,
                 url: cl.url,
-                crawllogCatalogId: cl.id  // Pass the crawllog_catalog id for linking
+                crawllogCatalogId: cl.id,  // Pass the crawllog_catalog id for linking
+                createdAt: cl.createdAt,
+                updatedAt: cl.updatedAt,
+                hasPendingQueue: pendingApiIds.has(cl.id)
             };
         });
+
         
         console.log(`\nCatalog Classification (from crawllog_catalog):`);
         console.log(`  Catalogs: ${regularCatalogs.length}`);
@@ -196,11 +206,24 @@ export const crawler = async () => {
         const totalItems = [...regularCatalogs, ...realApis].length;
         globalStats.start(totalItems);
         
+        const shouldCrawlSeed = (seed) => {
+            if (seed.hasPendingQueue) return true;
+            if (!seed.createdAt || !seed.updatedAt) return true;
+            const createdAt = new Date(seed.createdAt).getTime();
+            const updatedAt = new Date(seed.updatedAt).getTime();
+            if (Number.isNaN(createdAt) || Number.isNaN(updatedAt)) return true;
+            return updatedAt <= createdAt;
+        };
+
         // Crawl catalogs if mode is 'catalogs' or 'both'
         if (config.mode === 'catalogs' || config.mode === 'both') {
             console.log('\nCrawling collections and nested catalogs with Crawlee...\n');
-            
-            const allCatalogsToProcess = regularCatalogs;
+
+            const allCatalogsToProcess = regularCatalogs.filter(shouldCrawlSeed);
+            const skippedCatalogs = regularCatalogs.length - allCatalogsToProcess.length;
+            if (skippedCatalogs > 0) {
+                console.log(`Skipping ${skippedCatalogs} catalogs already fully crawled (no pending queue)`);
+            }
             
             // Note: MAX_CATALOGS limit is for debugging purposes only
             // Set maxCatalogs to 0 or use --max-catalogs 0 for unlimited catalog crawling
@@ -224,18 +247,25 @@ export const crawler = async () => {
         if (config.mode === 'apis' || config.mode === 'both') {
             console.log('\nCrawling APIs...');
             // Pass full API objects (including slug and crawllogCatalogId) instead of just URLs
-            const apiObjects = realApis.map(api => ({ 
+            const apiObjects = realApis
+                .filter(shouldCrawlSeed)
+                .map(api => ({ 
                 url: api.url, 
                 slug: api.slug, 
                 title: api.title,
-                crawllogCatalogId: api.crawllogCatalogId  // Link to crawllog_catalog for collections
+                crawllogCatalogId: api.crawllogCatalogId,  // Link to crawllog_catalog for collections
+                hasPendingQueue: api.hasPendingQueue
             }));
+            const skippedApis = realApis.length - apiObjects.length;
+            if (skippedApis > 0) {
+                console.log(`Skipping ${skippedApis} APIs already fully crawled (no pending queue)`);
+            }
                 
             if (apiObjects.length > 0) {
                 // Note: MAX_APIS limit is for debugging purposes only
                 // Set maxApis to 0 or use --max-apis 0 for unlimited API crawling
                 const apisToProcess = config.maxApis === 0 ? apiObjects : apiObjects.slice(0, config.maxApis);
-                console.log(`Found ${realApis.length} APIs. Processing ${apisToProcess.length} (max: ${config.maxApis === 0 ? 'unlimited' : config.maxApis})...`);
+                console.log(`Found ${apiObjects.length} APIs. Processing ${apisToProcess.length} (max: ${config.maxApis === 0 ? 'unlimited' : config.maxApis})...`);
                 
                 try {
                     await crawlApis(apisToProcess, true, config);

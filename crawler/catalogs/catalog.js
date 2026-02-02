@@ -15,6 +15,7 @@ import {
 } from '../utils/parallel.js';
 import globalStats from '../utils/globalStats.js';
 import { isShutdownRequested } from '../index.js';
+import db from '../utils/db.js';
 
 /**
  * Creates and runs a single Crawlee HttpCrawler for a specific domain
@@ -56,6 +57,51 @@ async function crawlSingleDomain(catalogs, domain, config = {}) {
     };
 
     const concurrency = config.maxConcurrencyPerDomain || 20;
+
+    const DB_QUEUE_TARGET = 1000;
+    const DB_QUEUE_LOW_WATERMARK = 100;
+    const DB_QUEUE_BATCH_SIZE = 900;
+    const domainCatalogIds = catalogs.map(catalog => catalog.crawllogCatalogId).filter(Boolean);
+
+    function getCatalogQueueLabel(url) {
+        if (typeof url === 'string' && /\/collections\/?$/.test(url)) {
+            return 'COLLECTIONS';
+        }
+        return 'CATALOG';
+    }
+
+    async function ensureDbQueueBuffer(crawler, log) {
+        if (!crawler?.requestQueue?.getInfo) return;
+
+        const info = await crawler.requestQueue.getInfo();
+        const pending = info?.pendingRequestCount ?? 0;
+
+        if (pending > DB_QUEUE_LOW_WATERMARK) return;
+
+        const toFetch = Math.min(DB_QUEUE_BATCH_SIZE, Math.max(DB_QUEUE_TARGET - pending, 0));
+        if (toFetch <= 0) return;
+
+        const batch = await db.claimCollectionQueueBatch({ 
+            limit: toFetch, 
+            isApi: false,
+            crawllogCatalogIds: domainCatalogIds.length > 0 ? domainCatalogIds : undefined
+        });
+        if (batch.length === 0) return;
+
+        const requests = batch.map((item, idx) => ({
+            url: item.url,
+            label: getCatalogQueueLabel(item.url),
+            userData: {
+                depth: 0,
+                catalogId: `queued-collection-${idx}`,
+                catalogSlug: item.slug || null,
+                crawllogCatalogId: item.crawllogCatalogId || null
+            }
+        }));
+
+        await crawler.addRequests(requests);
+        log.info(`[QUEUE] Pulled ${requests.length} collection URLs from DB queue (pending: ${pending})`);
+    }
     
     const crawler = new HttpCrawler({
         requestHandlerTimeoutSecs: timeoutSecs,
@@ -102,6 +148,7 @@ async function crawlSingleDomain(catalogs, domain, config = {}) {
                 
                 results.stats.successfulRequests++;
                 globalStats.increment('successfulRequests');
+                await ensureDbQueueBuffer(crawler, log);
             } catch (error) {
                 log.error(`${indent}Error handling ${request.label} at ${request.url}: ${error.message}`);
                 throw error;
@@ -133,23 +180,28 @@ async function crawlSingleDomain(catalogs, domain, config = {}) {
                 log.warning(`${indent}[FAILED] ${catalogId} at ${request.url}`);
                 log.warning(`${indent}   Error: ${error.message}`);
             }
+
         }
     });
 
     // Seed the crawler with catalog requests for this domain
-    const initialRequests = catalogs.map(catalog => ({
-        url: catalog.url,
-        label: 'CATALOG',
-        userData: {
-            depth: 0,
-            catalogId: catalog.id,
-            catalogTitle: catalog.title,
-            catalogSlug: catalog.slug,
-            crawllogCatalogId: catalog.crawllogCatalogId  // Pass for linking collections to crawllog_catalog
-        }
-    }));
+    const initialRequests = catalogs
+        .filter(catalog => !catalog.hasPendingQueue)
+        .map(catalog => ({
+            url: catalog.url,
+            label: 'CATALOG',
+            userData: {
+                depth: 0,
+                catalogId: catalog.id,
+                catalogTitle: catalog.title,
+                catalogSlug: catalog.slug,
+                crawllogCatalogId: catalog.crawllogCatalogId  // Pass for linking collections to crawllog_catalog
+            }
+        }));
 
     await crawler.addRequests(initialRequests);
+
+    await ensureDbQueueBuffer(crawler, crawleeLog);
     
     // Register domain as active in global stats
     globalStats.domainStarted(domain);

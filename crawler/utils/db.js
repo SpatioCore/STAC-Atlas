@@ -103,8 +103,7 @@ async function saveCrawllogCatalog(catalogInfo) {
      VALUES ($1, $2, $3, now())
      ON CONFLICT (source_url) DO UPDATE SET
        slug = COALESCE(EXCLUDED.slug, crawllog_catalog.slug),
-       is_api = EXCLUDED.is_api,
-       updated_at = now()
+       is_api = EXCLUDED.is_api
      RETURNING id`,
     [slug || null, url, isApi]
   );
@@ -119,7 +118,7 @@ async function saveCrawllogCatalog(catalogInfo) {
  * @returns {Promise<Array>} Array of catalog objects with id, slug, source_url, is_api
  */
 async function getCrawllogCatalogs(options = {}) {
-  let query = 'SELECT id, slug, source_url, is_api FROM crawllog_catalog';
+  let query = 'SELECT id, slug, source_url, is_api, created_at, updated_at FROM crawllog_catalog';
   const params = [];
   
   if (options.isApi !== undefined) {
@@ -134,8 +133,35 @@ async function getCrawllogCatalogs(options = {}) {
     id: row.id,
     slug: row.slug,
     url: row.source_url,
-    isApi: row.is_api
+    isApi: row.is_api,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at
   }));
+}
+
+/**
+ * Get crawllog_catalog ids that still have pending queue entries
+ * @param {Object} options
+ * @param {boolean} options.isApi - If provided, filter by API status
+ * @returns {Promise<Array<number>>} Array of crawllog_catalog ids
+ */
+async function getCrawllogCatalogIdsWithPendingQueue(options = {}) {
+  let query = `
+    SELECT DISTINCT cc.crawllog_catalog_id
+    FROM crawllog_collection cc
+    JOIN crawllog_catalog c ON c.id = cc.crawllog_catalog_id
+    WHERE cc.source_url IS NOT NULL
+      AND cc.collection_id IS NULL
+  `;
+  const params = [];
+
+  if (options.isApi !== undefined) {
+    query += ' AND c.is_api = $1';
+    params.push(options.isApi);
+  }
+
+  const result = await pool.query(query, params);
+  return result.rows.map(row => row.crawllog_catalog_id);
 }
 
 /**
@@ -172,36 +198,174 @@ async function getSlugByCrawllogCatalogId(crawllogCatalogId) {
 }
 
 /**
- * Get all already-crawled collection URLs for a given crawllog_catalog
+ * Get already-crawled collection URLs for a given catalog (best-effort)
  * Used for pause/resume functionality - skip URLs that have already been processed
+ * NOTE: crawllog_collection is used as a queue only; crawled URLs live in collection.source_url
  * @param {number} crawllogCatalogId - The crawllog_catalog id
- * @returns {Promise<Set<string>>} Set of source URLs already in crawllog_collection
+ * @returns {Promise<Set<string>>} Set of source URLs already in collection
  */
 async function getCrawledCollectionUrls(crawllogCatalogId) {
   if (!crawllogCatalogId) return new Set();
-  
-  const result = await pool.query(
-    'SELECT source_url FROM crawllog_collection WHERE crawllog_catalog_id = $1 AND source_url IS NOT NULL',
+
+  const catalogResult = await pool.query(
+    'SELECT source_url FROM crawllog_catalog WHERE id = $1',
     [crawllogCatalogId]
   );
-  
+
+  if (catalogResult.rows.length === 0) return new Set();
+
+  const catalogUrl = catalogResult.rows[0].source_url;
+  const likePattern = `${catalogUrl.replace(/\/$/, '')}/collections/%`;
+
+  const result = await pool.query(
+    'SELECT source_url FROM collection WHERE source_url IS NOT NULL AND (source_url = $1 OR source_url LIKE $2)',
+    [catalogUrl, likePattern]
+  );
+
   return new Set(result.rows.map(row => row.source_url));
 }
 
 /**
  * Check if a specific collection URL has already been crawled
  * @param {string} sourceUrl - The source URL to check
- * @returns {Promise<boolean>} True if URL exists in crawllog_collection
+ * @returns {Promise<boolean>} True if URL exists in collection table (already crawled)
  */
 async function isCollectionUrlCrawled(sourceUrl) {
   if (!sourceUrl) return false;
   
   const result = await pool.query(
-    'SELECT 1 FROM crawllog_collection WHERE source_url = $1 LIMIT 1',
+    'SELECT 1 FROM collection WHERE source_url = $1 LIMIT 1',
     [sourceUrl]
   );
   
   return result.rows.length > 0;
+}
+
+/**
+ * Enqueue a collection URL into crawllog_collection without marking it as crawled
+ * Used to persist newly discovered collection links for later processing
+ * @param {Object} params
+ * @param {string} params.sourceUrl - Collection URL to enqueue
+ * @param {number|null} params.crawllogCatalogId - Parent crawllog_catalog id
+ * @returns {Promise<void>}
+ */
+async function enqueueCollectionUrl({ sourceUrl, crawllogCatalogId = null }) {
+  if (!sourceUrl) return;
+
+  await pool.query(
+    `INSERT INTO crawllog_collection (collection_id, source_url, crawllog_catalog_id)
+     VALUES (NULL, $1, $2)
+     ON CONFLICT (source_url) DO UPDATE SET
+       crawllog_catalog_id = COALESCE(EXCLUDED.crawllog_catalog_id, crawllog_collection.crawllog_catalog_id)`,
+    [sourceUrl, crawllogCatalogId]
+  );
+}
+
+/**
+ * Get pending (not yet crawled) collection URLs from crawllog_collection
+ * Joined with crawllog_catalog to determine API vs catalog context
+ * @param {Object} options
+ * @param {boolean} options.isApi - If provided, filter by API status
+ * @returns {Promise<Array>} Array of pending collection seed objects
+ */
+async function getPendingCollectionSeeds(options = {}) {
+  let query = `
+    SELECT cc.source_url, cc.crawllog_catalog_id, c.slug, c.is_api
+    FROM crawllog_collection cc
+    JOIN crawllog_catalog c ON c.id = cc.crawllog_catalog_id
+    WHERE cc.collection_id IS NULL
+      AND cc.source_url IS NOT NULL
+  `;
+  const params = [];
+
+  if (options.isApi !== undefined) {
+    query += ' AND c.is_api = $1';
+    params.push(options.isApi);
+  }
+
+  query += ' ORDER BY cc.id';
+
+  const result = await pool.query(query, params);
+  return result.rows.map(row => ({
+    url: row.source_url,
+    crawllogCatalogId: row.crawllog_catalog_id,
+    slug: row.slug,
+    isApi: row.is_api
+  }));
+}
+
+/**
+ * Claim and remove a batch of pending collection URLs from crawllog_collection
+ * Used to feed the in-memory queue in controlled batches
+ * @param {Object} options
+ * @param {number} options.limit - Maximum number of URLs to claim
+ * @param {boolean} options.isApi - If provided, filter by API status
+ * @returns {Promise<Array>} Array of claimed queue items
+ */
+async function claimCollectionQueueBatch({ limit = 900, isApi, crawllogCatalogIds } = {}) {
+  if (!limit || limit <= 0) return [];
+
+  const params = [];
+  let apiFilter = '';
+  let catalogFilter = '';
+  let limitParam = '$1';
+
+  if (isApi !== undefined) {
+    apiFilter = 'AND c.is_api = $1';
+    params.push(isApi);
+    limitParam = '$2';
+  }
+
+  if (Array.isArray(crawllogCatalogIds) && crawllogCatalogIds.length > 0) {
+    params.push(crawllogCatalogIds);
+    catalogFilter = `AND cc.crawllog_catalog_id = ANY($${params.length})`;
+    limitParam = `$${params.length + 1}`;
+  }
+
+  params.push(limit);
+
+  const query = `
+    WITH cte AS (
+      SELECT cc.id
+      FROM crawllog_collection cc
+      JOIN crawllog_catalog c ON c.id = cc.crawllog_catalog_id
+      WHERE cc.source_url IS NOT NULL
+      ${apiFilter}
+      ${catalogFilter}
+      ORDER BY cc.id
+      LIMIT ${limitParam}
+    )
+    DELETE FROM crawllog_collection cc
+    USING cte, crawllog_catalog c
+    WHERE cc.id = cte.id
+      AND c.id = cc.crawllog_catalog_id
+    RETURNING cc.source_url, cc.crawllog_catalog_id, c.slug, c.is_api;
+  `;
+
+  const result = await pool.query(query, params);
+  return result.rows.map(row => ({
+    url: row.source_url,
+    crawllogCatalogId: row.crawllog_catalog_id,
+    slug: row.slug,
+    isApi: row.is_api
+  }));
+}
+
+/**
+ * Remove a URL from crawllog_collection queue
+ * Used when a URL was processed outside of DB batch claiming
+ * @param {string} sourceUrl - URL to remove
+ * @returns {Promise<number>} Number of rows deleted
+ */
+async function removeFromCollectionQueue(sourceUrl) {
+  if (!sourceUrl) return 0;
+
+  const result = await pool.query(
+    'DELETE FROM crawllog_collection WHERE source_url = $1',
+    [sourceUrl]
+  );
+
+  return result.rowCount;
 }
 
 /**
@@ -492,42 +656,12 @@ async function _insertOrUpdateCollectionInternal(collection) {
       await insertAssets(client, collectionId, collection.assets);
     }
 
-    // Update crawl log with source_url and link to crawllog_catalog
-    // First, find the crawllog_catalog_id based on the source URL or parent catalog URL
-    let crawllogCatalogId = null;
-    if (collection.crawllogCatalogId) {
-      // Use the directly provided crawllog_catalog_id from the crawler
-      crawllogCatalogId = collection.crawllogCatalogId;
-    } else if (sourceUrl) {
-      // Try to find the crawllog_catalog_id by matching parent URL
-      // Extract the base URL (remove /collections/X if present)
-      const baseUrl = sourceUrl.replace(/\/collections\/[^/]+$/, '').replace(/\/collections\/?$/, '');
-      const catalogLookup = await client.query(
-        'SELECT id FROM crawllog_catalog WHERE source_url = $1 OR source_url = $2',
-        [sourceUrl, baseUrl]
-      );
-      if (catalogLookup.rows.length > 0) {
-        crawllogCatalogId = catalogLookup.rows[0].id;
-      }
-    }
-    
-    // Delete existing crawllog entry and insert new one with source_url
-    await client.query(
-      'DELETE FROM crawllog_collection WHERE collection_id = $1',
-      [collectionId]
-    );
-    
-    // Only insert into crawllog_collection if we have a source_url
+    // Remove from crawllog_collection queue once crawled
     if (sourceUrl) {
       await client.query(
-        `INSERT INTO crawllog_collection (collection_id, source_url, crawllog_catalog_id)
-         VALUES ($1, $2, $3)
-         ON CONFLICT (source_url) DO UPDATE SET
-           collection_id = EXCLUDED.collection_id,
-           crawllog_catalog_id = EXCLUDED.crawllog_catalog_id`,
-        [collectionId, sourceUrl, crawllogCatalogId]
+        'DELETE FROM crawllog_collection WHERE source_url = $1',
+        [sourceUrl]
       );
-      
     }
 
     await client.query('COMMIT');
@@ -772,10 +906,15 @@ export default {
   insertOrUpdateCollection,
   saveCrawllogCatalog,
   getCrawllogCatalogs,
+  getCrawllogCatalogIdsWithPendingQueue,
   getCrawllogCatalogIdByUrl,
   getSlugByCrawllogCatalogId,
   getCrawledCollectionUrls,
   isCollectionUrlCrawled,
+  enqueueCollectionUrl,
+  getPendingCollectionSeeds,
+  claimCollectionQueueBatch,
+  removeFromCollectionQueue,
   markCatalogCrawled,
   clearCrawllogCollection,
   clearAllCrawllogs,

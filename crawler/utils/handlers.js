@@ -239,10 +239,29 @@ export async function handleCatalog({ request, json, crawler, log, indent, resul
     // If this is a STAC Collection (not a catalog), extract and store it
     // Collections don't have /collections endpoints, so we skip tryCollectionEndpoints for them
     if (isCollection) {
+        // Persist collection URL in crawllog_collection queue
+        try {
+            if (typeof db.enqueueCollectionUrl === 'function') {
+                await db.enqueueCollectionUrl({
+                    sourceUrl: request.url,
+                    crawllogCatalogId: crawllogCatalogId
+                });
+            }
+        } catch (err) {
+            log.warning(`${indent}Failed to enqueue collection URL: ${err.message}`);
+        }
+
         // Check if this collection URL was already crawled (pause/resume support)
         const alreadyCrawled = await db.isCollectionUrlCrawled(request.url);
         if (alreadyCrawled) {
             log.info(`${indent}Skipping already-crawled collection: ${stacCatalog.id} (resume mode)`);
+            try {
+                if (typeof db.markCatalogCrawled === 'function') {
+                    await db.markCatalogCrawled(crawllogCatalogId);
+                }
+            } catch (err) {
+                log.warning(`${indent}Failed to mark catalog as crawled: ${err.message}`);
+            }
             return;
         }
         
@@ -280,6 +299,13 @@ export async function handleCatalog({ request, json, crawler, log, indent, resul
                 log.info(`${indent}Max depth (${maxDepth}) reached, skipping ${childLinks.length} child catalogs`);
                 // Clear memory and return early - don't enqueue children
                 await checkAndFlush(results, log);
+                try {
+                    if (typeof db.markCatalogCrawled === 'function') {
+                        await db.markCatalogCrawled(crawllogCatalogId);
+                    }
+                } catch (err) {
+                    log.warning(`${indent}Failed to mark catalog as crawled: ${err.message}`);
+                }
                 return;
             }
             
@@ -293,7 +319,8 @@ export async function handleCatalog({ request, json, crawler, log, indent, resul
                 });
             }
             
-            const childRequests = childLinks
+            let queuedCount = 0;
+            childLinks
                 .map((link, idx) => {
                     let childUrl;
                     try {
@@ -336,6 +363,19 @@ export async function handleCatalog({ request, json, crawler, log, indent, resul
                     const linkTitle = typeof link.title === 'string' && link.title.length > 0 
                         ? link.title 
                         : `child-${idx}`;
+
+                    // Persist child catalog URL in DB queue
+                    if (childUrl) {
+                        queuedCount++;
+                        if (typeof db.enqueueCollectionUrl === 'function') {
+                            db.enqueueCollectionUrl({
+                                sourceUrl: childUrl,
+                                crawllogCatalogId: crawllogCatalogId
+                            }).catch(err => {
+                                log.warning(`${indent}Failed to enqueue child catalog URL: ${err.message}`);
+                            });
+                        }
+                    }
                     
                     return {
                         url: childUrl,
@@ -351,26 +391,29 @@ export async function handleCatalog({ request, json, crawler, log, indent, resul
                 })
                 .filter(Boolean); // Remove null entries
             
-            log.info(`${indent}Valid child requests: ${childRequests.length}/${childLinks.length}`);
-            
-            if (childRequests.length > 0) {
-                try {
-                    await crawler.addRequests(childRequests);
-                    log.info(`${indent}Successfully enqueued ${childRequests.length} child catalogs`);
-                } catch (error) {
-                    log.error(`${indent}Failed to add child requests: ${error.message}`);
-                    // Log the actual requests that failed
-                    childRequests.forEach((req, idx) => {
-                        log.error(`${indent}  [${idx}] url="${req.url}" label="${req.label}" userData=${JSON.stringify(req.userData)}`);
-                    });
-                    throw error;
-                }
-            }
+            log.info(`${indent}Queued ${queuedCount}/${childLinks.length} child catalogs into DB queue`);
         }
     }
     
     // Ensure memory is cleared periodically even if no collections were found
     await checkAndFlush(results, log);
+
+    // Remove processed catalog URL from DB queue (if present)
+    try {
+        if (typeof db.removeFromCollectionQueue === 'function') {
+            await db.removeFromCollectionQueue(request.url);
+        }
+    } catch (err) {
+        log.warning(`${indent}Failed to remove catalog URL from queue: ${err.message}`);
+    }
+
+    try {
+        if (typeof db.markCatalogCrawled === 'function') {
+            await db.markCatalogCrawled(crawllogCatalogId);
+        }
+    } catch (err) {
+        log.warning(`${indent}Failed to mark catalog as crawled: ${err.message}`);
+    }
     
     // Help garbage collector by dereferencing large objects
     stacCatalog = null;
@@ -449,22 +492,13 @@ export async function handleCollections({ request, json, crawler, log, indent, r
         // Remove trailing /collections from the request URL to get the API base
         const baseUrl = request.url.replace(/\/collections\/?$/, '');
 
-        // Get already-crawled URLs for this catalog to enable pause/resume
-        let crawledUrls = new Set();
-        if (crawllogCatalogId) {
-            try {
-                crawledUrls = await db.getCrawledCollectionUrls(crawllogCatalogId);
-                if (crawledUrls.size > 0) {
-                    log.info(`${indent}Found ${crawledUrls.size} already-crawled collection URLs for this catalog`);
-                }
-            } catch (err) {
-                log.warning(`${indent}Failed to get crawled URLs: ${err.message}`);
-            }
-        }
+        // Note: crawllog_collection is a queue only; already-crawled URLs are stored in collection table
         
         // Normalize and store collections, skipping already-crawled ones
         let skippedCount = 0;
-        const collections = collectionsData.map((colObj, index) => {
+        const collections = [];
+        for (let index = 0; index < collectionsData.length; index++) {
+            const colObj = collectionsData[index];
             const collection = normalizeCollection(colObj, index);
             // Add the catalog slug to the collection for unique stac_id generation
             collection.sourceSlug = catalogSlug;
@@ -483,19 +517,32 @@ export async function handleCollections({ request, json, crawler, log, indent, r
                 }
             } else {
                 collection.crawledUrl = `${baseUrl}/collections/${collection.id}`;
-            } 
+            }
+
+            // Persist discovered collection URL in crawllog_collection queue
+            try {
+                if (typeof db.enqueueCollectionUrl === 'function') {
+                    await db.enqueueCollectionUrl({
+                        sourceUrl: collection.crawledUrl,
+                        crawllogCatalogId: crawllogCatalogId
+                    });
+                }
+            } catch (err) {
+                log.warning(`${indent}Failed to enqueue collection URL: ${err.message}`);
+            }
             
             // Skip if this URL was already crawled (pause/resume support)
-            if (crawledUrls.has(collection.crawledUrl)) {
+            const alreadyCrawled = await db.isCollectionUrlCrawled(collection.crawledUrl);
+            if (alreadyCrawled) {
                 skippedCount++;
-                return null;
+                continue;
             }
             
             // Mark collection as API or static catalog based on context
             collection.is_api = isApi;
             
-            return collection;
-        }).filter(Boolean);  // Remove nulls (skipped collections)
+            collections.push(collection);
+        }
         
         if (skippedCount > 0) {
             log.info(`${indent}Skipped ${skippedCount} already-crawled collections (resume mode)`);
@@ -511,6 +558,23 @@ export async function handleCollections({ request, json, crawler, log, indent, r
         
         // Check if we should flush to database
         await checkAndFlush(results, log);
+    }
+
+    // Remove processed collections endpoint URL from DB queue (if present)
+    try {
+        if (typeof db.removeFromCollectionQueue === 'function') {
+            await db.removeFromCollectionQueue(request.url);
+        }
+    } catch (err) {
+        log.warning(`${indent}Failed to remove collections URL from queue: ${err.message}`);
+    }
+
+    try {
+        if (typeof db.markCatalogCrawled === 'function') {
+            await db.markCatalogCrawled(crawllogCatalogId);
+        }
+    } catch (err) {
+        log.warning(`${indent}Failed to mark catalog as crawled: ${err.message}`);
     }
     
     // Help garbage collector by dereferencing large objects
