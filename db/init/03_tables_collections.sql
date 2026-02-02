@@ -7,7 +7,6 @@ CREATE TABLE collection (
     id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     stac_version TEXT,
     stac_id TEXT UNIQUE,
-    type TEXT,
     title TEXT,
     description TEXT,
     license TEXT,
