@@ -9,6 +9,8 @@ const {
   validateToken,
   validateProvider,
   validateLicense,
+  validateActive,
+  validateApi,
   validateFilter,
   validateFilterLang
 } = require('../validators/collectionSearchParams');
@@ -30,6 +32,8 @@ const { ErrorResponses } = require('../utils/errorResponse');
  * - token: Pagination continuation token
  * - provider: Provider name — filter by data provider
  * - license: License identifier — filter by collection license
+ * - active: Boolean — filter by collection active status (is_active)
+ * - api: Boolean — filter by API status (is_api)
  * - filter: CQL2 filter expression
  * - filter-lang: Language of the filter (cql2-text, cql2-json)
  * 
@@ -42,7 +46,7 @@ function validateCollectionSearchParams(req, res, next) {
   const normalized = {};
   
   // Extract query parameters
-  const { q, bbox, datetime, limit, sortby, token, provider, license, filter } = req.query;
+  const { q, bbox, datetime, limit, sortby, token, provider, license, active, api, filter } = req.query;
   const filterLang = req.query['filter-lang']; // separate extraction due to hyphen in name
   
   // Validate q (free-text search)
@@ -107,6 +111,22 @@ function validateCollectionSearchParams(req, res, next) {
     errors.push(licenseResult.error);
   } else if (licenseResult.normalized !== undefined) {
     normalized.license = licenseResult.normalized;
+  }
+
+  // Validate active (filter by collection active status)
+  const activeResult = validateActive(active);
+  if (!activeResult.valid) {
+    errors.push(activeResult.error);
+  } else if (activeResult.normalized !== undefined) {
+    normalized.active = activeResult.normalized;
+  }
+
+  // Validate api (filter by API status)
+  const apiResult = validateApi(api);
+  if (!apiResult.valid) {
+    errors.push(apiResult.error);
+  } else if (apiResult.normalized !== undefined) {
+    normalized.api = apiResult.normalized;
   }
 
   // Validate filter

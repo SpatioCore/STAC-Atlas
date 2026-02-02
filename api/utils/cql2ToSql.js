@@ -65,6 +65,13 @@ function cql2ToSql(cql, values) {
          return `${val} IS NULL`;
     }
 
+    // LIKE operator (pattern matching)
+    if (cql.op === 'like') {
+        const val = processArg(cql.args[0], values);
+        const pattern = processArg(cql.args[1], values);
+        return `${val} LIKE ${pattern}`;
+    }
+
     // Spatial operators (CQL2 Advanced)
     if (cql.op === 's_intersects') {
         const geomProp = processArg(cql.args[0], values);
@@ -178,6 +185,8 @@ function mapProperty(propName) {
         'created': 'c.created_at',
         'updated': 'c.updated_at',
         'collection': 'c.id',
+        'active': 'c.is_active',
+        'api': 'c.is_api',
         
         // Aggregated fields (from LATERAL JOINs)
         'keywords': 'kw.keywords',
@@ -185,7 +194,6 @@ function mapProperty(propName) {
         'providers': 'prov.providers',
         'assets': 'a.assets',
         'summaries': 's.summaries',
-        'last_crawled': 'cl.last_crawled'
     };
 
     if (columnMap[propName]) {
@@ -193,8 +201,8 @@ function mapProperty(propName) {
     }
 
     // Fallback: query inside full_json JSONB column
-    // Ensure propName is safe (alphanumeric + underscores)
-    if (!/^[a-zA-Z0-9_]+$/.test(propName)) {
+    // Ensure propName is safe (alphanumeric + underscores + dots + hyphens + double colons)
+    if (!/^[a-zA-Z0-9_.:-]+$/.test(propName)) {
         throw new Error(`Invalid property name: ${propName}`);
     }
     

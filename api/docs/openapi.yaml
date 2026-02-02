@@ -1,10 +1,23 @@
 openapi: 3.0.3
 info:
   title: STAC Atlas API
-  description: A centralized platform for managing, indexing, and providing STAC Collection metadata from distributed catalogs and APIs.
+  description: |
+    A centralized platform for managing, indexing, and providing STAC Collection metadata from distributed catalogs and APIs.
+    
+    ## Features
+    - **STAC API 1.1.0 Core** conformance
+    - **Collection Search** with advanced filtering
+    - **CQL2 Filtering** (Basic + Advanced operators including LIKE, BETWEEN, IN, Spatial, Temporal)
+    - **Full-text search** with PostgreSQL FTS
+    - **Pagination** with continuation tokens
+    - **Sorting** by multiple fields
+    - **Health checks** for monitoring
+    - **Rate limiting** and request size protection
+    
   version: 1.0.0
   contact:
     name: SpatioCore
+    url: https://github.com/spatiocore
   license:
     name: Apache 2.0
     url: https://www.apache.org/licenses/LICENSE-2.0.html
@@ -12,6 +25,8 @@ info:
 servers:
   - url: http://localhost:3000
     description: Local development server
+  - url: https://api.stacatlas.org
+    description: Production server
 
 paths:
   /:
@@ -32,7 +47,16 @@ paths:
   /conformance:
     get:
       summary: Conformance Classes
-      description: Returns the conformance classes that this API implements
+      description: |
+        Returns the conformance classes that this API implements according to OGC and STAC standards.
+        
+        Includes conformance to:
+        - STAC API Core
+        - OGC API Features
+        - Collection Search Extension
+        - CQL2 Filtering (Basic + Advanced)
+        - Sorting
+        - Filter Extension
       operationId: getConformance
       tags:
         - STAC Core
@@ -43,11 +67,35 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Conformance'
+              example:
+                conformsTo:
+                  - "https://api.stacspec.org/v1.0.0/core"
+                  - "https://api.stacspec.org/v1.0.0/collections"
+                  - "http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/core"
+                  - "http://www.opengis.net/spec/cql2/1.0/conf/basic-cql2"
+                  - "http://www.opengis.net/spec/cql2/1.0/conf/advanced-comparison-operators"
 
   /collections:
     get:
-      summary: List Collections
-      description: Returns a list of STAC Collections with optional filtering
+      summary: Search Collections
+      description: |
+        Returns a paginated list of STAC Collections with advanced filtering capabilities.
+        
+        **Filtering Options:**
+        - Free-text search (`q`)
+        - Spatial filter (`bbox`)
+        - Temporal filter (`datetime`)
+        - CQL2 expressions (`filter` + `filter-lang`)
+        - Provider filter (`provider`)
+        - License filter (`license`)
+        
+        **Pagination:**
+        Uses `limit` and `token` (offset-based) for pagination. The `matched` field in the response
+        indicates total matching collections.
+        
+        **Sorting:**
+        Use `sortby` parameter with `+field` (ascending) or `-field` (descending). Multiple fields
+        can be comma-separated.
       operationId: getCollections
       tags:
         - Collections
@@ -61,45 +109,78 @@ paths:
             minimum: 1
             maximum: 10000
             default: 10
-        - name: offset
+          example: 20
+        - name: token
           in: query
-          description: Number of collections to skip
+          description: Pagination token (offset) - number of collections to skip
           required: false
           schema:
             type: integer
             minimum: 0
             default: 0
+          example: 40
         - name: bbox
           in: query
-          description: Bounding box to filter collections [minLon,minLat,maxLon,maxLat]
+          description: |
+            Spatial filter as bounding box `[minLon,minLat,maxLon,maxLat]` or `[west,south,east,north]`.
+            Coordinates must be in WGS84 (EPSG:4326).
           required: false
           schema:
             type: array
             items:
               type: number
             minItems: 4
-            maxItems: 6
+            maxItems: 4
+          style: form
+          explode: false
+          example: [7.0, 51.0, 8.0, 52.0]
         - name: datetime
           in: query
-          description: Temporal filter (single datetime or interval)
+          description: |
+            Temporal filter as ISO8601 timestamp or interval:
+            - Single: `2020-01-01T00:00:00Z`
+            - Interval: `2020-01-01T00:00:00Z/2025-12-31T23:59:59Z`
+            - Open start: `../2025-12-31T23:59:59Z`
+            - Open end: `2020-01-01T00:00:00Z/..`
           required: false
           schema:
             type: string
+          example: "2020-01-01T00:00:00Z/2025-12-31T23:59:59Z"
         - name: q
           in: query
-          description: Full-text search query
+          description: |
+            Full-text search query across title, description, and keywords using PostgreSQL FTS.
+            Supports multiple words (AND logic) and phrase search.
           required: false
           schema:
             type: string
+            maxLength: 500
+          example: "Sentinel climate"
         - name: filter
           in: query
-          description: CQL2 filter expression
+          description: |
+            CQL2 filter expression for advanced querying.
+            
+            **Supported Operators:**
+            - Comparison: `=`, `<>`, `<`, `<=`, `>`, `>=`
+            - Advanced: `BETWEEN`, `IN`, `IS NULL`, `LIKE`
+            - Logical: `AND`, `OR`, `NOT`
+            - Spatial: `S_INTERSECTS`, `S_WITHIN`, `S_CONTAINS`
+            - Temporal: `T_INTERSECTS`, `T_BEFORE`, `T_AFTER`
+            
+            **Important:** String literals must be in single quotes: `license = 'MIT'`
+            
+            See `/collections-queryables` for available properties.
           required: false
           schema:
             type: string
+          example: "license = 'CC-BY-4.0' AND title LIKE '%Sentinel%'"
         - name: filter-lang
           in: query
-          description: Filter language (cql2-text or cql2-json)
+          description: |
+            Language of the filter expression:
+            - `cql2-text`: Human-readable text format (default)
+            - `cql2-json`: Machine-readable JSON format
           required: false
           schema:
             type: string
@@ -109,19 +190,75 @@ paths:
             default: cql2-text
         - name: sortby
           in: query
-          description: Sort order for results
+          description: |
+            Sort specification. Use `+` for ascending, `-` for descending.
+            Multiple fields can be comma-separated.
+            
+            **Available fields:** title, created, updated, id
           required: false
           schema:
             type: string
+          example: "-created,+title"
+        - name: provider
+          in: query
+          description: Filter by data provider name (partial match)
+          required: false
+          schema:
+            type: string
+          example: "USGS"
+        - name: license
+          in: query
+          description: Filter by license identifier (exact match)
+          required: false
+          schema:
+            type: string
+          example: "CC-BY-4.0"
+        - name: active
+          in: query
+          description: |
+            Filter by collection active status.
+            - `true`: Only active collections
+            - `false`: Only inactive collections
+          required: false
+          schema:
+            type: boolean
+          example: true
+        - name: api
+          in: query
+          description: |
+            Filter by API status.
+            - `true`: Only collections from STAC APIs
+            - `false`: Only collections from static catalogs
+          required: false
+          schema:
+            type: boolean
+          example: true
       responses:
         '200':
-          description: List of collections
+          description: List of collections matching the query
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Collections'
         '400':
-          description: Bad request (invalid parameters)
+          description: Bad request - invalid query parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "InvalidParameter"
+                description: "Parameter 'bbox' must contain exactly 4 coordinates"
+                timestamp: "2026-01-31T12:00:00Z"
+                requestId: "550e8400-e29b-41d4-a716-446655440000"
+        '413':
+          description: Request too large
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Too many requests - rate limit exceeded
           content:
             application/json:
               schema:
@@ -129,18 +266,28 @@ paths:
 
   /collections/{collectionId}:
     get:
-      summary: Get Collection
-      description: Returns a single STAC Collection by ID
+      summary: Get Collection by ID
+      description: |
+        Returns a single STAC Collection by its identifier.
+        
+        The collection includes:
+        - Original metadata from source catalog
+        - STAC Atlas identifiers (`stac_id`, `source_id`, `source_url`)
+        - Processed links with both Atlas and source references
+        - Full STAC-compliant structure
       operationId: getCollection
       tags:
         - Collections
       parameters:
         - name: collectionId
           in: path
-          description: Collection identifier
+          description: |
+            Collection identifier (STAC Atlas ID).
+            Can be numeric ID or string identifier.
           required: true
           schema:
             type: string
+          example: "sentinel-2-l2a"
       responses:
         '200':
           description: A STAC Collection
@@ -154,21 +301,136 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              example:
+                type: "about:blank"
+                title: "Not Found"
+                status: 404
+                code: "NotFound"
+                description: "Collection with id 'unknown-collection' not found"
+                instance: "/collections/unknown-collection"
+                requestId: "550e8400-e29b-41d4-a716-446655440000"
+                timestamp: "2026-01-31T12:00:00Z"
 
-  /queryables:
+  /collections-queryables:
     get:
-      summary: Global Queryables
-      description: Returns queryable properties for collection search
-      operationId: getQueryables
+      summary: Collection Queryables
+      description: |
+        Returns a JSON Schema describing queryable properties for CQL2 filter expressions.
+        
+        This endpoint provides:
+        - Property names and types
+        - Supported CQL2 operators per property
+        - Database column mappings
+        - Example filter expressions
+        
+        Use this to discover what properties can be used in `?filter=` expressions.
+      operationId: getCollectionsQueryables
       tags:
         - Queryables
       responses:
         '200':
-          description: Queryables schema
+          description: Queryables JSON Schema
           content:
             application/schema+json:
               schema:
                 type: object
+                properties:
+                  $schema:
+                    type: string
+                  $id:
+                    type: string
+                  type:
+                    type: string
+                  title:
+                    type: string
+                  description:
+                    type: string
+                  properties:
+                    type: object
+                  links:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Link'
+
+  /health:
+    get:
+      summary: Health Check
+      description: |
+        Returns health status and readiness information for the STAC Atlas API.
+        
+        **Checks:**
+        - **Liveness:** Returns 200 if the service is running
+        - **Readiness:** Checks database connectivity
+        - **Uptime:** Service uptime in seconds
+        - **Latency:** Database query latency
+        
+        **Status Codes:**
+        - `200`: Service is healthy and ready
+        - `503`: Service is alive but degraded (database unavailable)
+        
+        Suitable for Kubernetes liveness and readiness probes.
+      operationId: getHealth
+      tags:
+        - Health
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Health'
+              example:
+                type: "Health"
+                id: "stac-atlas-health"
+                title: "STAC Atlas API Health Check"
+                description: "Health status and readiness information for the STAC Atlas API"
+                status: "ok"
+                ready: true
+                uptimeSec: 3600
+                timestamp: "2026-01-31T12:00:00Z"
+                checks:
+                  alive:
+                    status: "ok"
+                  db:
+                    status: "ok"
+                    latencyMs: 5
+                links:
+                  - rel: "self"
+                    href: "http://localhost:3000/health"
+                    type: "application/json"
+                    title: "This health check endpoint"
+                  - rel: "root"
+                    href: "http://localhost:3000"
+                    type: "application/json"
+                    title: "STAC Atlas root catalog"
+        '503':
+          description: Service is degraded (database unavailable)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Health'
+              example:
+                type: "Health"
+                id: "stac-atlas-health"
+                title: "STAC Atlas API Health Check"
+                description: "Health status and readiness information for the STAC Atlas API"
+                status: "degraded"
+                ready: false
+                uptimeSec: 3600
+                timestamp: "2026-01-31T12:00:00Z"
+                latencyMs: 150
+                checks:
+                  alive:
+                    status: "ok"
+                  db:
+                    status: "error"
+                    latencyMs: 150
+                    code: "ECONNREFUSED"
+                    message: "Database connectivity check failed"
+                links:
+                  - rel: "self"
+                    href: "http://localhost:3000/health"
+                    type: "application/json"
 
 components:
   schemas:
@@ -217,6 +479,7 @@ components:
       required:
         - collections
         - links
+        - context
       properties:
         collections:
           type: array
@@ -226,8 +489,11 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Link'
+          description: |
+            Pagination links including `self`, `next`, `prev`, `root`, `parent`.
         context:
           $ref: '#/components/schemas/Context'
+          description: Search context with result counts and pagination info
 
     Collection:
       type: object
@@ -245,12 +511,25 @@ components:
             - Collection
         stac_version:
           type: string
+          example: "1.0.0"
         stac_extensions:
           type: array
           items:
             type: string
+          description: STAC extensions used by this collection
         id:
           type: string
+          description: STAC Atlas collection identifier
+        stac_id:
+          type: string
+          description: Same as id (STAC Atlas identifier)
+        source_id:
+          type: string
+          description: Original collection ID from source catalog
+        source_url:
+          type: string
+          format: uri
+          description: URL of the original collection in source catalog
         title:
           type: string
         description:
@@ -261,10 +540,23 @@ components:
             type: string
         license:
           type: string
+          example: "CC-BY-4.0"
         providers:
           type: array
           items:
             type: object
+            properties:
+              name:
+                type: string
+              description:
+                type: string
+              roles:
+                type: array
+                items:
+                  type: string
+              url:
+                type: string
+                format: uri
         extent:
           type: object
           required:
@@ -282,6 +574,7 @@ components:
                     type: array
                     items:
                       type: number
+                  description: Array of bounding boxes [[minLon, minLat, maxLon, maxLat]]
             temporal:
               type: object
               required:
@@ -294,14 +587,27 @@ components:
                     items:
                       type: string
                       nullable: true
+                  description: Array of temporal intervals [[start, end]] in ISO8601 format
         links:
           type: array
           items:
             $ref: '#/components/schemas/Link'
+          description: |
+            Links include:
+            - `self`: This collection in STAC Atlas
+            - `root`: STAC Atlas landing page
+            - `parent`: STAC Atlas landing page
+            - `item`/`items`: Original source item references (if available)
+            - `source_*`: Other links from original source (e.g., `source_license`, `source_root`)
         summaries:
           type: object
+          additionalProperties: true
+          description: Property summaries (ranges, enums) for items in this collection
         assets:
           type: object
+          additionalProperties:
+            type: object
+          description: Collection-level assets
 
     Link:
       type: object
@@ -311,25 +617,129 @@ components:
       properties:
         rel:
           type: string
+          description: |
+            Link relation type. Common values:
+            - `self`: This resource
+            - `root`: API root/landing page
+            - `parent`: Parent resource
+            - `next`/`prev`: Pagination links
+            - `item`/`items`: Item references
+            - `source_*`: Links from original source catalog
         href:
           type: string
+          format: uri
         type:
           type: string
+          description: Media type of the linked resource
+          example: "application/json"
         title:
           type: string
 
+    Health:
+      type: object
+      required:
+        - type
+        - id
+        - title
+        - description
+        - status
+        - ready
+        - uptimeSec
+        - timestamp
+        - checks
+        - links
+      properties:
+        type:
+          type: string
+          enum:
+            - Health
+        id:
+          type: string
+          example: "stac-atlas-health"
+        title:
+          type: string
+          example: "STAC Atlas API Health Check"
+        description:
+          type: string
+        status:
+          type: string
+          enum:
+            - ok
+            - degraded
+          description: Overall health status
+        ready:
+          type: boolean
+          description: Readiness flag - true if service can handle requests
+        uptimeSec:
+          type: integer
+          minimum: 0
+          description: Service uptime in seconds
+        timestamp:
+          type: string
+          format: date-time
+          description: ISO8601 timestamp of health check
+        latencyMs:
+          type: number
+          description: Total request latency (included on errors)
+        checks:
+          type: object
+          required:
+            - alive
+            - db
+          properties:
+            alive:
+              type: object
+              required:
+                - status
+              properties:
+                status:
+                  type: string
+                  enum:
+                    - ok
+            db:
+              type: object
+              required:
+                - status
+              properties:
+                status:
+                  type: string
+                  enum:
+                    - ok
+                    - error
+                latencyMs:
+                  type: number
+                  description: Database query latency in milliseconds
+                code:
+                  type: string
+                  description: Error code (if status is error)
+                message:
+                  type: string
+                  description: Error message (if status is error)
+        links:
+          type: array
+          items:
+            $ref: '#/components/schemas/Link'
+
     Context:
       type: object
+      required:
+        - returned
+        - limit
+        - matched
+      description: Search context with pagination and result count information
       properties:
         returned:
           type: integer
           minimum: 0
+          description: Number of collections returned in this response
         limit:
           type: integer
           minimum: 1
+          description: Maximum number of collections per page
         matched:
           type: integer
           minimum: 0
+          description: Total number of collections matching the query
 
     Error:
       type: object
@@ -337,15 +747,45 @@ components:
         - code
         - description
       properties:
+        type:
+          type: string
+          default: "about:blank"
+          description: RFC 7807 error type
+        title:
+          type: string
+          description: Short error title
+        status:
+          type: integer
+          description: HTTP status code
         code:
           type: string
+          description: Machine-readable error code
+          example: "InvalidParameter"
         description:
           type: string
+          description: Human-readable error description
+        instance:
+          type: string
+          description: Request path that caused the error
+        requestId:
+          type: string
+          format: uuid
+          description: Unique request identifier for debugging
+        timestamp:
+          type: string
+          format: date-time
+          description: Error timestamp
 
 tags:
   - name: STAC Core
-    description: STAC API Core endpoints
+    description: STAC API Core endpoints (Landing Page, Conformance)
   - name: Collections
-    description: Collection search and retrieval
+    description: Collection search and retrieval with CQL2 filtering
   - name: Queryables
-    description: Queryable properties
+    description: Queryable properties for CQL2 filter expressions
+  - name: Health
+    description: Health check and monitoring endpoints
+
+externalDocs:
+  description: STAC Atlas API Documentation
+  url: https://github.com/spatiocore/stac-atlas

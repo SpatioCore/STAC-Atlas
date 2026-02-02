@@ -27,9 +27,10 @@ function buildCollectionsQueryablesSchema(baseUrl) {
   const OPS_RANGE = ['between'];
   const OPS_SET = ['in'];
   const OPS_NULL = ['isNull'];
+  const OPS_LIKE = ['like'];
   const OPS_LOGICAL = ['and', 'or', 'not']; // Applied to expressions, not properties
   
-  const OPS_STRING = [...OPS_COMPARISON, ...OPS_RANGE, ...OPS_SET, ...OPS_NULL];
+  const OPS_STRING = [...OPS_COMPARISON, ...OPS_RANGE, ...OPS_SET, ...OPS_NULL, ...OPS_LIKE];
   const OPS_NUMERIC = [...OPS_COMPARISON, ...OPS_RANGE, ...OPS_SET, ...OPS_NULL];
   const OPS_BOOLEAN = ['=', '<>', ...OPS_NULL];
   const OPS_TIMESTAMP = [...OPS_COMPARISON, ...OPS_RANGE, ...OPS_SET, ...OPS_NULL, 't_before', 't_after', 't_intersects'];
@@ -186,6 +187,24 @@ function buildCollectionsQueryablesSchema(baseUrl) {
         'x-ogc-property': 'c.is_active'
       },
 
+      active: {
+        title: 'Active (Alias)',
+        description: 'Alias for is_active. Filter for active collections. Maps to c.is_active.',
+        type: 'boolean',
+        'x-ogc-operators': OPS_BOOLEAN,
+        'x-ogc-property': 'c.is_active',
+        'x-ogc-alias-of': 'is_active'
+      },
+
+      api: {
+        title: 'API (Alias)',
+        description: 'Alias for is_api. Filter for API-based collections. Maps to c.is_api.',
+        type: 'boolean',
+        'x-ogc-operators': OPS_BOOLEAN,
+        'x-ogc-property': 'c.is_api',
+        'x-ogc-alias-of': 'is_api'
+      },
+
       // ==================== Aggregated Fields (LATERAL JOINs) ====================
 
       keywords: {
@@ -243,15 +262,6 @@ function buildCollectionsQueryablesSchema(baseUrl) {
         'x-ogc-operators': OPS_NULL,
         'x-ogc-property': 's.summaries',
         'x-implementation-status': 'Summary filtering requires JSONB key/value logic (not yet implemented).'
-      },
-
-      last_crawled: {
-        title: 'Last Crawled',
-        description: 'Timestamp of last crawler visit. Maps to cl.last_crawled from LATERAL JOIN.',
-        type: 'string',
-        format: 'date-time',
-        'x-ogc-operators': OPS_TIMESTAMP,
-        'x-ogc-property': 'cl.last_crawled'
       },
 
       // ==================== Property Aliases ====================
@@ -333,6 +343,14 @@ function buildCollectionsQueryablesSchema(baseUrl) {
           description: 'Filter by license identifier',
           type: 'string',
           maxLength: 255
+        },
+        active: {
+          description: 'Filter by active status (true/false)',
+          type: 'boolean'
+        },
+        api: {
+          description: 'Filter by API status (true/false)',
+          type: 'boolean'
         },
         filter: {
           description: 'CQL2 filter expression',

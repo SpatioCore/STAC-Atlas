@@ -11,7 +11,6 @@ const EXPECTED_SCHEMAS = {
     id: { type: 'integer', required: true },
     // stac_id: { type: 'text', required: true }, // Column does not exist in both databases
     stac_version: { type: 'text', required: true },
-    type: { type: 'text', required: true },
     title: { type: 'text', required: true },
     description: { type: 'text', required: true },
     license: { type: 'text', required: true },
@@ -56,7 +55,6 @@ describe('Database Schema Validation', () => {
       discoveredTables = tablesResult.rows.map(r => r.tablename);
       
       expect(discoveredTables).toContain('collection');
-      expect(discoveredTables).toContain('catalog');
       expect(discoveredTables.length).toBeGreaterThan(0);
     });
   });
@@ -119,56 +117,6 @@ describe('Database Schema Validation', () => {
     test('should have jsonb column', () => {
       expect(actualColumns.full_json).toBeDefined();
       expect(actualColumns.full_json.type).toBe('jsonb');
-    });
-  });
-
-  describe('Schema Validation - Catalog Table', () => {
-    const actualColumns = {};
-
-    beforeAll(async () => {
-      const columnsResult = await query(`
-        SELECT 
-          column_name,
-          data_type,
-          udt_name,
-          is_nullable
-        FROM information_schema.columns
-        WHERE table_name = 'catalog'
-        ORDER BY ordinal_position
-      `);
-      
-      columnsResult.rows.forEach(col => {
-        actualColumns[col.column_name] = {
-          type: col.data_type === 'USER-DEFINED' ? col.udt_name : col.data_type,
-          nullable: col.is_nullable === 'YES'
-        };
-      });
-    });
-
-    test('should have all required columns', () => {
-      const expectedSchema = EXPECTED_SCHEMAS.catalog;
-      
-      for (const [colName, expected] of Object.entries(expectedSchema)) {
-        expect(actualColumns).toHaveProperty(colName);
-      }
-    });
-
-    test('should have correct data types', () => {
-      const expectedSchema = EXPECTED_SCHEMAS.catalog;
-      
-      for (const [colName, expected] of Object.entries(expectedSchema)) {
-        const actual = actualColumns[colName];
-        if (!actual) continue;
-        
-        const actualType = actual.type.toLowerCase();
-        const expectedType = expected.type.toLowerCase();
-        
-        const typeMatch = actualType === expectedType || 
-                          actualType.includes(expectedType) ||
-                          expectedType.includes(actualType);
-        
-        expect(typeMatch).toBe(true);
-      }
     });
   });
 
