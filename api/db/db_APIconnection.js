@@ -126,6 +126,21 @@ async function testConnection(retries = 3, delay = 2000) {
   return false;
 }
 
+// simple ping to check connicivity (used in health check)
+async function ping() {
+  let client;
+  try {
+    client = await pool.connect();
+    await client.query('BEGIN');
+    await client.query('ROLLBACK');
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, code: err.code, message: err.message };
+  } finally {
+    if (client) client.release(); // release client back to pool --> no leaks
+  }
+}
+
 // Get current pool statistics
 function getPoolStats() {
   return {
@@ -260,6 +275,7 @@ module.exports = {
   testConnection,
   closePool,
   getPoolStats,
+  ping,
 
   // PostGIS functions
   queryByBBox,

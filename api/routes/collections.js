@@ -8,6 +8,80 @@ const { parseCql2Text, parseCql2Json } = require('../utils/cql2');
 const { cql2ToSql } = require('../utils/cql2ToSql');
 const { ErrorResponses } = require('../utils/errorResponse');
 
+/**
+ * Resolves a relative href against a base source URL.
+ * Handles both absolute URLs (starting with http/https) and relative paths.
+ * 
+ * @param {string} href - The href to resolve (can be absolute or relative)
+ * @param {string} sourceUrl - The base source URL to resolve against
+ * @returns {string} The resolved absolute URL
+ */
+function resolveHref(href, sourceUrl) {
+  if (!href) return href;
+  
+  // If href is already absolute, return as-is
+  if (href.startsWith('http://') || href.startsWith('https://')) {
+    return href;
+  }
+  
+  // If no source URL, we can't resolve relative paths
+  if (!sourceUrl) return href;
+  
+  try {
+    // Use URL constructor to resolve relative paths
+    return new URL(href, sourceUrl).href;
+  } catch (e) {
+    // If URL resolution fails, return original href
+    console.warn(`Failed to resolve href '${href}' against source '${sourceUrl}':`, e.message);
+    return href;
+  }
+}
+
+/**
+ * Processes source links and categorizes them into item links and other links.
+ * Item links are kept with their original rel, other links get "source_" prefix.
+ * 
+ * @param {Array} sourceLinks - Array of links from the original STAC source
+ * @param {string} sourceUrl - The base source URL for resolving relative hrefs
+ * @returns {Array} Processed links ready to append to collection links
+ */
+function processSourceLinks(sourceLinks, sourceUrl) {
+  if (!sourceLinks || !Array.isArray(sourceLinks)) return [];
+  
+  const processedLinks = [];
+  
+  for (const link of sourceLinks) {
+    if (!link || !link.rel) continue;
+    
+    const rel = link.rel.toLowerCase();
+    const resolvedHref = resolveHref(link.href, sourceUrl);
+    
+    if (rel === 'item' || rel === 'items') {
+      // Item links: keep rel as-is, add source hint to title
+      processedLinks.push({
+        rel: link.rel,
+        href: resolvedHref,
+        type: link.type || 'application/json',
+        title: link.title 
+          ? `${link.title} (Source Item Reference)` 
+          : 'Source Item Reference'
+      });
+    } else {
+      // Other links: prefix rel with "source_", add source hint to title
+      processedLinks.push({
+        rel: `source_${link.rel}`,
+        href: resolvedHref,
+        type: link.type || 'application/json',
+        title: link.title 
+          ? `${link.title} (Original Source Link)` 
+          : `Original Source ${link.rel} Link`
+      });
+    }
+  }
+  
+  return processedLinks;
+}
+
 // helper to map DB row to STAC Collection object
 function toStacCollection(row, baseHost) {
   // Use full_json as base and then add some additional fields from DB
@@ -24,28 +98,42 @@ function toStacCollection(row, baseHost) {
   collection.id = row.stac_id;
   collection.stac_id = row.stac_id;
 
-  // TODO: Add is_active, is_api, last_crawled fields if needed
+  // Add other fields from DB row
+  collection.is_active = row.is_active;
+  collection.is_api = row.is_api;
 
   // Add Links incase a baseHost is provided
   if (baseHost !== undefined) {
-    collection.links = [
+    // Base links: our own STAC Atlas links
+    const baseLinks = [
       {
         rel: "self",
         href: `${baseHost}/collections/${row.stac_id}`,
+        type: 'application/json',
         title: 'The Collection itself'
       },
       {
         rel: "root",
         href: `${baseHost}`,
+        type: 'application/json',
         title: 'STAC Atlas Landing Page'
       },
       {
         rel: "parent",
         href: `${baseHost}`,
+        type: 'application/json',
         title: 'STAC Atlas Landing Page'
       }
     ];
+    
+    // Process and append source links
+    const sourceLinks = processSourceLinks(collection.source_links, row.source_url);
+    
+    collection.links = [...baseLinks, ...sourceLinks];
   };
+
+  // Remove source_links from final output to avoid confusion
+  delete collection.source_links;
 
   return collection;
 }
@@ -74,6 +162,8 @@ async function runQuery(sql, params = []) {
  *   - token: Pagination continuation token (offset)
  *   - provider: Provider name — filter by data provider
  *   - license: License identifier — filter by collection license
+ *   - active: Boolean — filter by collection active status (is_active)
+ *   - api: Boolean — filter by API status (is_api)
  * 
  * All parameters are validated by validateCollectionSearchParams middleware.
  * Validated/normalized values are available in req.validatedParams.
@@ -83,7 +173,7 @@ router.get('/', validateCollectionSearchParams, async (req, res, next) => {
   // TODO: Think about the parameters `provider` and `license` - They are mentioned in the bid, but not in the STAC spec
   try {
     // validated parameters from middleware
-    const { q, bbox, datetime, limit, sortby, token, provider, license, filter } = req.validatedParams;
+    const { q, bbox, datetime, limit, sortby, token, provider, license, active, api, filter } = req.validatedParams;
     const filterLang = req.validatedParams['filter-lang'] || 'cql2-text'; // seperate extraction due to hyphen and default value
 
     let cqlFilter = undefined;
@@ -116,6 +206,8 @@ router.get('/', validateCollectionSearchParams, async (req, res, next) => {
       datetime,
       provider,
       license,
+      active,
+      api,
       limit,
       sortby,
       token,
@@ -137,6 +229,9 @@ router.get('/', validateCollectionSearchParams, async (req, res, next) => {
       datetime,
       provider,
       license,
+      active,
+      api,
+      cqlFilter,   // Include CQL2 filter for accurate count
       limit: null, // No limit for count
       sortby: null, // No sorting for count
       token: null   // No offset for count
@@ -183,6 +278,11 @@ router.get('/', validateCollectionSearchParams, async (req, res, next) => {
     res.json({
       collections,
       links,
+      context: {
+        returned,
+        limit,
+        matched
+      }
     });
   } catch (error) {
     next(error);
@@ -236,24 +336,11 @@ const rows = await runQuery(sql, values);
         const row = rows[0];
 
     const baseHost = `${req.protocol}://${req.get('host')}`;
-    const selfHref = `${baseHost}${req.originalUrl}`;
-    const rootHref = baseHost;
 
-    // TODO:
-    //   Currently we always construct a minimal set of STAC-style links here.
-    //   The crawler already stores the upstream links in full_json, but we do
-    //   not extract or persist them as a separate links column yet.
-    //   In the future we might want to parse those links and merge them here.
-    const links = [
-      { rel: 'self', href: selfHref, type: 'application/json', title: 'The collection itself' },
-      { rel: 'root', href: rootHref, type: 'application/json', title: 'STAC Atlas Landing Page' },
-      { rel: 'parent', href: `${rootHref}`, type: 'application/json', title: 'STAC Atlas Landing Page' }
-    ];
-   const collection_id = toStacCollection(row);
-    // Return the collection with a normalized `links` array.
-    // The rest of the attributes (id, title, extent, full_json, …) come directly
-    // from the query builder / database.
-    res.json(Object.assign({}, collection_id, { links }));
+    // Map to STAC Collection
+    const collection_id = toStacCollection(row, baseHost);
+
+    res.json(collection_id);
   } catch (error) {
     next(error);
   }

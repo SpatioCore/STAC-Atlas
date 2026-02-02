@@ -96,7 +96,6 @@ describe('CQL2 Filter Integration Tests', () => {
         'providers': 'prov.providers',
         'assets': 'a.assets',
         'summaries': 's.summaries',
-        'last_crawled': 'cl.last_crawled'
       };
       
       Object.entries(mappings).forEach(([prop, expected]) => {
@@ -208,6 +207,50 @@ describe('CQL2 Filter Integration Tests', () => {
       // All returned collections should have the filtered license
       result.rows.forEach(row => {
         expect(row.license).toBe('CC-BY-4.0');
+      });
+    });
+
+    test('should execute LIKE filter query with wildcard', async () => {
+      // Test with a common pattern like '%US%' to match USGS collections
+      const cqlFilter = {
+        sql: "c.title LIKE $1",
+        values: ['%US%']
+      };
+      
+      const { sql, values } = buildCollectionSearchQuery({ 
+        cqlFilter, 
+        limit: 10, 
+        token: 0 
+      });
+      
+      const result = await query(sql, values);
+      expect(result.rows).toBeDefined();
+      expect(Array.isArray(result.rows)).toBe(true);
+      
+      // All returned collections should have 'US' in the title
+      result.rows.forEach(row => {
+        expect(row.title.toUpperCase()).toContain('US');
+      });
+    });
+
+    test('should execute LIKE filter query with prefix pattern', async () => {
+      const cqlFilter = {
+        sql: "c.title LIKE $1",
+        values: ['USGS%']
+      };
+      
+      const { sql, values } = buildCollectionSearchQuery({ 
+        cqlFilter, 
+        limit: 10, 
+        token: 0 
+      });
+      
+      const result = await query(sql, values);
+      expect(result.rows).toBeDefined();
+      
+      // All returned collections should start with 'USGS'
+      result.rows.forEach(row => {
+        expect(row.title).toMatch(/^USGS/);
       });
     });
 

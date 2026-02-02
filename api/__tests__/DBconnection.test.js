@@ -1,5 +1,4 @@
-const { testConnection, queryByBBox, queryByGeometry, queryByDistance, closePool } = require('../db/db_APIconnection');
-const { query } = require('../db/db_APIconnection');
+const { testConnection, queryByBBox, queryByGeometry, queryByDistance } = require('../db/db_APIconnection');
 /**
  * Jest Test Suite: Database Connection & PostGIS Tests
  */

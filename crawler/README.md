@@ -4,14 +4,19 @@ A Node.js crawler for STAC Index API that fetches and processes catalog and coll
 
 ## Features
 
-- **Single-run Mode**: Execute crawler once and exit
-- **Scheduled Mode**: Automated periodic crawling with configurable intervals
-- **Time Window Control**: Optional restriction to specific hours (e.g., night-time crawling)
-- **Retry Logic**: Automatic retry on crawl errors with configurable delay
-- **Environment-based Configuration**: All settings configurable via `.env` file
-- **CLI Arguments**: Override settings with command-line flags
-- **Database Integration**: PostgreSQL storage with deadlock handling
-- **Parallel Execution**: Efficient domain-based parallel processing
+- Single-run Mode: Execute crawler once and exit
+- Scheduled Mode: Automated periodic crawling with configurable intervals
+- Time Window Control: Optional restriction to specific hours (e.g., night-time crawling)
+- Retry Logic: Automatic retry on crawl errors with configurable delay
+- Environment-based Configuration: All settings configurable via `.env` file
+- CLI Arguments: Override settings with command-line flags
+- Database Integration: PostgreSQL storage with deadlock handling
+- Parallel Execution: Efficient domain-based parallel processing with configurable rate limiting
+- Graceful Shutdown: Stop after current batch with Ctrl+C, resume later
+- Pause/Resume Support: Already-crawled collections are tracked and skipped on re-run
+- Fresh Mode: Clear crawl log with `--fresh` flag to re-crawl everything
+- STAC Validation: Validates collections using stac-node-validator
+- Automatic Cleanup: Marks stale collections as inactive after 7 days without updates
 
 ## Quick Start
 
@@ -53,10 +58,28 @@ The crawler can be configured using environment variables, CLI arguments, or a c
 | Option | CLI Flag | Environment Variable | Default | Description |
 |--------|----------|---------------------|---------|-------------|
 | Mode | `-m, --mode` | `CRAWL_MODE` | `both` | Crawl mode: `catalogs`, `apis`, or `both` |
-| Max Catalogs | `-c, --max-catalogs` | `MAX_CATALOGS` | `10` | Maximum number of catalogs to process |
-| Max APIs | `-a, --max-apis` | `MAX_APIS` | `5` | Maximum number of APIs to process |
+| Max Catalogs | `-c, --max-catalogs` | `MAX_CATALOGS` | `10` | Maximum number of catalogs to process (0 = unlimited) |
+| Max APIs | `-a, --max-apis` | `MAX_APIS` | `5` | Maximum number of APIs to process (0 = unlimited) |
 | Timeout | `-t, --timeout` | `TIMEOUT_MS` | `30000` | Timeout per operation in milliseconds |
-| Max Depth | `-d, --max-depth` | `MAX_DEPTH` | `3` | Maximum recursion depth for nested catalogs |
+| Max Depth | `-d, --max-depth` | `MAX_DEPTH` | `10` | Maximum recursion depth for nested catalogs (0 = unlimited) |
+| Fresh | `-f, --fresh` | `FRESH_CRAWL` | `false` | Clear crawl log and re-crawl all collections |
+
+#### Parallel Crawling Configuration
+
+| Option | CLI Flag | Environment Variable | Default | Description |
+|--------|----------|---------------------|---------|-------------|
+| Parallel Domains | `-p, --parallel-domains` | `PARALLEL_DOMAINS` | `2` | Number of domains to crawl in parallel |
+| RPM per Domain | `--rpm-per-domain` | `MAX_REQUESTS_PER_MINUTE_PER_DOMAIN` | `60` | Max requests per minute per domain |
+| Concurrency per Domain | `--concurrency-per-domain` | `MAX_CONCURRENCY_PER_DOMAIN` | `5` | Max concurrent requests per domain |
+
+#### Legacy Rate Limiting (still supported)
+
+| Option | CLI Flag | Environment Variable | Default | Description |
+|--------|----------|---------------------|---------|-------------|
+| Max Concurrency | `--max-concurrency` | `MAX_CONCURRENCY` | `5` | Maximum concurrent requests (global) |
+| Requests per Minute | `--rpm, --requests-per-minute` | `MAX_REQUESTS_PER_MINUTE` | `60` | Maximum requests per minute (global) |
+| Domain Delay | `--domain-delay` | `SAME_DOMAIN_DELAY_SECS` | `1` | Delay between requests to same domain (seconds) |
+| Max Retries | `--max-retries` | `MAX_REQUEST_RETRIES` | `3` | Maximum retries for failed requests |
 
 #### Scheduler Configuration
 
@@ -140,6 +163,18 @@ node index.js -m apis -a 10 -t 60000
 
 # Crawl both with all custom settings
 node index.js -m both -c 50 -a 20 -t 45000 -d 5
+
+# Start fresh - clear crawl log and re-crawl everything
+node index.js --fresh
+
+# Combine fresh mode with other options
+node index.js -f -m apis -a 10
+
+# Configure parallel crawling for high-performance servers
+node index.js -p 5 --rpm-per-domain 120 --concurrency-per-domain 10
+
+# Full unlimited crawl with fresh start
+node index.js -f -m both -c 0 -a 0 -d 0
 ```
 
 ### Show Help
@@ -181,21 +216,21 @@ node scheduler.js
 
 ### Time Window Examples
 
-**Example 1: Night-time only crawling (22:00 - 07:00)**
+Example 1: Night-time only crawling (22:00 - 07:00)
 ```bash
 CRAWL_ENFORCE_TIME_WINDOW=true
 CRAWL_ALLOWED_START_HOUR=22
 CRAWL_ALLOWED_END_HOUR=7
 ```
 
-**Example 2: Business hours crawling (09:00 - 17:00)**
+Example 2: Business hours crawling (09:00 - 17:00)
 ```bash
 CRAWL_ENFORCE_TIME_WINDOW=true
 CRAWL_ALLOWED_START_HOUR=9
 CRAWL_ALLOWED_END_HOUR=17
 ```
 
-**Example 3: No restrictions (default)**
+Example 3: No restrictions (default)
 ```bash
 CRAWL_ENFORCE_TIME_WINDOW=false
 ```
@@ -293,39 +328,46 @@ npm test -- --coverage
 
 ### Test Structure
 
-The test suite covers utility functions with **110 tests** across three modules:
+The test suite covers utility functions across four test modules:
 
-- **`normalization.test.js`** (46 tests) - Tests for catalog and collection normalization
-  - Coverage: 91% statements, 92% branches
+- `normalization.test.js` - Tests for catalog and collection normalization
   - Tests `deriveCategories()`, `normalizeCatalog()`, `normalizeCollection()`, `processCatalogs()`
 
-- **`parallel.test.js`** (53 tests) - Tests for parallel execution utilities
-  - Coverage: 100% statements, 100% branches
+- `parallel.test.js` - Tests for parallel execution utilities
   - Tests `getDomain()`, `groupByDomain()`, `createDomainBatches()`, `aggregateStats()`, `executeWithConcurrency()`, `calculateRateLimits()`, `logDomainStats()`
 
-- **`api.test.js`** (29 tests) - Tests for API crawling utilities
+- `api.test.js` - Tests for API crawling utilities
   - Tests batch management, URL validation, STAC API response structures
   - Uses real STAC API endpoints (Microsoft Planetary Computer, Element 84, USGS, NASA CMR)
 
-All tests use **real STAC domain names and collection IDs** from production STAC APIs for realistic testing.
+- `is_api.test.js` - Tests for is_api field functionality
+  - Verifies collections are correctly marked as API or static catalog collections
+  - Tests `handleCatalog()` and `handleCollections()` from handlers.js
+
+All tests use real STAC domain names and collection IDs from production STAC APIs for realistic testing.
 
 ## Architecture
 
 ### Core Components
 
-- **`index.js`** - Main crawler entry point for single runs
-- **`scheduler.js`** - Scheduler for periodic automated crawling
-- **`utils/db.js`** - Database helper with PostgreSQL connection pool
+- `index.js` - Main crawler entry point for single runs
+- `scheduler.js` - Scheduler for periodic automated crawling
+- `utils/db.js` - Database helper with PostgreSQL connection pool
   - `initDb()` - Initialize and test database connection
   - `insertOrUpdateCollection()` - Insert/update collections with deadlock retry logic
-  - `insertOrUpdateCatalog()` - Process catalogs (currently skips saving)
+  - `saveCrawllogCatalog()` - Store catalog/API URLs for re-crawling
+  - `getCrawledCollectionUrls()` - Get already-crawled URLs for pause/resume
   - Helper functions for keywords, extensions, providers, assets, summaries
-- **`utils/normalization.js`** - Data normalization and processing
-- **`utils/parallel.js`** - Parallel execution utilities with domain-based batching
-- **`utils/config.js`** - Configuration management (env vars + CLI)
-- **`utils/time.js`** - Time formatting utilities
-- **`catalogs/catalog.js`** - Static catalog crawling logic
-- **`apis/api.js`** - STAC API crawling logic
+- `utils/normalization.js` - Data normalization and processing
+- `utils/parallel.js` - Parallel execution utilities with domain-based batching
+- `utils/config.js` - Configuration management (env vars + CLI)
+- `utils/cli.js` - Command-line argument parsing
+- `utils/time.js` - Time formatting utilities
+- `utils/handlers.js` - Request handlers for catalog and collection processing
+- `utils/endpoints.js` - STAC endpoint discovery and validation
+- `utils/globalStats.js` - Global statistics tracking
+- `catalogs/catalog.js` - Static catalog crawling logic
+- `apis/api.js` - STAC API crawling logic
 
 ### Database Schema
 
@@ -336,30 +378,38 @@ The crawler stores collections in PostgreSQL with the following key tables:
 - `collection_stac_extension` - STAC extensions used
 - `collection_providers` - Data providers
 - `collection_assets` - Collection assets
-- `crawllog_collection` - Active queue for *all* discovered crawl URLs (catalogs, collection endpoints, and collection links), drained in batches to keep RAM stable
+- `crawllog_catalog` - Catalog/API URL queue for re-crawling with slug for stac_id generation
+- `crawllog_collection` - Crawl history, timestamps, and source URLs for pause/resume
 
 ### Scheduler Workflow
 
-1. **Initialization**: Load configuration from `.env`
-2. **Startup Check**: Verify if within allowed time window
-3. **Initial Run**: Execute crawler immediately (if enabled)
-4. **Schedule Next**: Calculate next run time based on interval
-5. **Time Window Adjustment**: Shift schedule to fit time window if enforced
-6. **Wait**: Sleep until next scheduled time
-7. **Execute**: Run crawler and collect statistics
-8. **Error Handling**: 
-   - DB errors → Stop scheduler
-   - Crawl errors → Retry after delay (if enabled)
-   - Success → Schedule next run
-9. **Repeat**: Loop back to step 6
+1. Initialization: Load configuration from `.env`
+2. Startup Check: Verify if within allowed time window
+3. Initial Run: Execute crawler immediately (if enabled)
+4. Schedule Next: Calculate next run time based on interval
+5. Time Window Adjustment: Shift schedule to fit time window if enforced
+6. Wait: Sleep until next scheduled time
+7. Execute: Run crawler and collect statistics
+8. Error Handling:
+   - DB errors: Stop scheduler
+   - Crawl errors: Retry after delay (if enabled)
+   - Success: Schedule next run
+9. Repeat: Loop back to step 6
 
 ### Error Handling
 
-- **Database Errors**: Scheduler stops to prevent data corruption
-- **Crawl Errors**: Automatic retry with configurable delay (default: 2 hours)
-- **Deadlock Handling**: Automatic retry with exponential backoff for database deadlocks
-- **Time Window Violations**: Grace period allows crawler to finish current operations
-- **Connection Errors**: Detailed error logging with connection details
+- Database Errors: Scheduler stops to prevent data corruption
+- Crawl Errors: Automatic retry with configurable delay (default: 2 hours)
+- Deadlock Handling: Automatic retry with exponential backoff for database deadlocks
+- Time Window Violations: Grace period allows crawler to finish current operations
+- Connection Errors: Detailed error logging with connection details
+- Graceful Shutdown: Press Ctrl+C to stop after current batch; re-run to resume
+
+### Automatic Cleanup
+
+After each crawl completes, the crawler automatically:
+- Marks collections as inactive if they haven't been updated in the last 7 days
+- This helps identify stale or removed collections that are no longer available
 
 ## Troubleshooting
 
@@ -414,11 +464,24 @@ The crawler has automatic deadlock retry logic with exponential backoff. If dead
 
 ### Parallel Execution Settings
 
-Control parallel processing (in `.env.example` or code):
-- `PARALLEL_DOMAINS` - Number of domains to process simultaneously
-- `MAX_REQUESTS_PER_MINUTE_PER_DOMAIN` - Rate limit per domain
-- `MAX_CONCURRENCY_PER_DOMAIN` - Max concurrent requests per domain
-- `MAX_CONCURRENCY` - Overall max concurrency
+The defaults are optimized for 2GB RAM servers. Control parallel processing via environment variables or CLI:
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `PARALLEL_DOMAINS` | `2` | Number of domains to process simultaneously |
+| `MAX_REQUESTS_PER_MINUTE_PER_DOMAIN` | `60` | Rate limit per domain |
+| `MAX_CONCURRENCY_PER_DOMAIN` | `5` | Max concurrent requests per domain |
+
+Theoretical max throughput = `PARALLEL_DOMAINS` x `MAX_REQUESTS_PER_MINUTE_PER_DOMAIN` requests/min
+
+Example for higher-resource servers:
+```bash
+# High-performance settings (4+ GB RAM)
+PARALLEL_DOMAINS=5
+MAX_REQUESTS_PER_MINUTE_PER_DOMAIN=120
+MAX_CONCURRENCY_PER_DOMAIN=10
+# Theoretical throughput: 600 req/min
+```
 
 ### Database Connection Pool
 
