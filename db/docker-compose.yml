@@ -1,0 +1,38 @@
+services:
+  database:
+    image: postgis/postgis:16-3.4
+    container_name: stac_db
+    restart: always
+    env_file:
+      - .env
+
+    environment:
+      # Admin user (required for initial database setup)
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      # Application user passwords
+      STAC_API_PASSWORD: ${STAC_API_PASSWORD}
+      STAC_CRAWLER_PASSWORD: ${STAC_CRAWLER_PASSWORD}
+
+    ports:
+      - "${DB_PORT}:5432"
+
+    volumes:
+      - stac_data:/var/lib/postgresql/data
+      - ./init:/docker-entrypoint-initdb.d
+    networks: [stac-network]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+volumes:
+  stac_data:
+
+networks:
+  stac-network:
+    name: stac-network
+    driver: bridge

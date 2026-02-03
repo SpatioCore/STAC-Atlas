@@ -1,0 +1,42 @@
+-- Performance indexes for all tables
+-- These indexes optimize common query patterns and improve search performance
+
+-- ========================================
+-- COLLECTION INDEXES
+-- ========================================
+
+-- Basic collection lookups
+CREATE INDEX idx_collection_title ON collection (title);
+
+CREATE INDEX idx_collection_temp ON collection (temporal_extent_start, temporal_extent_end);
+CREATE INDEX idx_collection_active ON collection (is_active);
+
+CREATE INDEX idx_collection_spatial ON collection USING GIST (spatial_extent);
+
+-- Full-text search index on computed search_vector column (includes title, description, and keywords)
+CREATE INDEX idx_collection_search_vector ON collection USING GIN (search_vector);
+
+CREATE INDEX idx_collection_jsonb ON collection USING GIN (full_json);
+
+CREATE INDEX idx_collection_summaries_collection ON collection_summaries (collection_id);
+CREATE INDEX idx_collection_keywords_collection ON collection_keywords (collection_id);
+CREATE INDEX idx_collection_stac_ext_collection ON collection_stac_extension (collection_id);
+CREATE INDEX idx_collection_providers_collection ON collection_providers (collection_id);
+CREATE INDEX idx_collection_assets_collection ON collection_assets (collection_id);
+
+-- ========================================
+-- PROVIDER & ASSET INDEXES
+-- ========================================
+
+CREATE INDEX idx_providers_provider ON providers (provider);
+
+CREATE INDEX idx_assets_name ON assets (name);
+CREATE INDEX idx_assets_roles ON assets USING GIN (roles);
+CREATE INDEX idx_assets_metadata ON assets USING GIN (metadata);
+
+-- ========================================
+-- KEYWORD & EXTENSION INDEXES
+-- ========================================
+
+CREATE INDEX idx_keywords_keyword ON keywords (keyword);
+CREATE INDEX idx_stac_extensions ON stac_extensions (stac_extension);
