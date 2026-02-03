@@ -410,7 +410,7 @@ The crawler uses carefully selected libraries for specific functionality:
 
 **Decision**: Use PostgreSQL as the primary database
 
-**Rationale**:
+**Reason**:
 - **PostGIS extension**: Native geospatial support for bounding box queries
 - **JSONB type**: Efficient storage of STAC summaries and nested metadata
 - **Robust transactions**: ACID compliance prevents data corruption during concurrent crawls
@@ -422,7 +422,7 @@ The crawler uses carefully selected libraries for specific functionality:
 
 **Decision**: Group catalogs/APIs by domain and process domains in parallel
 
-**Rationale**:
+**Reason**:
 - **Rate limiting**: Each domain has independent rate limits - prevents throttling
 - **Politeness**: Distributes load across servers, avoiding overwhelming single hosts
 - **Efficiency**: Processes multiple domains simultaneously while respecting per-domain limits
@@ -433,7 +433,7 @@ The crawler uses carefully selected libraries for specific functionality:
 
 **Decision**: Keep single-run crawler (`index.js`) separate from scheduler (`scheduler.js`)
 
-**Rationale**:
+**Reason**:
 - **Flexibility**: Users can run one-off crawls or automated schedules
 - **Testing**: Easier to test crawler logic without scheduler complexity
 - **Resource efficiency**: Single runs exit immediately, don't hold resources
@@ -445,7 +445,7 @@ The crawler uses carefully selected libraries for specific functionality:
 
 **Decision**: Collect 25 collections in memory, then flush to database
 
-**Rationale**:
+**Reason**:
 - **Performance**: Reduces database connection overhead (25x fewer transactions)
 - **Memory efficiency**: Prevents unbounded memory growth on large crawls
 - **Error recovery**: Smaller batches = less data lost on errors
@@ -461,7 +461,7 @@ The crawler uses carefully selected libraries for specific functionality:
 
 **Decision**: Retry database deadlocks up to 3 times with exponential backoff
 
-**Rationale**:
+**Reason**:
 - **PostgreSQL behavior**: Concurrent inserts on related tables (keywords, extensions) can deadlock
 - **Automatic recovery**: Transient deadlocks resolve after retry
 - **Exponential backoff**: Reduces contention by spreading out retry attempts
@@ -479,10 +479,6 @@ The crawler uses carefully selected libraries for specific functionality:
 - **`index.js`** - Main crawler entry point for single runs
 - **`scheduler.js`** - Scheduler for periodic automated crawling
 - **`utils/db.js`** - Database helper with PostgreSQL connection pool
-  - `initDb()` - Initialize and test database connection
-  - `insertOrUpdateCollection()` - Insert/update collections with deadlock retry logic
-  - `insertOrUpdateCatalog()` - Process catalogs (currently skips saving)
-  - Helper functions for keywords, extensions, providers, assets, summaries
 - **`utils/normalization.js`** - Data normalization and processing
 - **`utils/parallel.js`** - Parallel execution utilities with domain-based batching
 - **`utils/config.js`** - Configuration management (env vars + CLI)
