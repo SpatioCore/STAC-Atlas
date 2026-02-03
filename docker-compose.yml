@@ -1,34 +1,43 @@
 # This docker-compose file orchestrates the startup of the entire STAC-Atlas project.
 # It includes the docker-compose configurations from the individual components.
 
-#TODO: add docker-compose files for UI and Crawler components
-
-version: "3.9"
-
 networks:
-  stac_net:
+  stac-network:
+    name: stac-network
+    external: true
+
+volumes:
+  stac_data:
 
 services:
   db:
     extends:
       file: db/docker-compose.yml
       service: database
-    networks: [stac_net]
+    networks: [stac-network]
 
-  #crawler:
-  #  extends:
-  #    file: crawler/docker-compose.yml
-  #    service: crawler
-  #  networks: [stac_net]
-
+  crawler:
+    extends:
+      file: crawler/docker-compose.yml
+      service: crawler
+    networks: [stac-network]
+    depends_on:
+      db:
+        condition: service_healthy
   api:
     extends:
       file: api/docker-compose.yml
       service: api
-    networks: [stac_net]
+    networks: [stac-network]
+    depends_on:
+      crawler:
+        condition: service_started
 
-  #ui:
-  #  extends:
-  #    file: ui/docker-compose.yml
-  #    service: ui
-  #  networks: [stac_net] 
+  ui:
+    extends:
+      file: ui/docker-compose.yml
+      service: ui
+    networks: [stac-network]
+    depends_on:
+      api:
+        condition: service_started
