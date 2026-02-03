@@ -1,9 +1,9 @@
 const request = require('supertest');
 const app = require('../app');
 
-describe('GET /collections-queryables', () => {
+describe('GET /collection-queryables', () => {
   it('returns queryables as JSON Schema', async () => {
-    const res = await request(app).get('/collections-queryables');
+    const res = await request(app).get('/collection-queryables');
 
     expect(res.status).toBe(200);
 

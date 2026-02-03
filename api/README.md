@@ -183,7 +183,7 @@ curl http://localhost:3000/
     {"rel": "conformance", "href": "http://localhost:3000/conformance", "type": "application/json"},
     {"rel": "data", "href": "http://localhost:3000/collections", "type": "application/json"},
     {"rel": "health", "href": "http://localhost:3000/health", "type": "application/json"},
-    {"rel": "queryables", "href": "http://localhost:3000/collections-queryables", "type": "application/schema+json"},
+    {"rel": "queryables", "href": "http://localhost:3000/collection-queryables", "type": "application/schema+json"},
     {"rel": "service-doc", "href": "http://localhost:3000/api-docs", "type": "text/html"},
     {"rel": "service-desc", "href": "http://localhost:3000/openapi.yaml", "type": "application/vnd.oai.openapi+json;version=3.0"}
   ]
@@ -320,21 +320,21 @@ curl http://localhost:3000/collections/sentinel-2-l2a
 ### Queryables
 
 ```
-GET /collections-queryables
+GET /collection-queryables
 ```
 
 Returns a JSON Schema describing properties that can be used in CQL2 filter expressions.
 
 **Example Request:**
 ```bash
-curl http://localhost:3000/collections-queryables
+curl http://localhost:3000/collection-queryables
 ```
 
 **Example Response (abbreviated):**
 ```json
 {
   "$schema": "https://json-schema.org/draft/2019-09/schema",
-  "$id": "http://localhost:3000/collections-queryables",
+  "$id": "http://localhost:3000/collection-queryables",
   "type": "object",
   "title": "STAC Atlas Collections Queryables",
   "properties": {
@@ -1021,7 +1021,7 @@ api/
 │   ├── index.js                 # Landing page (/)
 │   ├── conformance.js           # Conformance (/conformance)
 │   ├── collections.js           # Collections (/collections)
-│   ├── queryables.js            # Queryables (/collections-queryables)
+│   ├── queryables.js            # Queryables (/collection-queryables)
 │   └── health.js                # Health check (/health)
 ├── utils/
 │   ├── cql2.js                  # CQL2 parser interface

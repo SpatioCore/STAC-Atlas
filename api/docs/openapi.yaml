@@ -5,7 +5,7 @@ info:
     A centralized platform for managing, indexing, and providing STAC Collection metadata from distributed catalogs and APIs.
     
     ## Features
-    - **STAC API 1.1.0 Core** conformance
+    - **STAC API 1.0.0 Core** conformance
     - **Collection Search** with advanced filtering
     - **CQL2 Filtering** (Basic + Advanced operators including LIKE, BETWEEN, IN, Spatial, Temporal)
     - **Full-text search** with PostgreSQL FTS
@@ -170,7 +170,7 @@ paths:
             
             **Important:** String literals must be in single quotes: `license = 'MIT'`
             
-            See `/collections-queryables` for available properties.
+            See `/collection-queryables` for available properties.
           required: false
           schema:
             type: string
@@ -311,7 +311,7 @@ paths:
                 requestId: "550e8400-e29b-41d4-a716-446655440000"
                 timestamp: "2026-01-31T12:00:00Z"
 
-  /collections-queryables:
+  /collection-queryables:
     get:
       summary: Collection Queryables
       description: |
