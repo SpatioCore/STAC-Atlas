@@ -129,8 +129,9 @@ onMounted(() => {
         :total-count="totalCollections"
       />
       
-      <div v-if="loading" class="loading-message">
-        Loading collections...
+      <div v-if="loading" class="loading-container">
+        <div class="loading-spinner"></div>
+        <span class="loading-text">Loading collections...</span>
       </div>
       
       <div v-else-if="error" class="error-message">
@@ -138,7 +139,12 @@ onMounted(() => {
       </div>
       
       <template v-else>
-        <SearchResults :collections="Collections" />
+        <div v-if="Collections.length === 0" class="no-results">
+          <p class="no-results-text">No results found.</p>
+          <p class="no-results-hint">Adjust your query or filter parameters.</p>
+        </div>
+        
+        <SearchResults v-else :collections="Collections" />
         
         <!-- Pagination Controls -->
         <div v-if="totalPages > 1" class="pagination">
