@@ -55,16 +55,16 @@ export default {
     license: 'Lizenz',
     allLicenses: 'Alle Lizenzen',
     
-    collectionStatus: 'Collection-Status',
+    collectionStatus: 'Collectionstatus',
     activeStatus: 'Aktivstatus',
     active: 'Aktiv',
     inactive: 'Inaktiv',
     
-    apiStatus: 'API-Status',
+    apiStatus: 'API Status',
     accessibleViaApi: 'Über API zugänglich',
     staticCatalog: 'Statischer Katalog',
     
-    cql2Filter: 'CQL2-Filter',
+    cql2Filter: 'CQL2 Filter',
     cql2Placeholder: 'Text: title LIKE \'%Sentinel%\'\nJSON: {"op":"=","args":[{"property":"license"},"CC-BY-4.0"]}',
     formattingJson: 'JSON wird formatiert...',
     cql2Hint: 'CQL2-Text oder CQL2-JSON',
@@ -152,8 +152,8 @@ export default {
     },
     
     // Metadata labels
-    collectionId: 'Collection-ID',
-    stacVersion: 'STAC-Version',
+    collectionId: 'Collection ID',
+    stacVersion: 'STAC Version',
     keywords: 'Schlüsselwörter',
     
     // Default values
