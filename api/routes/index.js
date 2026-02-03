@@ -16,7 +16,7 @@ router.get('/', (req, res) => {
     id: 'stac-atlas',
     title: 'STAC Atlas',
     description: 'A centralized platform for managing, indexing, and providing STAC Collection metadata from distributed catalogs and APIs.',
-    stac_version: '1.1.0',
+    stac_version: '1.0.0',
     conformsTo: CONFORMANCE_URIS,
     links: [
       {
@@ -44,8 +44,14 @@ router.get('/', (req, res) => {
         title: 'STAC Collections'
       },
       {
+        rel: 'health', // Health check endpoint
+        href: `${baseUrl}/health`,
+        type: 'application/json',
+        title: 'Health Check'
+      },
+      {
         rel: 'queryables',
-        href: `${baseUrl}/collection-queryables`, // TODO: Check with Mohr if this is the correct endpoint
+        href: `${baseUrl}/collection-queryables`, //updated path
         type: 'application/schema+json',
         title: 'Queryables for Collections'
       },
@@ -60,7 +66,7 @@ router.get('/', (req, res) => {
         href: `${baseUrl}/openapi.yaml`,
         type: 'application/vnd.oai.openapi+json;version=3.0',
         title: 'OpenAPI specification'
-      }
+      },
     ]
   });
 });

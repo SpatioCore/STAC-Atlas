@@ -177,6 +177,90 @@ GET /collections?limit=50&token=100   # Results 100-149
 
 ---
 
+### `provider` - Provider Filter
+
+**Type:** String  
+**Required:** No  
+**Description:** Filter collections by data provider name (case-insensitive match).
+
+**Constraints:**
+- Maximum length: 255 characters
+- Whitespace is trimmed
+
+**Examples:**
+```
+GET /collections?provider=USGS
+GET /collections?provider=Copernicus
+GET /collections?provider=ESA
+```
+
+**Implementation Note:** Matches against provider names in the `collection_providers` join table.
+
+---
+
+### `license` - License Filter
+
+**Type:** String  
+**Required:** No  
+**Description:** Filter collections by license identifier (exact match).
+
+**Constraints:**
+- Maximum length: 255 characters
+- Whitespace is trimmed
+
+**Examples:**
+```
+GET /collections?license=CC-BY-4.0
+GET /collections?license=MIT
+GET /collections?license=proprietary
+```
+
+**Implementation Note:** Matches directly against the `license` column in the collection table.
+
+---
+
+### `active` - Active Status Filter
+
+**Type:** Boolean  
+**Required:** No  
+**Description:** Filter collections by their active status.
+
+**Accepted Values:**
+- `true`, `1`, `yes` - Only active collections
+- `false`, `0`, `no` - Only inactive collections
+
+**Examples:**
+```
+GET /collections?active=true
+GET /collections?active=false
+GET /collections?active=1
+```
+
+**Implementation Note:** Filters on the `is_active` boolean column in the collection table.
+
+---
+
+### `api` - API Status Filter
+
+**Type:** Boolean  
+**Required:** No  
+**Description:** Filter collections by whether they originate from a STAC API or a static catalog.
+
+**Accepted Values:**
+- `true`, `1`, `yes` - Only collections from STAC APIs
+- `false`, `0`, `no` - Only collections from static catalogs
+
+**Examples:**
+```
+GET /collections?api=true
+GET /collections?api=false
+GET /collections?api=1
+```
+
+**Implementation Note:** Filters on the `is_api` boolean column in the collection table.
+
+---
+
 ## Combining Parameters
 
 Multiple parameters can be combined to create complex queries:
@@ -235,23 +319,28 @@ This API implements the following STAC Collection Search conformance classes:
 
 | Parameter | Status | Notes |
 |-----------|--------|-------|
-| `q` | Validated | TODO: Implement full-text search in DB |
-| `bbox` | Validated | TODO: Implement PostGIS spatial query |
-| `datetime` | Validated | TODO: Implement temporal overlap query |
-| `limit` | Implemented | Working with in-memory store |
-| `sortby` | Validated | TODO: Apply sorting in DB query |
-| `token` | Implemented | Working with in-memory store |
+| `q` | Implemented | PostgreSQL full-text search with TSVector |
+| `bbox` | Implemented | PostGIS spatial intersection query |
+| `datetime` | Implemented | Temporal overlap query |
+| `limit` | Implemented | Pagination limit |
+| `sortby` | Implemented | Multi-field sorting support |
+| `token` | Implemented | Offset-based pagination |
+| `provider` | Implemented | Case-insensitive provider name filter |
+| `license` | Implemented | Exact match license filter |
+| `active` | Implemented | Boolean filter for is_active status |
+| `api` | Implemented | Boolean filter for is_api status |
 
 ---
 
-## Future Extensions
+## CQL2 Filtering
 
-The following parameters are defined in `bid.md` but not yet implemented:
+In addition to the standard query parameters, the API supports CQL2 filter expressions for advanced filtering. See the [CQL2 Filtering documentation](../README.md#cql2-filtering) for details.
 
-- `provider` - Filter by data provider name
-- `license` - Filter by license identifier
-
-These will be added in a future release as extended search parameters beyond the standard conformance classes. Or the bid will be changed with a change-request.
+**Example:**
+```
+GET /collections?filter=license = 'CC-BY-4.0' AND active = true
+GET /collections?filter=api = true AND title LIKE '%Sentinel%'
+```
 
 ---
 

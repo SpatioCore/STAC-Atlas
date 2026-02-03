@@ -36,7 +36,7 @@ describe('Integration: Collection Search with Aggregated Fields', () => {
         const firstRow = result.rows[0];
         
         // Core collection fields
-        expect(firstRow).toHaveProperty('id');
+        expect(firstRow).toHaveProperty('stac_id');
         expect(firstRow).toHaveProperty('title');
         expect(firstRow).toHaveProperty('description');
         expect(firstRow).toHaveProperty('license');
@@ -48,7 +48,6 @@ describe('Integration: Collection Search with Aggregated Fields', () => {
         expect(firstRow).toHaveProperty('providers');
         expect(firstRow).toHaveProperty('assets');
         expect(firstRow).toHaveProperty('summaries');
-        expect(firstRow).toHaveProperty('last_crawled');
       }
     });
   });
@@ -138,19 +137,6 @@ describe('Integration: Collection Search with Aggregated Fields', () => {
         }
       });
     });
-
-    test('last_crawled should be timestamp or null', async () => {
-      const { sql, values } = buildCollectionSearchQuery({ limit: 10, token: 0 });
-      const result = await query(sql, values);
-
-      result.rows.forEach(row => {
-        if (row.last_crawled !== null) {
-          // Should be a valid Date or parseable timestamp
-          const date = new Date(row.last_crawled);
-          expect(date.toString()).not.toBe('Invalid Date');
-        }
-      });
-    });
   });
 
   describe('Filter Compatibility with Aggregated Fields', () => {
@@ -179,7 +165,6 @@ describe('Integration: Collection Search with Aggregated Fields', () => {
       result.rows.forEach(row => {
         expect(row).toHaveProperty('stac_extensions');
         expect(row).toHaveProperty('summaries');
-        expect(row).toHaveProperty('last_crawled');
       });
     });
 
@@ -212,20 +197,22 @@ describe('Integration: Collection Search with Aggregated Fields', () => {
         expect(row).toHaveProperty('providers');
         expect(row).toHaveProperty('assets');
         expect(row).toHaveProperty('summaries');
-        expect(row).toHaveProperty('last_crawled');
       });
     });
   });
 
   describe('Sorting with Aggregated Fields', () => {
-    test('default sort by c.id works with aggregated fields', async () => {
+    test('default sort by c.stac_id works with aggregated fields', async () => {
       const { sql, values } = buildCollectionSearchQuery({ limit: 10, token: 0 });
       const result = await query(sql, values);
 
+      // Verify SQL contains ORDER BY c.stac_id ASC
+      expect(sql).toMatch(/ORDER BY c\.stac_id ASC/);
+
       if (result.rows.length > 1) {
-        // IDs should be in ascending order
+        // STAC IDs should be in ascending lexicographic order (string comparison)
         for (let i = 1; i < result.rows.length; i++) {
-          expect(result.rows[i].id).toBeGreaterThanOrEqual(result.rows[i - 1].id);
+          expect(result.rows[i].stac_id.localeCompare(result.rows[i - 1].stac_id)).toBeGreaterThanOrEqual(0);
         }
       }
     });
@@ -268,7 +255,7 @@ describe('Integration: Collection Search with Aggregated Fields', () => {
 
       expect(result.rows.length).toBeLessThanOrEqual(3);
       result.rows.forEach(row => {
-        expect(row).toHaveProperty('id');
+        expect(row).toHaveProperty('stac_id');
         expect(row).toHaveProperty('keywords');
         expect(row).toHaveProperty('providers');
       });
@@ -280,8 +267,8 @@ describe('Integration: Collection Search with Aggregated Fields', () => {
 
       if (page1.rows.length > 0 && page2.rows.length > 0) {
         // IDs should be different
-        const page1Ids = page1.rows.map(r => r.id);
-        const page2Ids = page2.rows.map(r => r.id);
+        const page1Ids = page1.rows.map(r => r.stac_id);
+        const page2Ids = page2.rows.map(r => r.stac_id);
         
         const overlap = page1Ids.filter(id => page2Ids.includes(id));
         expect(overlap.length).toBe(0);
@@ -302,7 +289,7 @@ describe('Integration: Collection Search with Aggregated Fields', () => {
       const result = await query(sql, values);
 
       // Collect all IDs
-      const ids = result.rows.map(r => r.id);
+      const ids = result.rows.map(r => r.stac_id);
       const uniqueIds = [...new Set(ids)];
 
       // No duplicates: each collection should appear exactly once

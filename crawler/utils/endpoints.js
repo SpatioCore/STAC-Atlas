@@ -3,6 +3,8 @@
  * @module utils/endpoints
  */
 
+import db from './db.js';
+
 /**
  * Finds the collection endpoint from STAC catalog links
  * STAC catalogs should advertise their collection endpoint via rel="data" or rel="collections"
@@ -73,16 +75,15 @@ export async function tryCollectionEndpoints(stacCatalog, baseUrl, catalogId, de
         log.debug(`${indent}No collection link found, using fallback: ${collectionUrl}`);
     }
 
-    // Enqueue single collection request
-    await crawler.addRequests([{
-        url: collectionUrl,
-        label: 'COLLECTIONS',
-        userData: {
-            catalogUrl: baseUrl,
-            catalogId,
-            catalogSlug,
-            crawllogCatalogId,
-            depth
-        }
-    }]);
+    // Persist collection endpoint in DB queue
+    try {
+        await db.enqueueCollectionUrl({
+            sourceUrl: collectionUrl,
+            crawllogCatalogId
+        });
+    } catch (err) {
+        log.warning(`${indent}Failed to enqueue collections endpoint: ${err.message}`);
+    }
+
+    // Collection request will be pulled from DB queue in batch mode
 }

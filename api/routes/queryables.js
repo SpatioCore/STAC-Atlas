@@ -1,92 +1,75 @@
 const express = require('express');
 const router = express.Router();
 
+const { buildCollectionsQueryablesSchema } = require('../config/queryablesSchema');
+const { query } = require('../db/db_APIconnection');
+
 /**
- * GET /collections-queryables
- * Returns the list of queryable properties for collections
+ * GET /collection-queryables
+ * Returns the queryables schema for STAC Collections
+ * Conforms to OGC API Features Part 3 (Filtering) and STAC API Filter Extension
+ * 
+ * Dynamically loads enum values from the database for:
+ * - license: Available licenses in collections
+ * - providers: Available provider names
  */
-router.get('/', (req, res) => {
-  res.json({
-    $schema: 'https://json-schema.org/draft/2019-09/schema',
-    $id: `${req.protocol}://${req.get('host')}/collections-queryables`,
-    type: 'object',
-    title: 'STAC Atlas Collections Queryables',
-    description: 'Queryable properties for STAC Collection Search',
-    properties: {
-      id: {
-        title: 'Collection ID',
-        type: 'string'
+router.get('/', async (req, res) => {
+  try {
+    const baseUrl = `${req.protocol}://${req.get('host')}`;
+    const selfUrl = `${baseUrl}/collection-queryables`;
+
+    // Fetch distinct enum values from database
+    const [licensesResult, providersResult] = await Promise.all([
+      query('SELECT DISTINCT license FROM collection WHERE license IS NOT NULL ORDER BY license'),
+      query('SELECT DISTINCT provider FROM providers ORDER BY provider'),
+    ]);
+
+    // Extract values from query results
+    const enums = {
+      licenses: licensesResult.rows.map(r => r.license),
+      providers: providersResult.rows.map(r => r.provider),
+      // Boolean enums don't need DB queries
+      is_api: [true, false],
+      is_active: [true, false]
+    };
+
+    const schema = buildCollectionsQueryablesSchema(baseUrl, enums);
+
+  // Add required links for STAC/OGC conformance
+  const response = {
+    ...schema,
+    links: [
+      {
+        rel: 'self',
+        href: selfUrl,
+        type: 'application/schema+json',
+        title: 'This queryables document'
       },
-      title: {
-        title: 'Collection Title',
-        type: 'string'
+      {
+        rel: 'root',
+        href: baseUrl,
+        type: 'application/json',
+        title: 'STAC Atlas Landing Page'
       },
-      description: {
-        title: 'Collection Description',
-        type: 'string'
-      },
-      keywords: {
-        title: 'Keywords',
-        type: 'array',
-        items: {
-          type: 'string'
-        }
-      },
-      license: {
-        title: 'License',
-        type: 'string'
-      },
-      providers: {
-        title: 'Providers',
-        type: 'array',
-        items: {
-          type: 'object',
-          properties: {
-            name: {
-              type: 'string'
-            }
-          }
-        }
-      },
-      'extent.spatial.bbox': {
-        title: 'Spatial Extent (Bounding Box)',
-        type: 'array',
-        items: {
-          type: 'number'
-        }
-      },
-      'extent.temporal.interval': {
-        title: 'Temporal Extent',
-        type: 'array'
-      },
-      doi: {
-        title: 'DOI',
-        type: 'string'
-      },
-      'summaries.platform': {
-        title: 'Platform',
-        type: 'array',
-        items: {
-          type: 'string'
-        }
-      },
-      'summaries.constellation': {
-        title: 'Constellation',
-        type: 'array',
-        items: {
-          type: 'string'
-        }
-      },
-      'summaries.gsd': {
-        title: 'Ground Sample Distance',
-        type: 'number'
-      },
-      'summaries.processing:level': {
-        title: 'Processing Level',
-        type: 'string'
+      {
+        rel: 'parent',
+        href: baseUrl,
+        type: 'application/json',
+        title: 'STAC Atlas Landing Page'
       }
-    }
-  });
+    ]
+  };
+
+    // Set proper media type for queryables schema
+    res.setHeader('Content-Type', 'application/schema+json');
+    res.json(response);
+  } catch (error) {
+    console.error('Error building queryables schema:', error);
+    res.status(500).json({
+      code: 'InternalServerError',
+      description: 'Failed to build queryables schema'
+    });
+  }
 });
 
 module.exports = router;

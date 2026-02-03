@@ -96,7 +96,6 @@ describe('CQL2 Filter Integration Tests', () => {
         'providers': 'prov.providers',
         'assets': 'a.assets',
         'summaries': 's.summaries',
-        'last_crawled': 'cl.last_crawled'
       };
       
       Object.entries(mappings).forEach(([prop, expected]) => {
@@ -121,7 +120,7 @@ describe('CQL2 Filter Integration Tests', () => {
     
     test('should convert s_intersects with GeoJSON', () => {
       const geojson = { type: 'Polygon', coordinates: [[[0,0],[1,0],[1,1],[0,1],[0,0]]] };
-      const cql = { op: 's_intersects', args: [{ property: 'spatial_extend' }, geojson] };
+      const cql = { op: 's_intersects', args: [{ property: 'spatial_extent' }, geojson] };
       const values = [];
       const sql = cql2ToSql(cql, values);
       
@@ -132,7 +131,7 @@ describe('CQL2 Filter Integration Tests', () => {
 
     test('should convert s_within with GeoJSON', () => {
       const geojson = { type: 'Polygon', coordinates: [[[0,0],[1,0],[1,1],[0,1],[0,0]]] };
-      const cql = { op: 's_within', args: [{ property: 'spatial_extend' }, geojson] };
+      const cql = { op: 's_within', args: [{ property: 'spatial_extent' }, geojson] };
       const values = [];
       const sql = cql2ToSql(cql, values);
       
@@ -141,7 +140,7 @@ describe('CQL2 Filter Integration Tests', () => {
 
     test('should convert s_contains with GeoJSON', () => {
       const geojson = { type: 'Point', coordinates: [10, 50] };
-      const cql = { op: 's_contains', args: [{ property: 'spatial_extend' }, geojson] };
+      const cql = { op: 's_contains', args: [{ property: 'spatial_extent' }, geojson] };
       const values = [];
       const sql = cql2ToSql(cql, values);
       
@@ -162,8 +161,8 @@ describe('CQL2 Filter Integration Tests', () => {
       const values = [];
       const sql = cql2ToSql(cql, values);
       
-      expect(sql).toContain('temporal_extend_start');
-      expect(sql).toContain('temporal_extend_end');
+      expect(sql).toContain('temporal_extent_start');
+      expect(sql).toContain('temporal_extent_end');
       expect(values).toContain('2020-01-01');
       expect(values).toContain('2025-12-31');
     });
@@ -208,6 +207,50 @@ describe('CQL2 Filter Integration Tests', () => {
       // All returned collections should have the filtered license
       result.rows.forEach(row => {
         expect(row.license).toBe('CC-BY-4.0');
+      });
+    });
+
+    test('should execute LIKE filter query with wildcard', async () => {
+      // Test with a common pattern like '%US%' to match USGS collections
+      const cqlFilter = {
+        sql: "c.title LIKE $1",
+        values: ['%US%']
+      };
+      
+      const { sql, values } = buildCollectionSearchQuery({ 
+        cqlFilter, 
+        limit: 10, 
+        token: 0 
+      });
+      
+      const result = await query(sql, values);
+      expect(result.rows).toBeDefined();
+      expect(Array.isArray(result.rows)).toBe(true);
+      
+      // All returned collections should have 'US' in the title
+      result.rows.forEach(row => {
+        expect(row.title.toUpperCase()).toContain('US');
+      });
+    });
+
+    test('should execute LIKE filter query with prefix pattern', async () => {
+      const cqlFilter = {
+        sql: "c.title LIKE $1",
+        values: ['USGS%']
+      };
+      
+      const { sql, values } = buildCollectionSearchQuery({ 
+        cqlFilter, 
+        limit: 10, 
+        token: 0 
+      });
+      
+      const result = await query(sql, values);
+      expect(result.rows).toBeDefined();
+      
+      // All returned collections should start with 'USGS'
+      result.rows.forEach(row => {
+        expect(row.title).toMatch(/^USGS/);
       });
     });
 
@@ -274,7 +317,7 @@ describe('CQL2 Filter Integration Tests', () => {
       if (result.rows.length > 0) {
         const row = result.rows[0];
         // Core fields
-        expect(row).toHaveProperty('id');
+        expect(row).toHaveProperty('stac_id');
         expect(row).toHaveProperty('title');
         expect(row).toHaveProperty('license');
         // Aggregated fields

@@ -60,6 +60,48 @@ describe('cql2ToSql', () => {
             expect(values).toEqual(['MIT', 'Apache-2.0', 'CC-BY-4.0']);
         });
         
+        test('converts LIKE operator with wildcard pattern', () => {
+            const cql = {
+                op: 'like',
+                args: [
+                    { property: 'title' },
+                    '%Sentinel%'
+                ]
+            };
+            const values = [];
+            const sql = cql2ToSql(cql, values);
+            expect(sql).toBe("c.title LIKE $1");
+            expect(values).toEqual(['%Sentinel%']);
+        });
+        
+        test('converts LIKE operator with prefix pattern', () => {
+            const cql = {
+                op: 'like',
+                args: [
+                    { property: 'description' },
+                    'USGS%'
+                ]
+            };
+            const values = [];
+            const sql = cql2ToSql(cql, values);
+            expect(sql).toBe("c.description LIKE $1");
+            expect(values).toEqual(['USGS%']);
+        });
+        
+        test('converts LIKE operator with suffix pattern', () => {
+            const cql = {
+                op: 'like',
+                args: [
+                    { property: 'title' },
+                    '%L2A'
+                ]
+            };
+            const values = [];
+            const sql = cql2ToSql(cql, values);
+            expect(sql).toBe("c.title LIKE $1");
+            expect(values).toEqual(['%L2A']);
+        });
+        
         test('maps unknown properties to full_json JSONB column', () => {
             const cql = { op: '=', args: [{ property: 'custom_field' }, 'some_value'] };
             const values = [];
@@ -78,9 +120,9 @@ describe('cql2ToSql', () => {
                 'title': 'c.title',
                 'description': 'c.description',
                 'license': 'c.license',
-                'spatial_extend': 'c.spatial_extend',
-                'temporal_extend_start': 'c.temporal_extend_start',
-                'temporal_extend_end': 'c.temporal_extend_end',
+                'spatial_extent': 'c.spatial_extent',
+                'temporal_extent_start': 'c.temporal_extent_start',
+                'temporal_extent_end': 'c.temporal_extent_end',
                 'created_at': 'c.created_at',
                 'updated_at': 'c.updated_at',
                 'is_api': 'c.is_api',
@@ -101,7 +143,6 @@ describe('cql2ToSql', () => {
                 'providers': 'prov.providers',
                 'assets': 'a.assets',
                 'summaries': 's.summaries',
-                'last_crawled': 'cl.last_crawled'
             };
             
             Object.entries(mappings).forEach(([prop, expected]) => {
@@ -124,31 +165,31 @@ describe('cql2ToSql', () => {
     describe('Spatial Operators', () => {
         test('converts s_intersects with GeoJSON polygon', () => {
             const geojson = { type: 'Polygon', coordinates: [[[0,0],[1,0],[1,1],[0,1],[0,0]]] };
-            const cql = { op: 's_intersects', args: [{ property: 'spatial_extend' }, geojson] };
+            const cql = { op: 's_intersects', args: [{ property: 'spatial_extent' }, geojson] };
             const values = [];
             const sql = cql2ToSql(cql, values);
             
-            expect(sql).toBe("ST_Intersects(c.spatial_extend, ST_GeomFromGeoJSON($1))");
+            expect(sql).toBe("ST_Intersects(c.spatial_extent, ST_GeomFromGeoJSON($1))");
             expect(values).toEqual([JSON.stringify(geojson)]);
         });
 
         test('converts s_within with GeoJSON polygon', () => {
             const geojson = { type: 'Polygon', coordinates: [[[-10,-10],[10,-10],[10,10],[-10,10],[-10,-10]]] };
-            const cql = { op: 's_within', args: [{ property: 'spatial_extend' }, geojson] };
+            const cql = { op: 's_within', args: [{ property: 'spatial_extent' }, geojson] };
             const values = [];
             const sql = cql2ToSql(cql, values);
             
-            expect(sql).toBe("ST_Within(c.spatial_extend, ST_GeomFromGeoJSON($1))");
+            expect(sql).toBe("ST_Within(c.spatial_extent, ST_GeomFromGeoJSON($1))");
             expect(values).toEqual([JSON.stringify(geojson)]);
         });
 
         test('converts s_contains with GeoJSON point', () => {
             const geojson = { type: 'Point', coordinates: [10, 50] };
-            const cql = { op: 's_contains', args: [{ property: 'spatial_extend' }, geojson] };
+            const cql = { op: 's_contains', args: [{ property: 'spatial_extent' }, geojson] };
             const values = [];
             const sql = cql2ToSql(cql, values);
             
-            expect(sql).toBe("ST_Contains(c.spatial_extend, ST_GeomFromGeoJSON($1))");
+            expect(sql).toBe("ST_Contains(c.spatial_extent, ST_GeomFromGeoJSON($1))");
             expect(values).toEqual([JSON.stringify(geojson)]);
         });
     });
@@ -165,8 +206,8 @@ describe('cql2ToSql', () => {
             const values = [];
             const sql = cql2ToSql(cql, values);
             
-            expect(sql).toContain('temporal_extend_start');
-            expect(sql).toContain('temporal_extend_end');
+            expect(sql).toContain('temporal_extent_start');
+            expect(sql).toContain('temporal_extent_end');
             expect(values).toEqual(['2020-01-01', '2025-12-31']);
         });
 
@@ -174,14 +215,14 @@ describe('cql2ToSql', () => {
             const cql = { 
                 op: 't_intersects', 
                 args: [
-                    { property: 'temporal_extend' }, 
+                    { property: 'temporal_extent' }, 
                     { interval: ['..', '2025-12-31'] }
                 ] 
             };
             const values = [];
             const sql = cql2ToSql(cql, values);
             
-            expect(sql).toBe('c.temporal_extend_start <= $1');
+            expect(sql).toBe('c.temporal_extent_start <= $1');
             expect(values).toEqual(['2025-12-31']);
         });
 
@@ -196,7 +237,7 @@ describe('cql2ToSql', () => {
             const values = [];
             const sql = cql2ToSql(cql, values);
             
-            expect(sql).toBe('c.temporal_extend_end >= $1');
+            expect(sql).toBe('c.temporal_extent_end >= $1');
             expect(values).toEqual(['2020-01-01']);
         });
 

@@ -95,6 +95,53 @@ async function crawlSingleApiDomain(apis, domain, config = {}) {
     const maxDepth = config.maxDepth || 10;
     
     const concurrency = config.maxConcurrencyPerDomain || 20;
+
+    const DB_QUEUE_TARGET = 1000;
+    const DB_QUEUE_LOW_WATERMARK = 100;
+    const DB_QUEUE_BATCH_SIZE = 900;
+    const domainApiIds = apis.map(api => api.crawllogCatalogId).filter(Boolean);
+
+    function getApiQueueLabel(url) {
+        if (typeof url !== 'string') return 'API_ROOT';
+        if (/\/collections\/?$/.test(url)) return 'API_COLLECTIONS';
+        if (/\/collections\//.test(url)) return 'API_COLLECTION';
+        return 'API_ROOT';
+    }
+
+    async function ensureDbQueueBuffer(crawler, log) {
+        if (!crawler?.requestQueue?.getInfo) return;
+
+        const info = await crawler.requestQueue.getInfo();
+        const pending = info?.pendingRequestCount ?? 0;
+
+        if (pending > DB_QUEUE_LOW_WATERMARK) return;
+
+        const toFetch = Math.min(DB_QUEUE_BATCH_SIZE, Math.max(DB_QUEUE_TARGET - pending, 0));
+        if (toFetch <= 0) return;
+
+        const batch = await db.claimCollectionQueueBatch({ 
+            limit: toFetch, 
+            isApi: true,
+            crawllogCatalogIds: domainApiIds.length > 0 ? domainApiIds : undefined
+        });
+        if (batch.length === 0) return;
+
+        const requests = batch.map((item, idx) => ({
+            url: item.url,
+            label: getApiQueueLabel(item.url),
+            userData: {
+                apiId: `queued-collection-${idx}`,
+                apiUrl: item.url,
+                apiSlug: item.slug || null,
+                catalogSlug: item.slug || null,
+                crawllogCatalogId: item.crawllogCatalogId || null,
+                depth: 0
+            }
+        }));
+
+        await crawler.addRequests(requests);
+        log.info(`[QUEUE] Pulled ${requests.length} API collection URLs from DB queue (pending: ${pending})`);
+    }
     
     const crawler = new HttpCrawler({
         requestHandlerTimeoutSecs: timeoutSecs,
@@ -142,6 +189,7 @@ async function crawlSingleApiDomain(apis, domain, config = {}) {
                 
                 results.stats.successfulRequests++;
                 globalStats.increment('successfulRequests');
+                await ensureDbQueueBuffer(crawler, log);
             } catch (error) {
                 log.error(`${indent}Error handling ${request.label} at ${request.url}: ${error.message}`);
                 throw error;
@@ -176,19 +224,23 @@ async function crawlSingleApiDomain(apis, domain, config = {}) {
     });
 
     // Seed the crawler with initial API requests
-    const initialRequests = apis.map((api, index) => ({
-        url: api.url,
-        label: 'API_ROOT',
-        userData: {
-            apiId: `${domain}-api-${index}`,
-            apiUrl: api.url,
-            apiSlug: api.slug,
-            crawllogCatalogId: api.crawllogCatalogId,  // Link to crawllog_catalog for collections
-            depth: 0
-        }
-    }));
+    const initialRequests = apis
+        .filter(api => !api.hasPendingQueue)
+        .map((api, index) => ({
+            url: api.url,
+            label: 'API_ROOT',
+            userData: {
+                apiId: `${domain}-api-${index}`,
+                apiUrl: api.url,
+                apiSlug: api.slug,
+                crawllogCatalogId: api.crawllogCatalogId,  // Link to crawllog_catalog for collections
+                depth: 0
+            }
+        }));
 
     await crawler.addRequests(initialRequests);
+
+    await ensureDbQueueBuffer(crawler, crawleeLog);
     
     // Register domain as active in global stats
     globalStats.domainStarted(domain);
@@ -368,10 +420,25 @@ async function handleApiRoot({ request, json, crawler, log, indent, results, max
     
     // If this is a STAC Collection directly, extract and store it
     if (typeof stacObj.isCollection === 'function' && stacObj.isCollection()) {
+        // Persist collection URL in crawllog_collection queue
+        try {
+            await db.enqueueCollectionUrl({
+                sourceUrl: request.url,
+                crawllogCatalogId: crawllogCatalogId
+            });
+        } catch (err) {
+            log.warning(`${indent}Failed to enqueue collection URL: ${err.message}`);
+        }
+
         // Check if this collection URL was already crawled (pause/resume support)
         const alreadyCrawled = await db.isCollectionUrlCrawled(request.url);
         if (alreadyCrawled) {
             log.info(`${indent}Skipping already-crawled collection: ${stacObj.id} (resume mode)`);
+            try {
+                await db.markCatalogCrawled(crawllogCatalogId);
+            } catch (err) {
+                log.warning(`${indent}Failed to mark catalog as crawled: ${err.message}`);
+            }
             return;
         }
         
@@ -389,6 +456,11 @@ async function handleApiRoot({ request, json, crawler, log, indent, results, max
         log.info(`${indent}Extracted collection: ${collection.id} - ${collection.title}`);
         
         await checkAndFlushApi(results, log);
+        try {
+            await db.markCatalogCrawled(crawllogCatalogId);
+        } catch (err) {
+            log.warning(`${indent}Failed to mark catalog as crawled: ${err.message}`);
+        }
         return;
     }
     
@@ -410,17 +482,15 @@ async function handleApiRoot({ request, json, crawler, log, indent, results, max
         log.debug(`${indent}No collections link found, using fallback: ${collectionsEndpoint}`);
     }
     
-    // Enqueue single collections request
-    await crawler.addRequests([{
-        url: collectionsEndpoint,
-        label: 'API_COLLECTIONS',
-        userData: {
-            apiId: apiId,
-            apiUrl: apiUrl,
-            catalogSlug: apiSlug,  // Use catalogSlug for compatibility with handleCollections
-            crawllogCatalogId: crawllogCatalogId  // Link to crawllog_catalog for collections
-        }
-    }]);
+    // Persist collections endpoint in DB queue (batch-loaded into RAM)
+    try {
+        await db.enqueueCollectionUrl({
+            sourceUrl: collectionsEndpoint,
+            crawllogCatalogId: crawllogCatalogId
+        });
+    } catch (err) {
+        log.warning(`${indent}Failed to enqueue collections endpoint: ${err.message}`);
+    }
     
     // Also check for child links (nested catalogs)
     if (typeof stacObj.getChildLinks === 'function') {
@@ -432,10 +502,16 @@ async function handleApiRoot({ request, json, crawler, log, indent, results, max
             const nextDepth = depth + 1;
             if (maxDepth > 0 && nextDepth > maxDepth) {
                 log.warning(`${indent}Skipping ${childLinks.length} child catalogs - max depth (${maxDepth}) reached`);
+                try {
+                    await db.markCatalogCrawled(crawllogCatalogId);
+                } catch (err) {
+                    log.warning(`${indent}Failed to mark catalog as crawled: ${err.message}`);
+                }
                 return;
             }
             
-            const childRequests = childLinks
+            const enqueuePromises = [];
+            childLinks
                 .map((link, idx) => {
                     let childUrl;
                     try {
@@ -473,34 +549,34 @@ async function handleApiRoot({ request, json, crawler, log, indent, results, max
                         return null;
                     }
                     
-                    const rel = link.rel || '';
-                    const label = rel === 'child' || rel === 'item' ? 'API_ROOT' : 'API_COLLECTION';
-                    
-                    return {
-                        url: childUrl,
-                        label: label,
-                        userData: {
-                            apiId: `${apiId}-child-${idx}`,
-                            apiUrl: apiUrl,
-                            apiSlug: apiSlug,
-                            catalogSlug: apiSlug,  // Use catalogSlug for compatibility with handleCollections
-                            crawllogCatalogId: crawllogCatalogId,  // Link to crawllog_catalog for collections
-                            parentId: apiId,
-                            depth: nextDepth
-                        }
-                    };
+                    enqueuePromises.push(db.enqueueCollectionUrl({
+                        sourceUrl: childUrl,
+                        crawllogCatalogId: crawllogCatalogId
+                    }));
+
+                    return childUrl;
                 })
                 .filter(Boolean);
             
-            if (childRequests.length > 0) {
-                await crawler.addRequests(childRequests);
-                log.info(`${indent}Enqueued ${childRequests.length} child catalogs/collections`);
+            if (enqueuePromises.length > 0) {
+                try {
+                    await Promise.all(enqueuePromises);
+                    log.info(`${indent}Queued ${enqueuePromises.length} child catalogs/collections into DB queue`);
+                } catch (err) {
+                    log.warning(`${indent}Failed to enqueue child catalog/collection URLs: ${err.message}`);
+                }
             }
         }
     }
     
     // Help garbage collector by dereferencing large objects
     stacObj = null;
+
+    try {
+        await db.markCatalogCrawled(crawllogCatalogId);
+    } catch (err) {
+        log.warning(`${indent}Failed to mark catalog as crawled: ${err.message}`);
+    }
 }
 
 /**
@@ -512,10 +588,25 @@ async function handleApiCollection({ request, json, crawler, log, indent, result
     const apiSlug = request.userData?.apiSlug || request.userData?.catalogSlug || null;
     const crawllogCatalogId = request.userData?.crawllogCatalogId || null;
     
+    // Persist collection URL in crawllog_collection queue
+    try {
+        await db.enqueueCollectionUrl({
+            sourceUrl: request.url,
+            crawllogCatalogId: crawllogCatalogId
+        });
+    } catch (err) {
+        log.warning(`${indent}Failed to enqueue collection URL: ${err.message}`);
+    }
+
     // Check if this collection URL was already crawled (pause/resume support)
     const alreadyCrawled = await db.isCollectionUrlCrawled(request.url);
     if (alreadyCrawled) {
         log.info(`${indent}Skipping already-crawled collection at ${request.url} (resume mode)`);
+        try {
+            await db.markCatalogCrawled(crawllogCatalogId);
+        } catch (err) {
+            log.warning(`${indent}Failed to mark catalog as crawled: ${err.message}`);
+        }
         return;
     }
     
@@ -547,6 +638,12 @@ async function handleApiCollection({ request, json, crawler, log, indent, result
     
     // Help garbage collector
     stacObj = null;
+
+    try {
+        await db.markCatalogCrawled(crawllogCatalogId);
+    } catch (err) {
+        log.warning(`${indent}Failed to mark catalog as crawled: ${err.message}`);
+    }
 }
 
 export {

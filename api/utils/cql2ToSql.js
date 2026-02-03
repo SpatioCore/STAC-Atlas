@@ -65,6 +65,13 @@ function cql2ToSql(cql, values) {
          return `${val} IS NULL`;
     }
 
+    // LIKE operator (pattern matching)
+    if (cql.op === 'like') {
+        const val = processArg(cql.args[0], values);
+        const pattern = processArg(cql.args[1], values);
+        return `${val} LIKE ${pattern}`;
+    }
+
     // Spatial operators (CQL2 Advanced)
     if (cql.op === 's_intersects') {
         const geomProp = processArg(cql.args[0], values);
@@ -95,27 +102,27 @@ function cql2ToSql(cql, values) {
         const prop = cql.args[0];
         const interval = cql.args[1];
         
-        if (prop.property === 'datetime' || prop.property === 'temporal_extend') {
+        if (prop.property === 'datetime' || prop.property === 'temporal_extent') {
             // interval can be: { interval: [start, end] } or a single timestamp
             if (interval.interval) {
                 const [start, end] = interval.interval;
                 if (start !== '..' && end !== '..') {
                     values.push(start, end);
-                    return `(c.temporal_extend_start <= $${values.length} AND c.temporal_extend_end >= $${values.length - 1})`;
+                    return `(c.temporal_extent_start <= $${values.length} AND c.temporal_extent_end >= $${values.length - 1})`;
                 } else if (start === '..') {
                     values.push(end);
-                    return `c.temporal_extend_start <= $${values.length}`;
+                    return `c.temporal_extent_start <= $${values.length}`;
                 } else if (end === '..') {
                     values.push(start);
-                    return `c.temporal_extend_end >= $${values.length}`;
+                    return `c.temporal_extent_end >= $${values.length}`;
                 }
             } else {
                 // Single timestamp
                 values.push(interval);
-                return `(c.temporal_extend_start <= $${values.length} AND c.temporal_extend_end >= $${values.length})`;
+                return `(c.temporal_extent_start <= $${values.length} AND c.temporal_extent_end >= $${values.length})`;
             }
         }
-        throw new Error(`t_intersects only supported for datetime/temporal_extend property`);
+        throw new Error(`t_intersects only supported for datetime/temporal_extent property`);
     }
     
     if (cql.op === 't_before') {
@@ -165,18 +172,21 @@ function mapProperty(propName) {
         'title': 'c.title',
         'description': 'c.description',
         'license': 'c.license',
-        'spatial_extend': 'c.spatial_extend',
-        'temporal_extend_start': 'c.temporal_extend_start',
-        'temporal_extend_end': 'c.temporal_extend_end',
+        'spatial_extent': 'c.spatial_extent',
+        'temporal_extent_start': 'c.temporal_extent_start',
+        'temporal_extent_end': 'c.temporal_extent_end',
         'created_at': 'c.created_at',
         'updated_at': 'c.updated_at',
         'is_api': 'c.is_api',
         'is_active': 'c.is_active',
         
+
         // Common aliases
         'created': 'c.created_at',
         'updated': 'c.updated_at',
         'collection': 'c.id',
+        'active': 'c.is_active',
+        'api': 'c.is_api',
         
         // Aggregated fields (from LATERAL JOINs)
         'keywords': 'kw.keywords',
@@ -184,7 +194,6 @@ function mapProperty(propName) {
         'providers': 'prov.providers',
         'assets': 'a.assets',
         'summaries': 's.summaries',
-        'last_crawled': 'cl.last_crawled'
     };
 
     if (columnMap[propName]) {
@@ -192,8 +201,8 @@ function mapProperty(propName) {
     }
 
     // Fallback: query inside full_json JSONB column
-    // Ensure propName is safe (alphanumeric + underscores)
-    if (!/^[a-zA-Z0-9_]+$/.test(propName)) {
+    // Ensure propName is safe (alphanumeric + underscores + dots + hyphens + double colons)
+    if (!/^[a-zA-Z0-9_.:-]+$/.test(propName)) {
         throw new Error(`Invalid property name: ${propName}`);
     }
     
