@@ -140,7 +140,7 @@ function toStacCollection(row, baseHost) {
 
 // helper to run the built query (from documentation)
 async function runQuery(sql, params = []) {
-    try {
+  try {
     const result = await query(sql, params);
     return result.rows;
   } catch (error) {
