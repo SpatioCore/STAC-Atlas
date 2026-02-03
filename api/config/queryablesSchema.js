@@ -20,7 +20,7 @@
 
 function buildCollectionsQueryablesSchema(baseUrl) {
   const cleanBase = String(baseUrl || '').replace(/\/+$/, '');
-  const schemaId = `${cleanBase}/collections-queryables`;
+  const schemaId = `${cleanBase}/collection-queryables`;
 
   // Operator sets based on utils/cql2ToSql.js implementation
   const OPS_COMPARISON = ['=', '<>', '<', '<=', '>', '>='];
@@ -77,7 +77,7 @@ function buildCollectionsQueryablesSchema(baseUrl) {
       id: {
         title: 'Collection ID',
         description: 'STAC Collection identifier (string or numeric). Maps to c.id.',
-        type: ['string', 'integer'],
+        type: ['string'],
         'x-ogc-operators': OPS_STRING,
         'x-ogc-property': 'c.id'
       },
@@ -289,7 +289,7 @@ function buildCollectionsQueryablesSchema(baseUrl) {
       collection: {
         title: 'Collection (Alias)',
         description: 'Alias for id. Maps to c.id.',
-        type: ['string', 'integer'],
+        type: ['string'],
         'x-ogc-operators': OPS_STRING,
         'x-ogc-property': 'c.id',
         'x-ogc-alias-of': 'id'
