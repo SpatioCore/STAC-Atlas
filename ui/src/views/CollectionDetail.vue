@@ -2,12 +2,12 @@
   <div class="collection-detail">
     <!-- Loading State -->
     <div v-if="loading" class="loading-container">
-      <p>Loading collection details...</p>
+      <p>{{ t.collectionDetail.loading }}</p>
     </div>
 
     <!-- Error State -->
     <div v-else-if="error" class="error-container">
-      <p>Error: {{ error }}</p>
+      <p>{{ t.collectionDetail.errorPrefix }} {{ error }}</p>
     </div>
 
     <!-- Content -->
@@ -27,7 +27,7 @@
         <div class="collection-detail__top-row">
           <!-- Overview -->
           <section class="overview-section">
-            <h2 class="section-title">Overview</h2>
+            <h2 class="section-title">{{ t.collectionDetail.overview }}</h2>
             <div class="overview-section__description">
               <!-- <h3>Description</h3> -->
               <p>{{ description }}</p>
@@ -46,10 +46,10 @@
                 <span>{{ coordinateSystem }}</span>
               </div>
               <div class="coordinate-values">
-                <span>W: {{ bbox.west }}</span>
-                <span>S: {{ bbox.south }}</span>
-                <span>E: {{ bbox.east }}</span>
-                <span>N: {{ bbox.north }}</span>
+                <span>{{ t.collectionDetail.coordinateLabels.west }} {{ bbox.west }}</span>
+                <span>{{ t.collectionDetail.coordinateLabels.south }} {{ bbox.south }}</span>
+                <span>{{ t.collectionDetail.coordinateLabels.east }} {{ bbox.east }}</span>
+                <span>{{ t.collectionDetail.coordinateLabels.north }} {{ bbox.north }}</span>
               </div>
             </div>
 
@@ -57,12 +57,12 @@
               <div class="source-wrapper">
                 <button @click="toggleSourceModal">
                   <ExternalLink :size="16" />
-                  View Source
+                  {{ t.collectionDetail.viewSource }}
                 </button>
                 
                 <!-- Source Popover -->
                 <div v-if="showSourceModal" class="source-popover">
-                  <h3 class="popover-title">Source Links</h3>
+                  <h3 class="popover-title">{{ t.collectionDetail.sourceLinks }}</h3>
                   
                   <div v-if="sourceLinks.length > 0" class="source-links-list">
                     <div v-for="(link, index) in sourceLinks" :key="index" class="source-link-item">
@@ -83,7 +83,7 @@
                         <button 
                           class="copy-btn" 
                           @click="copyToClipboardWithFeedback(link.href, $event)"
-                          title="Copy to clipboard"
+                          :title="t.common.copyToClipboard"
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
@@ -93,7 +93,7 @@
                       </div>
                     </div>
                   </div>
-                  <p v-else class="no-data-message">No source links available</p>
+                  <p v-else class="no-data-message">{{ t.collectionDetail.noSourceLinks }}</p>
                 </div>
               </div>
               
@@ -104,12 +104,12 @@
                   :class="{ 'button--disabled': providerInfo.length === 0 }"
                 >
                   <Building2 :size="16" />
-                  Providers
+                  {{ t.collectionDetail.providers }}
                 </button>
                 
                 <!-- Providers Popover -->
                 <div v-if="showContactModal" class="contact-popover">
-                  <h3 class="popover-title">Provider Information</h3>
+                  <h3 class="popover-title">{{ t.collectionDetail.providerInfo }}</h3>
                   
                   <div v-if="providerInfo.length > 0" class="providers-list">
                     <div v-for="(provider, index) in providerInfo" :key="index" class="provider-item">
@@ -141,7 +141,7 @@
                       </div>
                     </div>
                   </div>
-                  <p v-else class="no-data-message">No provider information available</p>
+                  <p v-else class="no-data-message">{{ t.collectionDetail.noProviderInfo }}</p>
                 </div>
               </div>
             </div>
@@ -175,7 +175,7 @@
 
           <!-- Metadata -->
           <section class="metadata-section">
-            <h2 class="section-title">Metadata</h2>
+            <h2 class="section-title">{{ t.collectionDetail.metadata }}</h2>
             <div class="metadata-section__grid">
               <div class="metadata-item" v-for="meta in metadata" :key="meta.label">
                 <span class="metadata-item__label">{{ meta.label }}</span>
@@ -189,12 +189,12 @@
       <!-- Right Section: Items -->
       <div class="collection-detail__right-section">
         <section class="items-section">
-          <h2 class="section-title">Items ({{ items.length }}{{ totalItemCount > items.length ? ` of ${totalItemCount}` : '' }})</h2>
+          <h2 class="section-title">{{ t.collectionDetail.items }} ({{ items.length }}{{ totalItemCount > items.length ? ` ${t.common.of} ${totalItemCount}` : '' }})</h2>
           <div v-if="itemsLoading" class="items-section__loading">
-            <p>Loading items from source...</p>
+            <p>{{ t.collectionDetail.loadingItems }}</p>
           </div>
           <div v-else-if="items.length === 0" class="items-section__empty">
-            <p>No items available</p>
+            <p>{{ t.collectionDetail.noItems }}</p>
           </div>
           <!-- Scrollable list for 12 or fewer items -->
           <div v-else-if="!usePagination" class="items-section__list items-section__list--scrollable">
@@ -249,10 +249,12 @@ import InfoCard from '@/components/InfoCard.vue'
 import ItemCard from '@/components/ItemCard.vue'
 import { api } from '@/services/api'
 import type { Collection } from '@/types/collection'
+import { useI18n } from '@/composables/useI18n'
 import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 
 const route = useRoute()
+const { t } = useI18n()
 const collectionId = computed(() => route.params.id as string)
 const mapContainer = ref<HTMLElement | null>(null)
 const map = ref<maplibregl.Map | null>(null)
@@ -296,7 +298,7 @@ const copyToClipboardWithFeedback = async (text: string, event: Event) => {
     }, 2000)
   }
   
-  showToast(success ? 'Copied to clipboard!' : 'Failed to copy')
+  showToast(success ? t.value.common.copiedToClipboard : t.value.common.failedToCopy)
 }
 
 const showToast = (message: string) => {
@@ -332,25 +334,25 @@ const truncateUrl = (url: string, maxLength: number = 40) => {
 
 // Computed properties from STAC-conformant collection data (no more full_json wrapper)
 const collectionTitle = computed(() => 
-  collection.value?.title || 'Untitled Collection'
+  collection.value?.title || t.value.collectionDetail.untitledCollection
 )
 
 const provider = computed(() => {
   const providers = collection.value?.providers
-  return providers && providers.length > 0 && providers[0] ? providers[0].name : 'Unknown Provider'
+  return providers && providers.length > 0 && providers[0] ? providers[0].name : t.value.collectionDetail.unknownProvider
 })
 
 const platform = computed(() => {
   const keywords = collection.value?.keywords
-  return keywords && keywords.length > 0 ? keywords[0] : 'N/A'
+  return keywords && keywords.length > 0 ? keywords[0] : t.value.common.notAvailable
 })
 
 const license = computed(() => 
-  collection.value?.license || 'Unknown'
+  collection.value?.license || t.value.collectionDetail.unknownLicense
 )
 
 const description = computed(() => 
-  collection.value?.description || 'No description available'
+  collection.value?.description || t.value.collectionDetail.noDescription
 )
 
 const coordinateSystem = computed(() => 'EPSG:4326')
@@ -384,14 +386,14 @@ const infoCards = computed(() => {
     if (start) {
       cards.push({
         icon: 'calendar',
-        label: 'Start Date',
+        label: t.value.filters.startDate,
         value: new Date(start).toLocaleDateString()
       })
     }
     if (end) {
       cards.push({
         icon: 'calendar',
-        label: 'End Date',
+        label: t.value.filters.endDate,
         value: new Date(end).toLocaleDateString()
       })
     }
@@ -406,28 +408,28 @@ const metadata = computed(() => {
   const meta: { label: string; value: string }[] = []
   
   if (collection.value?.id) {
-    meta.push({ label: 'Collection ID', value: collection.value.id })
+    meta.push({ label: t.value.collectionDetail.collectionId, value: collection.value.id })
   }
   
   if (collection.value?.stac_version) {
-    meta.push({ label: 'STAC Version', value: collection.value.stac_version })
+    meta.push({ label: t.value.collectionDetail.stacVersion, value: collection.value.stac_version })
   }
   
   const keywords = collection.value?.keywords
   if (keywords && keywords.length > 0) {
-    meta.push({ label: 'Keywords', value: keywords.join(', ') })
+    meta.push({ label: t.value.collectionDetail.keywords, value: keywords.join(', ') })
   }
   
   const providers = collection.value?.providers
   if (providers && providers.length > 0) {
     meta.push({ 
-      label: 'Providers', 
+      label: t.value.collectionDetail.providers, 
       value: providers.map(p => p.name).join(', ') 
     })
   }
 
   if (collection.value?.license) {
-    meta.push({ label: 'License', value: collection.value.license })
+    meta.push({ label: t.value.filters.license, value: collection.value.license })
   }
   
   return meta

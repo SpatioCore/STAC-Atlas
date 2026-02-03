@@ -2,27 +2,27 @@
   <header class="navbar">
     <RouterLink to="/" class="navbar-brand">
       <div class="navbar-logo">
-        <img src="@/assets/Atlas Logo.png" alt="STAC Atlas Logo" class="logo-icon" />
+        <img src="@/assets/Atlas Logo.png" :alt="t.navbar.logoAlt" class="logo-icon" />
       </div>
       <div class="navbar-title">
-        <h1>STAC Atlas</h1>
-        <p class="navbar-subtitle">Geospatial Data Explorer</p>
+        <h1>{{ t.navbar.title }}</h1>
+        <p class="navbar-subtitle">{{ t.navbar.subtitle }}</p>
       </div>
     </RouterLink>
 
     <div class="navbar-actions">
       <button 
         class="navbar-btn"
-        :title="`Switch to ${currentLanguage === 'EN' ? 'German' : 'English'}`"
-        @click="toggleLanguage"
+        :title="locale === 'en' ? t.navbar.switchToGerman : t.navbar.switchToEnglish"
+        @click="toggleLocale"
       >
         <!-- <Globe :size="18" /> -->
-        {{ currentLanguage }}
+        {{ locale.toUpperCase() }}
       </button>
       
       <button 
         class="navbar-btn"
-        :title="`Switch to ${isDark ? 'light' : 'dark'} mode`"
+        :title="isDark ? t.navbar.switchToLightMode : t.navbar.switchToDarkMode"
         @click="isDark = !isDark"
       >
         <Sun v-if="isDark" :size="18" />
@@ -42,10 +42,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import { useDark } from '@vueuse/core'
-import { Sun, Moon, Info } from 'lucide-vue-next'
+import { Sun, Moon } from 'lucide-vue-next'
+import { useI18n } from '@/composables/useI18n'
+
+const { locale, t, toggleLocale, initLocale } = useI18n()
 
 const isDark = useDark({
   selector: 'html',
@@ -54,14 +57,8 @@ const isDark = useDark({
   valueLight: ''
 })
 
-const currentLanguage = ref('EN')
-
-const toggleLanguage = () => {
-  currentLanguage.value = currentLanguage.value === 'EN' ? 'DE' : 'EN'
-  // TODO: Implement i18n language switching
-}
-
-const showInfo = () => {
-  // TODO: Implement info modal
-}
+// Initialize locale on mount
+onMounted(() => {
+  initLocale()
+})
 </script>

@@ -7,6 +7,9 @@ import SearchResults from '@/components/SearchResults.vue'
 import { api } from '@/services/api'
 import type { Collection } from '@/types/collection'
 import { useFilterStore } from '@/stores/filterStore'
+import { useI18n } from '@/composables/useI18n'
+
+const { t } = useI18n()
 
 // Use Pinia store
 const filterStore = useFilterStore()
@@ -131,7 +134,7 @@ onMounted(() => {
       
       <div v-if="loading" class="loading-container">
         <div class="loading-spinner"></div>
-        <span class="loading-text">Loading collections...</span>
+        <span class="loading-text">{{ t.search.loadingCollections }}</span>
       </div>
       
       <div v-else-if="error" class="error-message">
@@ -140,8 +143,8 @@ onMounted(() => {
       
       <template v-else>
         <div v-if="Collections.length === 0" class="no-results">
-          <p class="no-results-text">No results found.</p>
-          <p class="no-results-hint">Adjust your query or filter parameters.</p>
+          <p class="no-results-text">{{ t.search.noResults }}</p>
+          <p class="no-results-hint">{{ t.search.noResultsHint }}</p>
         </div>
         
         <SearchResults v-else :collections="Collections" />
@@ -211,11 +214,11 @@ onMounted(() => {
               @keyup.enter="goToInputPage"
             />
             <span class="pagination-of">/ {{ totalPages }}</span>
-            <button class="pagination-go-btn" @click="goToInputPage">Go</button>
+            <button class="pagination-go-btn" @click="goToInputPage">{{ t.common.go }}</button>
           </div>
           
           <span class="pagination-info">
-            ({{ totalCollections }} total)
+            ({{ totalCollections }} {{ t.common.total }})
           </span>
         </div>
       </template>

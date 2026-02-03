@@ -3,7 +3,7 @@
     <div v-if="isOpen" class="modal-overlay" @click.self="close">
       <div class="modal-container">
         <div class="modal-header">
-          <h2>Draw Bounding Box</h2>
+          <h2>{{ t.bboxModal.title }}</h2>
           <button class="modal-close" @click="close">
             <X :size="20" />
           </button>
@@ -13,13 +13,13 @@
           <div ref="mapContainer" class="map-container"></div>
           
           <p class="map-instructions">
-            Click and drag on the map to draw a bounding box, or enter coordinates manually below.
+            {{ t.bboxModal.instructions }}
           </p>
           
           <div class="bbox-inputs">
             <div class="bbox-row">
               <div class="bbox-field">
-                <label>Min Longitude (West)</label>
+                <label>{{ t.bboxModal.minLongitude }}</label>
                 <input 
                   v-model.number="minLon" 
                   type="number" 
@@ -30,7 +30,7 @@
                 />
               </div>
               <div class="bbox-field">
-                <label>Max Longitude (East)</label>
+                <label>{{ t.bboxModal.maxLongitude }}</label>
                 <input 
                   v-model.number="maxLon" 
                   type="number" 
@@ -43,7 +43,7 @@
             </div>
             <div class="bbox-row">
               <div class="bbox-field">
-                <label>Min Latitude (South)</label>
+                <label>{{ t.bboxModal.minLatitude }}</label>
                 <input 
                   v-model.number="minLat" 
                   type="number" 
@@ -54,7 +54,7 @@
                 />
               </div>
               <div class="bbox-field">
-                <label>Max Latitude (North)</label>
+                <label>{{ t.bboxModal.maxLatitude }}</label>
                 <input 
                   v-model.number="maxLat" 
                   type="number" 
@@ -69,9 +69,9 @@
         </div>
         
         <div class="modal-footer">
-          <button class="btn-clear" @click="clearBbox">Clear</button>
-          <button class="btn-cancel" @click="close">Cancel</button>
-          <button class="btn-save" @click="save" :disabled="!isValidBbox">Save</button>
+          <button class="btn-clear" @click="clearBbox">{{ t.common.clear }}</button>
+          <button class="btn-cancel" @click="close">{{ t.common.cancel }}</button>
+          <button class="btn-save" @click="save" :disabled="!isValidBbox">{{ t.common.save }}</button>
         </div>
       </div>
     </div>
@@ -83,6 +83,9 @@ import { ref, watch, computed, onUnmounted, nextTick } from 'vue'
 import { X } from 'lucide-vue-next'
 import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
+import { useI18n } from '@/composables/useI18n'
+
+const { t } = useI18n()
 
 const props = defineProps<{
   isOpen: boolean

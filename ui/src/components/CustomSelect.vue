@@ -26,6 +26,9 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { ChevronDown } from 'lucide-vue-next'
+import { useI18n } from '@/composables/useI18n'
+
+const { $t } = useI18n()
 
 interface Option {
   value: string
@@ -46,7 +49,7 @@ const isOpen = ref(false)
 
 const displayValue = computed(() => {
   const selected = props.options.find(opt => opt.value === props.modelValue)
-  return selected ? selected.label : (props.placeholder || 'Select...')
+  return selected ? selected.label : (props.placeholder || $t('common.all'))
 })
 
 const toggle = () => {

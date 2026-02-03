@@ -19,18 +19,18 @@
           {{ tag }}
         </span>
         <span v-if="remainingTagsCount > 0" class="tag tag-more">
-          +{{ remainingTagsCount }} more
+          +{{ remainingTagsCount }} {{ t.common.more }}
         </span>
       </div>
     </div>
 
     <div class="card-footer">
       <button @click="viewDetails">
-        View Details
+        {{ t.collectionCard.viewDetails }}
       </button>
       
       <button @click="openSource" :disabled="!sourceLink">
-        Source
+        {{ t.collectionCard.source }}
         <ExternalLink :size="16" />
       </button>
     </div>
@@ -42,16 +42,18 @@ import { computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { ExternalLink } from 'lucide-vue-next';
 import type { Collection } from '@/types/collection';
+import { useI18n } from '@/composables/useI18n';
 
 const router = useRouter();
+const { t } = useI18n();
 
 const props = defineProps<{
   collection: Collection;
 }>();
 
 // Extract data from STAC-conformant collection (no more full_json wrapper)
-const title = computed(() => props.collection.title || 'Untitled Collection');
-const description = computed(() => props.collection.description || 'No description available');
+const title = computed(() => props.collection.title || t.value.collectionCard.untitledCollection);
+const description = computed(() => props.collection.description || t.value.collectionCard.noDescription);
 
 // Get provider from providers array
 const provider = computed(() => {
@@ -59,7 +61,7 @@ const provider = computed(() => {
   if (providers && providers.length > 0 && providers[0]) {
     return providers[0].name;
   }
-  return 'Unknown Provider';
+  return t.value.collectionCard.unknownProvider;
 });
 
 // Get platform from keywords (first keyword)
@@ -68,7 +70,7 @@ const platform = computed(() => {
   if (keywords && keywords.length > 0) {
     return keywords[0];
   }
-  return 'No platform data';
+  return t.value.collectionCard.noPlatformData;
 });
 
 // Convert keywords array for tags

@@ -4,32 +4,32 @@
       <div class="filter-group">
         <h3 class="filter-title">
           <MapPin class="filter-icon" :size="20" />
-          Spatial Filter
+          {{ t.filters.spatialFilter }}
         </h3>
         <button class="filter-action-btn" @click="openBboxModal">
           <Box class="icon" :size="16" />
-          Draw Bounding Box
+          {{ t.filters.drawBoundingBox }}
         </button>
         <div v-if="drawnBbox" class="drawn-bbox-display">
           <div class="bbox-coords">
             <div class="bbox-coord-row">
               <div class="bbox-coord-content">
-                <span class="bbox-coord-label">West:</span>
+                <span class="bbox-coord-label">{{ t.filters.west }}:</span>
                 <span class="bbox-coord-value">{{ formattedBbox.west }}</span>
               </div>
               
               <div class="bbox-coord-content">
-                <span class="bbox-coord-label">East:</span>
+                <span class="bbox-coord-label">{{ t.filters.east }}:</span>
                 <span class="bbox-coord-value">{{ formattedBbox.east }}</span>
               </div>
             </div>
             <div class="bbox-coord-row">
               <div class="bbox-coord-content">
-                <span class="bbox-coord-label">South:</span>
+                <span class="bbox-coord-label">{{ t.filters.south }}:</span>
                 <span class="bbox-coord-value">{{ formattedBbox.south }}</span>
               </div>
               <div class="bbox-coord-content">
-                <span class="bbox-coord-label">North:</span>
+                <span class="bbox-coord-label">{{ t.filters.north }}:</span>
                 <span class="bbox-coord-value">{{ formattedBbox.north }}</span>
               </div>
             </div>
@@ -39,7 +39,7 @@
           </button>
         </div>
         <div class="filter-field">
-          <label class="filter-label" for="region-select">Select Region</label>
+          <label class="filter-label" for="region-select">{{ t.filters.selectRegion }}</label>
           <CustomSelect
             id="region-select"
             v-model="selectedRegion"
@@ -53,10 +53,10 @@
       <div class="filter-group">
         <h3 class="filter-title">
           <Calendar class="filter-icon" :size="20" />
-          Temporal Filter
+          {{ t.filters.temporalFilter }}
         </h3>
         <div class="filter-field">
-          <label class="filter-label" for="start-date">Start Date</label>
+          <label class="filter-label" for="start-date">{{ t.filters.startDate }}</label>
           <input 
             id="start-date"
             v-model="startDate"
@@ -66,7 +66,7 @@
           />
         </div>
         <div class="filter-field">
-          <label class="filter-label" for="end-date">End Date</label>
+          <label class="filter-label" for="end-date">{{ t.filters.endDate }}</label>
           <input 
             id="end-date"
             v-model="endDate"
@@ -78,7 +78,7 @@
       </div>
 
       <div class="filter-group">
-        <h3 class="filter-title">Provider</h3>
+        <h3 class="filter-title">{{ t.filters.provider }}</h3>
         <div class="filter-field">
           <CustomSelect
             v-model="selectedProvider"
@@ -89,7 +89,7 @@
       </div>
 
       <div class="filter-group">
-        <h3 class="filter-title">License</h3>
+        <h3 class="filter-title">{{ t.filters.license }}</h3>
         <div class="filter-field">
           <CustomSelect
             v-model="selectedLicense"
@@ -102,10 +102,10 @@
       <div class="filter-group">
         <h3 class="filter-title">
           <Settings class="filter-icon" :size="20" />
-          Collection Status
+          {{ t.filters.collectionStatus }}
         </h3>
         <div class="filter-field">
-          <label class="filter-label" for="active-filter">Active Status</label>
+          <label class="filter-label" for="active-filter">{{ t.filters.activeStatus }}</label>
           <CustomSelect
             id="active-filter"
             v-model="activeFilter"
@@ -114,7 +114,7 @@
           />
         </div>
         <div class="filter-field">
-          <label class="filter-label" for="api-filter">API</label>
+          <label class="filter-label" for="api-filter">{{ t.filters.apiStatus }}</label>
           <CustomSelect
             id="api-filter"
             v-model="apiFilter"
@@ -129,7 +129,7 @@
       <div class="filter-group">
         <h3 class="filter-title">
           <Code class="filter-icon" :size="20" />
-          CQL2 Filter
+          {{ t.filters.cql2Filter }}
         </h3>
         <div class="filter-field">
           <textarea
@@ -140,16 +140,16 @@
             rows="4"
           ></textarea>
           <p class="filter-hint" :class="{ 'formatting': isFormattingJson }">
-            <template v-if="isFormattingJson">Formatting JSON...</template>
-            <template v-else>CQL2-Text or CQL2-JSON</template>
+            <template v-if="isFormattingJson">{{ t.filters.formattingJson }}</template>
+            <template v-else>{{ t.filters.cql2Hint }}</template>
           </p>
         </div>
       </div>
     </div>
 
     <div class="filter-actions">
-      <button class="btn-apply" @click="applyFilters">Apply Filters</button>
-      <button class="btn-reset" @click="resetFilters">Reset</button>
+      <button class="btn-apply" @click="applyFilters">{{ t.filters.applyFilters }}</button>
+      <button class="btn-reset" @click="resetFilters">{{ t.common.reset }}</button>
     </div>
     
     <BoundingBoxModal
@@ -162,13 +162,16 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onUnmounted, onMounted } from 'vue'
+import { ref, computed, watch, onUnmounted } from 'vue'
 import { storeToRefs } from 'pinia'
 import { MapPin, Calendar, Box, X, Code, Settings } from 'lucide-vue-next'
 import CustomSelect from '@/components/CustomSelect.vue'
 import BoundingBoxModal from '@/components/BoundingBoxModal.vue'
 import { useFilterStore } from '@/stores/filterStore'
 import { useQueryables } from '@/composables/useQueryables'
+import { useI18n } from '@/composables/useI18n'
+
+const { t } = useI18n()
 
 const emit = defineEmits<{
   (e: 'apply'): void
@@ -285,26 +288,26 @@ onUnmounted(() => {
 })
 
 // Region options with bounding boxes (minLon, minLat, maxLon, maxLat)
-const regionOptions = [
-  { value: '', label: 'Select a region' },
-  { value: '-25,35,40,72', label: 'Europe' },
-  { value: '25,-10,180,82', label: 'Asia' },
-  { value: '-18,-35,52,38', label: 'Africa' },
-  { value: '-170,-56,-30,84', label: 'Americas' },
-  { value: '110,-50,180,-10', label: 'Oceania' },
-  { value: '-180,-90,180,90', label: 'Global' }
-]
+const regionOptions = computed(() => [
+  { value: '', label: t.value.filters.selectARegion },
+  { value: '-25,35,40,72', label: t.value.filters.regions.europe },
+  { value: '25,-10,180,82', label: t.value.filters.regions.asia },
+  { value: '-18,-35,52,38', label: t.value.filters.regions.africa },
+  { value: '-170,-56,-30,84', label: t.value.filters.regions.americas },
+  { value: '110,-50,180,-10', label: t.value.filters.regions.oceania },
+  { value: '-180,-90,180,90', label: t.value.filters.regions.global }
+])
 
 // Active/API status filter options
-const activeOptions = [
-  { value: '', label: 'All' },
-  { value: 'true', label: 'Active' },
-  { value: 'false', label: 'Inactive' }
-]
+const activeOptions = computed(() => [
+  { value: '', label: t.value.common.all },
+  { value: 'true', label: t.value.filters.active },
+  { value: 'false', label: t.value.filters.inactive }
+])
 
-const apiOptions = [
-  { value: '', label: 'All' },
-  { value: 'true', label: 'Accessible via API' },
-  { value: 'false', label: 'Static Catalog' }
-]
+const apiOptions = computed(() => [
+  { value: '', label: t.value.common.all },
+  { value: 'true', label: t.value.filters.accessibleViaApi },
+  { value: 'false', label: t.value.filters.staticCatalog }
+])
 </script>
