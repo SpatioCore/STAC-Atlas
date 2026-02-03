@@ -28,7 +28,7 @@ export const useFilterStore = defineStore('filters', () => {
 
   // Pagination state
   const currentPage = ref(1)
-  const itemsPerPage = ref(27)
+  const itemsPerPage = ref(48)
   const totalCollections = ref(0)
 
   // UI state

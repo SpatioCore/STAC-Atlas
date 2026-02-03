@@ -18,11 +18,11 @@
 }
 
 .loading-message {
-  color: var(--color-text-secondary, #666);
+  color: var(--color-text-secondary);
 }
 
 .error-message {
-  color: var(--color-error, #d32f2f);
+  color: var(--color-error);
 }
 
 .pagination {
@@ -40,6 +40,7 @@
   align-items: center;
   justify-content: center;
   min-width: 20px;
+  max-width: 120px;
   height: 25px;
   padding: 0 var(--spacing-md);
   border: 1px solid var(--muted-fg);
@@ -72,8 +73,61 @@
 }
 
 .pagination-info {
-  min-width: 150px;
   margin-left: var(--spacing-sm);
-  font-size: var(--font-size-sm, 13px);
-  color: var(--muted-fg, #666);
+  font-size: var(--font-size-sm);
+  color: var(--muted-fg);
+}
+
+.pagination-jump {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  margin-left: var(--spacing-md);
+}
+
+.pagination-input {
+  width: 60px;
+  height: 25px;
+  padding: 0 var(--spacing-xs);
+  border: 1px solid var(--muted-fg);
+  border-radius: var(--radius-sm);
+  background-color: var(--bg);
+  color: var(--text);
+  font-size: var(--font-size-sm);
+  text-align: center;
+}
+
+.pagination-input:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+.pagination-input::-webkit-outer-spin-button,
+.pagination-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.pagination-input[type=number] {
+  -moz-appearance: textfield;
+}
+
+.pagination-of {
+  display: flex;
+  min-width: 50px;
+  height: 25px;
+  font-size: var(--font-size-md);
+  color: var(--muted-fg);
+}
+
+.pagination-go-btn {
+  height: 25px;
+  padding: 0 var(--spacing-sm);
+  border: 1px solid var(--primary);
+  background-color: var(--primary);
+  color: var(--text-white);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
 }

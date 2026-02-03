@@ -15,8 +15,9 @@ const { searchQuery, currentPage, totalCollections, totalPages, activeFilters } 
 const Collections = ref<Collection[]>([])
 const loading = ref(false)
 const error = ref<string | null>(null)
+const pageInput = ref('')
 
-const itemsPerPage = 27
+const itemsPerPage = 48
 
 // Debounce timer for search
 let searchDebounceTimer: ReturnType<typeof setTimeout> | null = null
@@ -98,6 +99,15 @@ const goToFirstPage = () => goToPage(1)
 const goToLastPage = () => goToPage(totalPages.value)
 const goToNextPage = () => goToPage(currentPage.value + 1)
 const goToPrevPage = () => goToPage(currentPage.value - 1)
+
+// Handle page input jump
+const goToInputPage = () => {
+  const page = parseInt(pageInput.value, 10)
+  if (!isNaN(page) && page >= 1 && page <= totalPages.value) {
+    goToPage(page)
+    pageInput.value = ''
+  }
+}
 
 // Initial load
 onMounted(() => {
@@ -184,8 +194,22 @@ onMounted(() => {
             </svg>
           </button>
           
+          <div class="pagination-jump">
+            <input
+              v-model="pageInput"
+              type="number"
+              class="pagination-input"
+              :min="1"
+              :max="totalPages"
+              :placeholder="String(currentPage)"
+              @keyup.enter="goToInputPage"
+            />
+            <span class="pagination-of">/ {{ totalPages }}</span>
+            <button class="pagination-go-btn" @click="goToInputPage">Go</button>
+          </div>
+          
           <span class="pagination-info">
-            {{ currentPage }} of {{ totalPages }} ({{ totalCollections }} total)
+            ({{ totalCollections }} total)
           </span>
         </div>
       </template>
