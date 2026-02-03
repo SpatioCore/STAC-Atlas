@@ -116,13 +116,15 @@ const remainingTagsCount = computed(() => {
   return remaining > 0 ? remaining : 0;
 });
 
-// Get source link from STAC links array
+// Get source link from STAC links array - prefer source_root for external catalogs
 const sourceLink = computed(() => {
   const links = props.collection.links;
   if (links) {
+    // Prefer source_root (original external catalog) over self/root (local API)
+    const sourceRootLink = links.find(link => link.rel === 'source_root');
     const selfLink = links.find(link => link.rel === 'self');
     const rootLink = links.find(link => link.rel === 'root');
-    return selfLink?.href || rootLink?.href;
+    return sourceRootLink?.href || selfLink?.href || rootLink?.href;
   }
   return null;
 });
@@ -133,7 +135,10 @@ const viewDetails = () => {
 
 const openSource = () => {
   if (sourceLink.value) {
-    window.open(sourceLink.value, '_blank');
+    // Open in STAC Browser - remove protocol from URL
+    const urlWithoutProtocol = sourceLink.value.replace(/^https?:\/\//, '');
+    const stacBrowserUrl = `https://radiantearth.github.io/stac-browser/#/external/${urlWithoutProtocol}`;
+    window.open(stacBrowserUrl, '_blank');
   }
 };
 </script>
