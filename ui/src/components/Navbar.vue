@@ -29,13 +29,14 @@
         <Moon v-else :size="18" />
       </button>
       
-      <button 
+      <!-- Incase of a Information/ About page -->
+      <!-- <button 
         class="navbar-btn"
-        title="Information"
+        :title="t.navbar.information"
         @click="showInfo"
       >
         <Info :size="18" />
-      </button>
+      </button> -->
     </div>
   </header>
 </template>
