@@ -1,4 +1,4 @@
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 
 export interface QueryablesData {
   providers: string[]
@@ -6,8 +6,8 @@ export interface QueryablesData {
   lastUpdated: string | null
 }
 
-const QUERYABLES_URL = '/data/queryables.json'
-const REFRESH_INTERVAL_MS = 15 * 60 * 1000 // 15 minutes
+const STATIC_FILE_URL = '/data/queryables.json'
+const REFRESH_INTERVAL_MS = 24 * 60 * 60 * 1000 // 24 hours
 
 // Shared state across components
 const queryables = ref<QueryablesData>({
@@ -21,21 +21,29 @@ let refreshInterval: ReturnType<typeof setInterval> | null = null
 let isInitialized = false
 
 /**
- * Fetch queryables from the static JSON file
+ * Load queryables from the static JSON file
+ * This file is updated daily by the update-queryables script
  */
-async function fetchQueryables(): Promise<void> {
+async function loadQueryables(): Promise<void> {
   loading.value = true
   error.value = null
 
   try {
-    const response = await fetch(QUERYABLES_URL)
+    // Add cache-busting parameter to ensure we get the latest version
+    const cacheBuster = `?t=${Date.now()}`
+    const response = await fetch(`${STATIC_FILE_URL}${cacheBuster}`)
+    
     if (!response.ok) {
       throw new Error(`Failed to load queryables: ${response.statusText}`)
     }
+    
     const data: QueryablesData = await response.json()
     queryables.value = data
+    
+    console.log(`[Queryables] Loaded ${data.providers.length} providers and ${data.licenses.length} licenses (updated: ${data.lastUpdated})`)
+    
   } catch (err) {
-    error.value = err instanceof Error ? err.message : 'Failed to load queryables'
+    error.value = 'Failed to load filter options'
     console.error('Error loading queryables:', err)
   } finally {
     loading.value = false
@@ -43,13 +51,13 @@ async function fetchQueryables(): Promise<void> {
 }
 
 /**
- * Start auto-refresh interval
+ * Start auto-refresh interval (daily check)
  */
 function startAutoRefresh(): void {
   if (refreshInterval) return
 
   refreshInterval = setInterval(() => {
-    fetchQueryables()
+    loadQueryables()
   }, REFRESH_INTERVAL_MS)
 }
 
@@ -65,23 +73,15 @@ function stopAutoRefresh(): void {
 
 /**
  * Composable for accessing queryables (providers and licenses)
- * Data is fetched from a static JSON file and refreshed every 15 minutes
+ * Data is loaded from a static JSON file that is updated daily by update-queryables script
+ * The file is refreshed every 24 hours to check for updates
  */
 export function useQueryables() {
-  onMounted(async () => {
-    // Only initialize once across all component instances
-    if (!isInitialized) {
-      isInitialized = true
-      await fetchQueryables()
-      startAutoRefresh()
-    }
-  })
-
-  // Convert to select options format
+  // Convert to select options format (computed from queryables)
   const providerOptions = ref<Array<{ value: string; label: string }>>([])
   const licenseOptions = ref<Array<{ value: string; label: string }>>([])
 
-  // Watch for changes and update options
+  // Update options when queryables change
   const updateOptions = () => {
     providerOptions.value = [
       { value: '', label: 'All Providers' },
@@ -93,8 +93,17 @@ export function useQueryables() {
     ]
   }
 
-  // Initial update
-  updateOptions()
+  // Watch for changes and update options reactively
+  watch(queryables, updateOptions, { deep: true, immediate: true })
+
+  onMounted(async () => {
+    // Only initialize once across all component instances
+    if (!isInitialized) {
+      isInitialized = true
+      await loadQueryables()
+      startAutoRefresh()
+    }
+  })
 
   return {
     queryables,
@@ -102,7 +111,7 @@ export function useQueryables() {
     licenseOptions,
     loading,
     error,
-    refresh: fetchQueryables,
+    refresh: loadQueryables,
     updateOptions,
     stopAutoRefresh
   }
