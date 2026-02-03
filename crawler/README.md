@@ -309,6 +309,169 @@ The test suite covers utility functions with **110 tests** across three modules:
 
 All tests use **real STAC domain names and collection IDs** from production STAC APIs for realistic testing.
 
+## Dependencies
+
+The crawler uses carefully selected libraries for specific functionality:
+
+### Core Dependencies
+
+#### **Crawlee** (v3.15.3)
+- **Purpose**: Advanced web crawling framework with built-in request management
+- **Why chosen**: 
+  - Automatic retry logic with exponential backoff
+  - Built-in rate limiting per domain
+  - Concurrent request handling with configurable concurrency
+  - Request queue management for large-scale crawling
+  - Automatic handling of timeouts and errors
+- **Key features used**:
+  - `HttpCrawler` - For HTTP requests with JSON parsing
+  - Request/response handlers for custom processing
+  - Domain-based crawling strategies
+- **Alternative considered**: Axios alone - rejected because it lacks built-in queue management and retry logic
+
+#### **axios** (v1.13.2)
+- **Purpose**: HTTP client for direct API calls (non-crawling requests)
+- **Why chosen**: 
+  - Simple interface for one-off requests (e.g., fetching catalog list)
+  - Wide adoption and reliability
+  - Promise-based async/await support
+- **Used for**: Initial STAC Index API calls before crawling starts
+
+#### **stac-js** (v0.1.9)
+- **Purpose**: STAC object manipulation and metadata extraction
+- **Why chosen**:
+  - Official STAC library with spec-compliant parsers
+  - Type detection (Collection, Catalog, Item)
+  - Built-in methods for extent extraction (`getBoundingBox()`, `getTemporalExtent()`)
+  - Link resolution (relative to absolute URLs)
+- **Key features used**:
+  - `create()` - Parse JSON into STAC objects
+  - `isCollection()`, `isCatalog()` - Type checking
+  - Extent extraction methods
+
+#### **stac-node-validator** (v2.0.0-rc.1)
+- **Purpose**: Validate STAC JSON against official schemas
+- **Why chosen**:
+  - Uses official STAC JSON schemas
+  - Validates core spec + extensions (EO, SAT, Projection, etc.)
+  - Detailed error reporting with field-level messages
+  - Async validation suitable for high-volume crawling
+- **Key features used**:
+  - Full STAC spec validation (v1.0.0, v1.1.0 support)
+  - Extension schema validation
+  - Error message extraction for debugging
+- **Critical for**: Data quality - filters out malformed STAC metadata before database insertion
+
+#### **@databases/pg** (v5.5.0)
+- **Purpose**: PostgreSQL database client with modern async/await support
+- **Why chosen**:
+  - Type-safe SQL queries with tagged template literals
+  - Connection pooling built-in
+  - Better TypeScript support than `pg` alone
+  - Cleaner API than raw `pg`
+- **Key features used**:
+  - Connection pool management
+  - Parameterized queries (SQL injection prevention)
+  - Transaction support
+
+
+#### **dotenv** (v17.2.3)
+- **Purpose**: Environment variable management from `.env` files
+- **Why chosen**:
+  - Standard solution for 12-factor app configuration
+  - Keeps sensitive credentials out of source code
+  - Development/production environment separation
+- **Used for**: Database credentials, crawler configuration, scheduler settings
+
+### Development Dependencies
+
+#### **Jest** (v29.7.0)
+- **Purpose**: Testing framework
+- **Why chosen**:
+  - Industry standard for Node.js testing
+  - Built-in assertion library
+  - Parallel test execution
+  - Coverage reporting
+  - Module mocking support
+- **Test coverage**: 110 tests across normalization, parallel execution, and API utilities
+- **Configuration**: Uses ES modules (`--experimental-vm-modules`) for modern JavaScript support
+
+### Implicit Dependencies
+
+**Node.js built-ins**:
+- `pg` (Pool) - Part of `@databases/pg`, PostgreSQL connection pooling
+- `process.env` - Environment variable access
+- `console` - Logging (no external logger to keep dependencies minimal)
+
+
+## Technical Decisions
+
+### 1. Why PostgreSQL?
+
+**Decision**: Use PostgreSQL as the primary database
+
+**Rationale**:
+- **PostGIS extension**: Native geospatial support for bounding box queries
+- **JSONB type**: Efficient storage of STAC summaries and nested metadata
+- **Robust transactions**: ACID compliance prevents data corruption during concurrent crawls
+- **Indexing**: B-tree, GiST, and GIN indexes for fast spatial and text searches
+- **Scalability**: Handles millions of collections without performance degradation
+
+
+### 2. Why Domain-Based Parallel Processing?
+
+**Decision**: Group catalogs/APIs by domain and process domains in parallel
+
+**Rationale**:
+- **Rate limiting**: Each domain has independent rate limits - prevents throttling
+- **Politeness**: Distributes load across servers, avoiding overwhelming single hosts
+- **Efficiency**: Processes multiple domains simultaneously while respecting per-domain limits
+- **Fairness**: Prevents slow domains from blocking fast domains
+
+
+### 3. Why Separate Crawler and Scheduler?
+
+**Decision**: Keep single-run crawler (`index.js`) separate from scheduler (`scheduler.js`)
+
+**Rationale**:
+- **Flexibility**: Users can run one-off crawls or automated schedules
+- **Testing**: Easier to test crawler logic without scheduler complexity
+- **Resource efficiency**: Single runs exit immediately, don't hold resources
+- **Debugging**: Simpler to debug individual components
+- **Docker compatibility**: Can run different commands in containers
+
+
+### 4. Why Batch Flushing to Database?
+
+**Decision**: Collect 25 collections in memory, then flush to database
+
+**Rationale**:
+- **Performance**: Reduces database connection overhead (25x fewer transactions)
+- **Memory efficiency**: Prevents unbounded memory growth on large crawls
+- **Error recovery**: Smaller batches = less data lost on errors
+- **Deadlock mitigation**: Fewer concurrent transactions reduce deadlock risk
+
+**Batch size selection**:
+- Tested on 2GB RAM servers → 25 collections = ~10MB memory footprint
+- Larger batches (100+) caused OOM on constrained servers
+- Smaller batches (5-10) increased database load significantly
+
+
+### 5. Why Deadlock Retry with Exponential Backoff?
+
+**Decision**: Retry database deadlocks up to 3 times with exponential backoff
+
+**Rationale**:
+- **PostgreSQL behavior**: Concurrent inserts on related tables (keywords, extensions) can deadlock
+- **Automatic recovery**: Transient deadlocks resolve after retry
+- **Exponential backoff**: Reduces contention by spreading out retry attempts
+- **Max retries**: Prevents infinite loops on persistent deadlocks
+
+
+
+
+
+
 ## Architecture
 
 ### Core Components
@@ -324,42 +487,198 @@ All tests use **real STAC domain names and collection IDs** from production STAC
 - **`utils/parallel.js`** - Parallel execution utilities with domain-based batching
 - **`utils/config.js`** - Configuration management (env vars + CLI)
 - **`utils/time.js`** - Time formatting utilities
+- **`utils/handlers.js`** - Request handlers for catalogs and collections with STAC validation
+- **`utils/endpoints.js`** - STAC API endpoint discovery utilities
 - **`catalogs/catalog.js`** - Static catalog crawling logic
 - **`apis/api.js`** - STAC API crawling logic
 
-### Database Schema
+## How It Works
 
-The crawler stores collections in PostgreSQL with the following key tables:
-- `collection` - Main collection data with spatial/temporal extents
-- `collection_summaries` - Collection summary metadata
-- `collection_keywords` - Keywords linked to collections
-- `collection_stac_extension` - STAC extensions used
-- `collection_providers` - Data providers
-- `collection_assets` - Collection assets
-- `crawllog_collection` - Crawl history and timestamps
+### Crawling Process Overview
 
-### Scheduler Workflow
+The crawler operates in two modes: **static catalog crawling** and **STAC API crawling**. Both modes follow a similar workflow but use different strategies to discover and process STAC collections.
 
-1. **Initialization**: Load configuration from `.env`
-2. **Startup Check**: Verify if within allowed time window
-3. **Initial Run**: Execute crawler immediately (if enabled)
-4. **Schedule Next**: Calculate next run time based on interval
-5. **Time Window Adjustment**: Shift schedule to fit time window if enforced
-6. **Wait**: Sleep until next scheduled time
-7. **Execute**: Run crawler and collect statistics
-8. **Error Handling**: 
-   - DB errors → Stop scheduler
-   - Crawl errors → Retry after delay (if enabled)
-   - Success → Schedule next run
-9. **Repeat**: Loop back to step 6
+#### Static Catalog Crawling
 
-### Error Handling
+1. **Initialization**: Fetch the list of static catalogs from STAC Index API (`https://www.stacindex.org/api/catalogs`)
+2. **Domain Grouping**: Group catalogs by domain to enable parallel processing while respecting rate limits
+3. **Parallel Execution**: Process multiple domains simultaneously with configurable concurrency
+4. **Recursive Traversal**: For each catalog:
+   - Fetch the catalog JSON from its URL
+   - Validate STAC structure using `stac-node-validator`
+   - Migrate to normalized format using `stac-js`
+   - Extract child links (catalogs and collections)
+   - Recursively follow catalog links up to `MAX_DEPTH` (default: 3)
+   - Process collection links to extract metadata
+5. **Link Following**: The crawler follows STAC link relations:
+   - `rel=child` - Navigate to child catalogs/collections
+   - `rel=item` - Skip (items are not processed, only collections)
+   - `rel=self` - Used to determine the source URL
 
-- **Database Errors**: Scheduler stops to prevent data corruption
-- **Crawl Errors**: Automatic retry with configurable delay (default: 2 hours)
-- **Deadlock Handling**: Automatic retry with exponential backoff for database deadlocks
-- **Time Window Violations**: Grace period allows crawler to finish current operations
-- **Connection Errors**: Detailed error logging with connection details
+#### STAC API Crawling
+
+1. **Initialization**: Fetch the list of STAC APIs from STAC Index API
+2. **Domain Grouping**: Same as static catalog crawling
+3. **API Discovery**: For each API:
+   - Fetch the API root endpoint
+   - Validate STAC API compliance
+   - Discover `/collections` endpoint from API conformance or links
+   - Try multiple endpoint variations if needed (`/collections`, `/search`, etc.)
+4. **Collection Enumeration**: 
+   - Fetch all collections from `/collections` endpoint
+   - Handle pagination if the API returns paged results
+   - Process each collection individually
+5. **Nested Catalog Support**: If a collection contains child catalog links, recursively crawl them (up to `MAX_DEPTH`)
+
+#### What Gets Stored
+
+The crawler stores the following data in PostgreSQL:
+
+**Collections** (main data):
+- **Core metadata**: `stac_id` (generated from slug + collection ID), `title`, `description`, `license`
+- **Spatial extent**: Bounding box (`bbox`) stored as PostGIS geometry
+- **Temporal extent**: Start and end dates
+- **STAC version**: Version of STAC specification used
+- **Source tracking**: `source_url` (original collection URL), `crawllog_catalog_id` (reference to source catalog)
+
+**Related data** (linked tables):
+- **Keywords**: Extracted from collection metadata, stored in `collection_keywords` with many-to-many relation
+- **STAC Extensions**: List of STAC extensions used (e.g., `eo`, `sat`, `proj`), stored in `collection_stac_extension`
+- **Providers**: Data providers with name, description, roles, and URL
+- **Assets**: Collection-level assets (thumbnails, documentation, etc.)
+- **Summaries**: Statistical summaries of collection properties 
+
+**Crawl tracking** (for pause/resume):
+- **`crawllog_catalog`**: Stores the catalog/API URLs and slugs for future re-crawling
+- **`crawllog_collection`**: Records which collection URLs have been processed and when
+
+**What is NOT stored**:
+- **Individual items**: The crawler only processes collections, not individual STAC items
+- **Catalog metadata**: Static catalogs are only used for traversal, not saved to the database
+- **Full link arrays**: Only essential links (self, root) are preserved
+
+#### Pause and Resume Functionality
+
+**How Pausing Works**:
+1. **Graceful Shutdown**: Press `Ctrl+C` once to trigger graceful shutdown
+2. **Batch Completion**: The crawler finishes the current batch of requests before stopping
+3. **Progress Saved**: All processed collections are saved to `crawllog_collection` with their source URLs
+4. **Safe Exit**: Database connections are properly closed
+
+**How Resuming Works**:
+1. **URL Lookup**: When restarting, the crawler queries `crawllog_collection` for already-processed URLs
+2. **Skip Logic**: URLs in the crawl log are skipped during traversal
+3. **Continue from Interruption**: Only new/unprocessed collections are fetched
+4. **Idempotent**: Running the crawler multiple times is safe - duplicates are handled via `ON CONFLICT` clauses
+
+**Force Stop**: Press `Ctrl+C` twice for immediate termination (may leave incomplete transactions)
+
+#### Auto-Recrawling
+
+The scheduler (`scheduler.js`) provides automated periodic crawling:
+
+1. **Interval-based**: Runs every `CRAWL_DAYS_INTERVAL` days (default: 7)
+2. **Time Window Enforcement**: Optional restriction to specific hours (e.g., night-time only)
+3. **Startup Behavior**: Configurable immediate run on startup (`CRAWL_RUN_ON_STARTUP`)
+4. **Error Recovery**: Automatic retry on crawl errors with configurable delay
+5. **Recrawl Strategy**: Full re-crawl of all catalogs/APIs - `ON CONFLICT` ensures updates rather than duplicates
+
+**Scheduling Logic**:
+```
+Startup → DB Check → Time Window Check → Run Crawler → Success?
+                                               ↓ Yes        ↓ No (crawl error)
+                                         Schedule Next   Wait RETRY_DELAY → Retry
+                                               ↓
+                                         Wait Until Next → Run Crawler
+```
+
+### Data Validation
+
+The crawler implements multi-layer validation to ensure data quality:
+
+#### 1. STAC Specification Validation
+
+**Library**: `stac-node-validator` (v2.0.0-rc.1)
+
+**What it validates**:
+- STAC JSON structure compliance with official STAC schemas
+- Required fields presence (id, type, stac_version, etc.)
+- Field types and formats
+- STAC extension schemas (e.g., EO, SAT, Projection)
+- Link relation requirements
+
+**When it runs**: Before processing any catalog or collection
+
+**Error handling**: 
+- Non-compliant structures are logged with detailed error messages
+- Collections with validation errors are skipped
+- Statistics track compliant vs. non-compliant items
+
+
+
+#### 2. STAC Migration Validation
+
+**Library**: `stac-js` (v0.1.9)
+
+**What it validates**:
+- Converts raw JSON to typed STAC objects
+- Validates object type (Collection, Catalog, Item)
+- Validates link structure and relationships
+- Extracts spatial/temporal extents using STAC-aware parsers
+- Resolves relative URLs to absolute URLs
+
+**When it runs**: After STAC spec validation passes
+
+**Error handling**:
+- Migration failures indicate malformed STAC structures
+- Failed migrations are logged and skipped
+- `stac-js` methods return null for invalid data (e.g., `getBoundingBox()`)
+
+
+
+#### 3. Custom Data Normalization
+
+**Module**: `utils/normalization.js`
+
+**What it normalizes**:
+- **Categories/Keywords**: Derives from multiple possible fields (categories, keywords, tags)
+- **Temporal extents**: Handles null values, open-ended intervals
+- **Bounding boxes**: Validates array structure, handles missing coordinates
+- **URLs**: Extracts self links, resolves relative paths
+- **Provider roles**: Normalizes role names (producer, processor, host, licensor)
+- **Fallback strategy**: Uses multiple fallback levels to extract data
+
+
+#### 4. URL and HTTP Validation
+
+**Validation checks**:
+- **URL format**: Ensures valid HTTP/HTTPS URLs before making requests
+- **Response status**: Checks for 200 OK status codes
+- **Content-Type**: Accepts JSON, GeoJSON, and some binary/text types
+- **Timeout enforcement**: Requests timeout after configured duration
+- **Retry logic**: Automatic retry with exponential backoff for failed requests
+
+**Rate limiting**:
+- Per-domain rate limits prevent overwhelming servers
+- Configurable requests per minute per domain
+- Crawler respects HTTP 429 (Too Many Requests) responses
+
+#### Validation Statistics
+
+The crawler tracks validation results:
+- `stacCompliant` - Collections passing STAC validation
+- `nonCompliant` - Collections failing STAC validation  
+- `collectionsSaved` - Successfully saved to database
+- `collectionsFailed` - Failed database insertion
+
+**Example output**:
+```
+Validation Results:
+  STAC Compliant:     450
+  Non-compliant:      12
+  Saved to DB:        448
+  Failed to save:     2
+```
 
 ## Troubleshooting
 
@@ -380,7 +699,7 @@ node scheduler.js
 
 Increase `CRAWL_DAYS_INTERVAL`:
 ```bash
-CRAWL_DAYS_INTERVAL=14  # Run every 2 weeks
+CRAWL_DAYS_INTERVAL=7  # Run every week
 ```
 
 ### Crawler Only Runs at Specific Times
