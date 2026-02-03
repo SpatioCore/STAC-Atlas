@@ -55,7 +55,7 @@ export default {
     license: 'Lizenz',
     allLicenses: 'Alle Lizenzen',
     
-    collectionStatus: 'Sammlungsstatus',
+    collectionStatus: 'Collection-Status',
     activeStatus: 'Aktivstatus',
     active: 'Aktiv',
     inactive: 'Inaktiv',
@@ -95,16 +95,16 @@ export default {
   // Search
   search: {
     title: 'Suchergebnisse',
-    collections: 'Sammlungen',
-    placeholder: 'Sammlungen nach Titel, Beschreibung, Schlüsselwörtern durchsuchen...',
+    collections: 'Collections',
+    placeholder: 'Collections nach Titel, Beschreibung, Schlüsselwörtern durchsuchen...',
     noResults: 'Keine Ergebnisse gefunden.',
     noResultsHint: 'Passen Sie Ihre Abfrage- oder Filterparameter an.',
-    loadingCollections: 'Sammlungen werden geladen...'
+    loadingCollections: 'Collections werden geladen...'
   },
 
   // Collection Card
   collectionCard: {
-    untitledCollection: 'Unbenannte Sammlung',
+    untitledCollection: 'Unbenannte Collection',
     noDescription: 'Keine Beschreibung verfügbar',
     unknownProvider: 'Unbekannter Anbieter',
     noPlatformData: 'Keine Plattformdaten',
@@ -114,7 +114,7 @@ export default {
 
   // Collection Detail
   collectionDetail: {
-    loading: 'Sammlungsdetails werden geladen...',
+    loading: 'Collection-Details werden geladen...',
     errorPrefix: 'Fehler:',
     
     // Sections
@@ -152,12 +152,12 @@ export default {
     },
     
     // Metadata labels
-    collectionId: 'Sammlungs-ID',
+    collectionId: 'Collection-ID',
     stacVersion: 'STAC-Version',
     keywords: 'Schlüsselwörter',
     
     // Default values
-    untitledCollection: 'Unbenannte Sammlung',
+    untitledCollection: 'Unbenannte Collection',
     unknownProvider: 'Unbekannter Anbieter',
     unknownLicense: 'Unbekannt',
     noDescription: 'Keine Beschreibung verfügbar'
