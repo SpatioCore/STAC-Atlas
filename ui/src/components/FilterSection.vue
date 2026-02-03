@@ -114,7 +114,7 @@
           />
         </div>
         <div class="filter-field">
-          <label class="filter-label" for="api-filter">API Status</label>
+          <label class="filter-label" for="api-filter">API</label>
           <CustomSelect
             id="api-filter"
             v-model="apiFilter"
@@ -310,7 +310,7 @@ const activeOptions = [
 
 const apiOptions = [
   { value: '', label: 'All' },
-  { value: 'true', label: 'API Enabled' },
-  { value: 'false', label: 'API Disabled' }
+  { value: 'true', label: 'Accessible via API' },
+  { value: 'false', label: 'Static Catalog' }
 ]
 </script>
