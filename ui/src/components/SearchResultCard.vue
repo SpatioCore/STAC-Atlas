@@ -56,19 +56,13 @@ const description = computed(() => props.collection.description || 'No descripti
 // Get provider from providers array
 const provider = computed(() => {
   const providers = props.collection.providers;
-  if (providers && providers.length > 0) {
-    return providers[0].name;
-  }
-  return 'Unknown Provider';
+  return providers?.[0]?.name ?? 'Unknown Provider';
 });
 
 // Get platform from keywords (first keyword)
 const platform = computed(() => {
   const keywords = props.collection.keywords;
-  if (keywords && keywords.length > 0) {
-    return keywords[0];
-  }
-  return 'No platform data';
+  return keywords?.[0] ?? 'No platform data';
 });
 
 // Convert keywords array for tags
@@ -87,8 +81,8 @@ const displayedTags = computed(() => {
   let totalLength = 0;
   let visibleTags: string[] = [];
   
-  for (let i = 0; i < tagList.value.length; i++) {
-    const tag = tagList.value[i];
+  for (const [i, tag] of tagList.value.entries()) {
+    if (!tag) continue;
     const tagLength = tag.length;
     
     // Check if adding this tag would exceed the limit
@@ -115,13 +109,10 @@ const remainingTagsCount = computed(() => {
 
 // Get source link from STAC links array
 const sourceLink = computed(() => {
-  const links = props.collection.links;
-  if (links) {
-    const selfLink = links.find(link => link.rel === 'self');
-    const rootLink = links.find(link => link.rel === 'root');
-    return selfLink?.href || rootLink?.href;
-  }
-  return null;
+  const links = props.collection.links || [];
+  const selfLink = links.find(link => link.rel === 'self');
+  const rootLink = links.find(link => link.rel === 'root');
+  return selfLink?.href ?? rootLink?.href ?? null;
 });
 
 const viewDetails = () => {
@@ -129,8 +120,9 @@ const viewDetails = () => {
 };
 
 const openSource = () => {
-  if (sourceLink.value) {
-    window.open(sourceLink.value, '_blank');
+  const link = sourceLink.value;
+  if (link) {
+    window.open(link, '_blank');
   }
 };
 </script>

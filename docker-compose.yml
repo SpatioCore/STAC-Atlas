@@ -4,9 +4,12 @@
 #TODO: add docker-compose files for UI and Crawler components
 
 networks:
-  stac_network:
+  stac-network:
     name: stac-network
-    driver: bridge
+    external: true
+
+volumes:
+  stac_data:
 
 services:
   db:

@@ -123,11 +123,12 @@ watch(() => props.isOpen, async (open) => {
     // Parse initial bbox if provided
     if (props.initialBbox) {
       const parts = props.initialBbox.split(',').map(Number)
-      if (parts.length === 4) {
-        minLon.value = parts[0]
-        minLat.value = parts[1]
-        maxLon.value = parts[2]
-        maxLat.value = parts[3]
+      if (parts.length === 4 && parts.every((value) => Number.isFinite(value))) {
+        const [parsedMinLon, parsedMinLat, parsedMaxLon, parsedMaxLat] = parts as [number, number, number, number]
+        minLon.value = parsedMinLon
+        minLat.value = parsedMinLat
+        maxLon.value = parsedMaxLon
+        maxLat.value = parsedMaxLat
       }
     }
     

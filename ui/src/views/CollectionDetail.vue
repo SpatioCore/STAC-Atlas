@@ -237,7 +237,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed, watch } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { Globe, ExternalLink, Building2 } from 'lucide-vue-next'
 import InfoCard from '@/components/InfoCard.vue'
@@ -250,7 +250,7 @@ import 'maplibre-gl/dist/maplibre-gl.css'
 const route = useRoute()
 const collectionId = computed(() => route.params.id as string)
 const mapContainer = ref<HTMLElement | null>(null)
-const map = ref<maplibregl.Map | null>(null)
+const map = ref<any>(null)
 const showContactModal = ref(false)
 const showSourceModal = ref(false)
 const showCopyToast = ref(false)
@@ -332,12 +332,12 @@ const collectionTitle = computed(() =>
 
 const provider = computed(() => {
   const providers = collection.value?.providers
-  return providers && providers.length > 0 ? providers[0].name : 'Unknown Provider'
+  return providers?.[0]?.name ?? 'Unknown Provider'
 })
 
 const platform = computed(() => {
   const keywords = collection.value?.keywords
-  return keywords && keywords.length > 0 ? keywords[0] : 'N/A'
+  return keywords?.[0] ?? 'N/A'
 })
 
 const license = computed(() => 
@@ -352,8 +352,9 @@ const coordinateSystem = computed(() => 'EPSG:4326')
 
 const bbox = computed(() => {
   const extent = collection.value?.extent?.spatial?.bbox
-  if (extent && extent.length > 0 && extent[0].length === 4) {
-    const [west, south, east, north] = extent[0]
+  const bboxEntry = extent?.[0]
+  if (bboxEntry && bboxEntry.length === 4) {
+    const [west, south, east, north] = bboxEntry as [number, number, number, number]
     return {
       west: west.toFixed(2),
       south: south.toFixed(2),
@@ -368,8 +369,9 @@ const infoCards = computed(() => {
   const cards = []
   
   const temporalExtent = collection.value?.extent?.temporal?.interval
-  if (temporalExtent && temporalExtent.length > 0) {
-    const [start, end] = temporalExtent[0]
+  const interval = temporalExtent?.[0]
+  if (interval && interval.length > 0) {
+    const [start, end] = interval
     if (start) {
       cards.push({
         icon: 'calendar',
@@ -587,41 +589,45 @@ const initializeMap = () => {
   if (!mapContainer.value || map.value) return
   
   const extent = collection.value?.extent?.spatial?.bbox
-  if (!extent || extent.length === 0 || extent[0].length !== 4) return
+  const bboxEntry = extent?.[0]
+  if (!bboxEntry || bboxEntry.length !== 4) return
   
-  const [west, south, east, north] = extent[0]
+  const [west, south, east, north] = bboxEntry as [number, number, number, number]
   
   // Create map
+  const mapStyle = {
+    version: 8,
+    sources: {
+      'osm': {
+        type: 'raster',
+        tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+        tileSize: 256,
+        attribution: '© OpenStreetMap contributors'
+      }
+    },
+    layers: [
+      {
+        id: 'osm',
+        type: 'raster',
+        source: 'osm'
+      }
+    ]
+  } as any
+
   map.value = new maplibregl.Map({
     container: mapContainer.value,
-    style: {
-      version: 8,
-      sources: {
-        'osm': {
-          type: 'raster',
-          tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
-          tileSize: 256,
-          attribution: '© OpenStreetMap contributors'
-        }
-      },
-      layers: [
-        {
-          id: 'osm',
-          type: 'raster',
-          source: 'osm'
-        }
-      ]
-    },
+    style: mapStyle,
     center: [(west + east) / 2, (south + north) / 2],
     zoom: 5
   })
   
   // Wait for map to load before adding bbox
-  map.value.on('load', () => {
-    if (!map.value) return
+  const mapInstance = map.value as any
+  mapInstance.on('load', () => {
+    if (!mapInstance) return
     
     // Add bounding box as a source
-    map.value.addSource('bbox', {
+    const bboxSource = {
       type: 'geojson',
       data: {
         type: 'Feature',
@@ -637,10 +643,11 @@ const initializeMap = () => {
           ]]
         }
       }
-    })
+    } as any
+    mapInstance.addSource('bbox', bboxSource)
     
     // Add bbox fill layer
-    map.value.addLayer({
+    mapInstance.addLayer({
       id: 'bbox-fill',
       type: 'fill',
       source: 'bbox',
@@ -651,7 +658,7 @@ const initializeMap = () => {
     })
     
     // Add bbox outline layer
-    map.value.addLayer({
+    mapInstance.addLayer({
       id: 'bbox-outline',
       type: 'line',
       source: 'bbox',
@@ -662,7 +669,8 @@ const initializeMap = () => {
     })
     
     // Fit map to bbox
-    map.value.fitBounds([west, south, east, north], {
+    const bounds = new maplibregl.LngLatBounds([west, south], [east, north])
+    mapInstance.fitBounds(bounds, {
       padding: 20
     })
   })
