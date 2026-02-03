@@ -884,19 +884,24 @@ const fetchItems = async (page: number = 1) => {
   
   const fetchedItems = await Promise.all(
     itemsToFetch.map(async (link) => {
+      // Resolve the URL - if it's relative and we have a source_url, resolve against it
+      let itemUrl = link.href
+      if (sourceUrl && !link.href.startsWith('http')) {
+        itemUrl = resolveUrl(sourceUrl, link.href)
+      }
+      
       try {
-        // Resolve the URL - if it's relative and we have a source_url, resolve against it
-        let itemUrl = link.href
-        if (sourceUrl && !link.href.startsWith('http')) {
-          itemUrl = resolveUrl(sourceUrl, link.href)
-        }
-        
         const response = await fetch(itemUrl)
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}`)
         }
         const itemData = await response.json()
-        return parseItemData(itemData)
+        const parsed = parseItemData(itemData)
+        // Use the resolved URL as selfUrl if the item doesn't have a self link
+        if (!parsed.selfUrl) {
+          parsed.selfUrl = itemUrl
+        }
+        return parsed
       } catch (error) {
         console.error(`Failed to fetch item from ${link.href}:`, error)
         // Extract item name from the href for display
@@ -904,7 +909,8 @@ const fetchItems = async (page: number = 1) => {
         return {
           id: filename,
           title: filename,
-          date: 'N/A'
+          date: 'N/A',
+          selfUrl: itemUrl
         }
       }
     })
@@ -1077,18 +1083,24 @@ const fetchItemsForPage = async (page: number) => {
   
   const fetchedItems = await Promise.all(
     itemsToFetch.map(async (link) => {
+      // Resolve the full URL for the item
+      let itemUrl = link.href
+      if (sourceUrl && !link.href.startsWith('http')) {
+        itemUrl = resolveUrl(sourceUrl, link.href)
+      }
+      
       try {
-        let itemUrl = link.href
-        if (sourceUrl && !link.href.startsWith('http')) {
-          itemUrl = resolveUrl(sourceUrl, link.href)
-        }
-        
         const response = await fetch(itemUrl)
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}`)
         }
         const itemData = await response.json()
-        return parseItemDataShared(itemData)
+        const parsed = parseItemDataShared(itemData)
+        // Use the resolved URL as selfUrl if the item doesn't have a self link
+        if (!parsed.selfUrl) {
+          parsed.selfUrl = itemUrl
+        }
+        return parsed
       } catch (error) {
         console.error(`Failed to fetch item from ${link.href}:`, error)
         const filename = link.href.split('/').pop()?.replace('.json', '') || 'Unknown'
@@ -1096,7 +1108,7 @@ const fetchItemsForPage = async (page: number) => {
           id: filename,
           title: filename,
           date: 'N/A',
-          selfUrl: link.href
+          selfUrl: itemUrl
         }
       }
     })
