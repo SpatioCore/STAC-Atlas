@@ -110,7 +110,7 @@
             id="active-filter"
             v-model="activeFilter"
             :options="activeOptions"
-            placeholder="Active"
+            placeholder="All"
           />
         </div>
         <div class="filter-field">
@@ -188,14 +188,7 @@ const {
   cql2Filter
 } = storeToRefs(filterStore)
 
-// Ensure activeFilter has the default value on mount
-onMounted(() => {
-  if (!activeFilter.value) {
-    activeFilter.value = 'true'
-  }
-})
-
-// Load providers and licenses from static file (auto-refreshes every 15 min)
+// Load providers and licenses from static file (auto-refreshes every 24 hours)
 const { queryables, providerOptions, licenseOptions, updateOptions } = useQueryables()
 
 // Update options when queryables data changes
@@ -304,6 +297,7 @@ const regionOptions = [
 
 // Active/API status filter options
 const activeOptions = [
+  { value: '', label: 'All' },
   { value: 'true', label: 'Active' },
   { value: 'false', label: 'Inactive' }
 ]

@@ -21,7 +21,7 @@ export const useFilterStore = defineStore('filters', () => {
   const endDate = ref('')
   const selectedProvider = ref('')
   const selectedLicense = ref('')
-  const activeFilter = ref<string>('true') // 'true', 'false' - default to active
+  const activeFilter = ref<string>('') // '', 'true', 'false' - default to all
   const apiFilter = ref<string>('') // '', 'true', 'false'
   const searchQuery = ref('')
   const cql2Filter = ref('')
