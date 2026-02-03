@@ -184,6 +184,7 @@
   display: flex;
   justify-content: start;
   padding: var(--spacing-sm) 0;
+  gap: var(--spacing-md);
   border-bottom: 1px solid var(--border);
 }
 
