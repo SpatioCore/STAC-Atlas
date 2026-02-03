@@ -189,7 +189,7 @@
       <!-- Right Section: Items -->
       <div class="collection-detail__right-section">
         <section class="items-section">
-          <h2 class="section-title">{{ t.collectionDetail.items }} ({{ items.length }}{{ totalItemCount > items.length ? ` ${t.common.of} ${totalItemCount}` : '' }})</h2>
+          <h2 class="section-title">{{ t.collectionDetail.items }} ({{ totalItemsCount }})</h2>
           <div v-if="itemsLoading" class="items-section__loading">
             <p>{{ t.collectionDetail.loadingItems }}</p>
           </div>
@@ -210,7 +210,7 @@
           <template v-else>
             <div class="items-section__list items-section__list--paginated">
               <ItemCard
-                v-for="item in paginatedItems"
+                v-for="item in items"
                 :key="item.id"
                 :title="item.title"
                 :id="item.id"
@@ -219,20 +219,74 @@
             </div>
             <div class="items-section__pagination">
               <button 
-                class="pagination-btn" 
+                class="pagination-btn arrow" 
+                @click="goToFirstPage" 
+                :disabled="currentPage === 1"
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="11 17 6 12 11 7"></polyline>
+                  <polyline points="18 17 13 12 18 7"></polyline>
+                </svg>
+              </button>
+              
+              <button 
+                class="pagination-btn arrow" 
                 @click="prevPage" 
                 :disabled="currentPage === 1"
               >
-                ‹
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="15 18 9 12 15 6"></polyline>
+                </svg>
               </button>
-              <span class="pagination-info">{{ currentPage }} / {{ totalPages }}</span>
+              
+              <button
+                v-for="page in visiblePages"
+                :key="page"
+                class="pagination-btn"
+                :class="{ active: page === currentPage }"
+                @click="goToPage(page)"
+              >
+                {{ page }}
+              </button>
+              
               <button 
-                class="pagination-btn" 
+                class="pagination-btn arrow" 
                 @click="nextPage" 
                 :disabled="currentPage === totalPages"
               >
-                ›
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
               </button>
+              
+              <button 
+                class="pagination-btn arrow" 
+                @click="goToLastPage" 
+                :disabled="currentPage === totalPages"
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="13 17 18 12 13 7"></polyline>
+                  <polyline points="6 17 11 12 6 7"></polyline>
+                </svg>
+              </button>
+              
+              <div class="pagination-jump">
+                <input
+                  v-model="pageInput"
+                  type="number"
+                  class="pagination-input"
+                  :min="1"
+                  :max="totalPages"
+                  :placeholder="String(currentPage)"
+                  @keyup.enter="goToInputPage"
+                />
+                <span class="pagination-of">/ {{ totalPages }}</span>
+                <button class="pagination-go-btn" @click="goToInputPage">{{ t.common.go }}</button>
+              </div>
+              
+              <span class="pagination-info">
+                ({{ items.length }} {{ t.common.total }})
+              </span>
             </div>
           </template>
         </section>
@@ -438,36 +492,54 @@ const metadata = computed(() => {
 const items = ref<Array<{ id: string; title: string; date: string }>>([])  
 const itemsLoading = ref(false)
 const currentPage = ref(1)
-const itemsPerPage = 6
+const itemsPerPage = 9
+const pageInput = ref('')
+const allItemLinks = ref<Array<{ rel: string; href: string; type?: string }>>([])
 
 // Pagination logic - use pagination if 13+ items, otherwise scroll
-const usePagination = computed(() => items.value.length >= 13)
-const totalPages = computed(() => Math.ceil(items.value.length / itemsPerPage))
-const paginatedItems = computed(() => {
-  if (!usePagination.value) return items.value
-  const start = (currentPage.value - 1) * itemsPerPage
-  return items.value.slice(start, start + itemsPerPage)
+const usePagination = computed(() => allItemLinks.value.length >= 13)
+const totalPages = computed(() => Math.ceil(allItemLinks.value.length / itemsPerPage))
+const totalItemsCount = computed(() => allItemLinks.value.length)
+
+// Calculate visible page numbers (show 5 pages at a time)
+const visiblePages = computed(() => {
+  const pages: number[] = []
+  const maxVisible = 5
+  let start = Math.max(1, currentPage.value - Math.floor(maxVisible / 2))
+  let end = Math.min(totalPages.value, start + maxVisible - 1)
+  
+  // Adjust start if we're near the end
+  if (end - start < maxVisible - 1) {
+    start = Math.max(1, end - maxVisible + 1)
+  }
+  
+  for (let i = start; i <= end; i++) {
+    pages.push(i)
+  }
+  
+  return pages
 })
 
-const goToPage = (page: number) => {
+const goToPage = async (page: number) => {
   if (page >= 1 && page <= totalPages.value) {
     currentPage.value = page
+    await fetchItemsForPage(page)
   }
 }
 
+const goToFirstPage = () => goToPage(1)
+const goToLastPage = () => goToPage(totalPages.value)
 const nextPage = () => goToPage(currentPage.value + 1)
 const prevPage = () => goToPage(currentPage.value - 1)
 
-// Compute total item count from source_links or links
-const totalItemCount = computed(() => {
-  const sourceLinks = collection.value?.source_links || []
-  const regularLinks = collection.value?.links || []
-  
-  const sourceItemCount = sourceLinks.filter(link => link.rel === 'item' || link.rel === 'items').length
-  if (sourceItemCount > 0) return sourceItemCount
-  
-  return regularLinks.filter(link => link.rel === 'item' || link.rel === 'items').length
-})
+// Handle page input jump
+const goToInputPage = () => {
+  const page = parseInt(pageInput.value, 10)
+  if (!isNaN(page) && page >= 1 && page <= totalPages.value) {
+    goToPage(page)
+    pageInput.value = ''
+  }
+}
 
 // Helper function to resolve relative URLs against a base URL
 const resolveUrl = (baseUrl: string, relativePath: string): string => {
@@ -489,7 +561,7 @@ const resolveUrl = (baseUrl: string, relativePath: string): string => {
   return resolvedBase + relativePath
 }
 
-const fetchItems = async () => {
+const fetchItems = async (page: number = 1) => {
   // Use source_links if available, otherwise fallback to links
   const sourceUrl = collection.value?.source_url
   const sourceLinks = collection.value?.source_links || []
@@ -503,6 +575,9 @@ const fetchItems = async () => {
     itemLinks = regularLinks.filter(link => link.rel === 'item' || link.rel === 'items')
   }
   
+  // Store all item links for pagination
+  allItemLinks.value = itemLinks
+  
   if (itemLinks.length === 0) {
     items.value = []
     return
@@ -510,8 +585,90 @@ const fetchItems = async () => {
   
   itemsLoading.value = true
   
-  // Fetch first 20 items to avoid too many requests
-  const itemsToFetch = itemLinks.slice(0, 20)
+  // Calculate which items to fetch for the current page
+  const start = (page - 1) * itemsPerPage
+  const end = start + itemsPerPage
+  const itemsToFetch = itemLinks.slice(start, end)
+  
+  const fetchedItems = await Promise.all(
+    itemsToFetch.map(async (link) => {
+      try {
+        // Resolve the URL - if it's relative and we have a source_url, resolve against it
+        let itemUrl = link.href
+        if (sourceUrl && !link.href.startsWith('http')) {
+          itemUrl = resolveUrl(sourceUrl, link.href)
+        }
+        
+        const response = await fetch(itemUrl)
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`)
+        }
+        const itemData = await response.json()
+        
+        const props = itemData.properties || {}
+        
+        // Get title
+        const title = props.title || itemData.id || 'Unknown'
+        
+        // Helper to format date nicely
+        const formatDate = (isoString: string): string => {
+          const date = new Date(isoString)
+          return date.toLocaleDateString('en-US', { 
+            year: 'numeric', 
+            month: 'short', 
+            day: 'numeric' 
+          })
+        }
+        
+        // Get date - try datetime first, then start_datetime/end_datetime
+        let dateStr = 'N/A'
+        if (props.datetime) {
+          dateStr = formatDate(props.datetime)
+        } else if (props.start_datetime) {
+          if (props.end_datetime) {
+            dateStr = `${formatDate(props.start_datetime)} – ${formatDate(props.end_datetime)}`
+          } else {
+            dateStr = formatDate(props.start_datetime)
+          }
+        }
+        
+        return {
+          id: itemData.id || 'Unknown',
+          title,
+          date: dateStr
+        }
+      } catch (error) {
+        console.error(`Failed to fetch item from ${link.href}:`, error)
+        // Extract item name from the href for display
+        const filename = link.href.split('/').pop()?.replace('.json', '') || 'Unknown'
+        return {
+          id: filename,
+          title: filename,
+          date: 'N/A'
+        }
+      }
+    })
+  )
+  
+  items.value = fetchedItems
+  itemsLoading.value = false
+}
+
+// Fetch items for a specific page (uses cached allItemLinks)
+const fetchItemsForPage = async (page: number) => {
+  const sourceUrl = collection.value?.source_url
+  
+  if (allItemLinks.value.length === 0) {
+    items.value = []
+    return
+  }
+  
+  itemsLoading.value = true
+  
+  // Calculate which items to fetch for the current page
+  const start = (page - 1) * itemsPerPage
+  const end = start + itemsPerPage
+  const itemsToFetch = allItemLinks.value.slice(start, end)
   
   const fetchedItems = await Promise.all(
     itemsToFetch.map(async (link) => {
