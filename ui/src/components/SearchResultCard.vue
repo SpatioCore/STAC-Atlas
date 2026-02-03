@@ -49,33 +49,31 @@ const props = defineProps<{
   collection: Collection;
 }>();
 
-// Extract data from collection (prefer top-level fields, fallback to full_json)
-const title = computed(() => props.collection.title || props.collection.full_json?.title || 'Untitled Collection');
-const description = computed(() => props.collection.description || props.collection.full_json?.description || 'No description available');
-// const license = computed(() => props.collection.license || props.collection.full_json?.license || 'Unknown');
+// Extract data from STAC-conformant collection (no more full_json wrapper)
+const title = computed(() => props.collection.title || 'Untitled Collection');
+const description = computed(() => props.collection.description || 'No description available');
 
-// Get provider from aggregated providers array (from relation tables) or fallback to full_json
+// Get provider from providers array
 const provider = computed(() => {
-  // First try top-level providers (aggregated from DB)
-  const providers = props.collection.providers || props.collection.full_json?.providers;
-  if (providers && providers.length > 0) {
+  const providers = props.collection.providers;
+  if (providers && providers.length > 0 && providers[0]) {
     return providers[0].name;
   }
   return 'Unknown Provider';
 });
 
-// Get platform from keywords (first keyword) - prefer aggregated keywords
+// Get platform from keywords (first keyword)
 const platform = computed(() => {
-  const keywords = props.collection.keywords || props.collection.full_json?.keywords;
+  const keywords = props.collection.keywords;
   if (keywords && keywords.length > 0) {
     return keywords[0];
   }
-  return 'No temporal data';
+  return 'No platform data';
 });
 
-// Convert keywords array for tags - prefer aggregated keywords from DB
+// Convert keywords array for tags
 const tagList = computed(() => {
-  return props.collection.keywords || props.collection.full_json?.keywords || [];
+  return props.collection.keywords || [];
 });
 
 // Smart tag limiting based on character count to fit in 2 rows
@@ -84,13 +82,14 @@ const MAX_CHAR_LENGTH = 100; // Total character budget for 2 rows
 const MORE_TAG_LENGTH = 10; // Reserve space for "+X more" tag
 
 const displayedTags = computed(() => {
-  if (tagList.value.length === 0) return [];
+  if (!tagList.value || tagList.value.length === 0) return [];
   
   let totalLength = 0;
   let visibleTags: string[] = [];
   
   for (let i = 0; i < tagList.value.length; i++) {
     const tag = tagList.value[i];
+    if (!tag) continue;
     const tagLength = tag.length;
     
     // Check if adding this tag would exceed the limit
@@ -115,9 +114,9 @@ const remainingTagsCount = computed(() => {
   return remaining > 0 ? remaining : 0;
 });
 
-// Get source link from full_json.links
+// Get source link from STAC links array
 const sourceLink = computed(() => {
-  const links = props.collection.full_json?.links;
+  const links = props.collection.links;
   if (links) {
     const selfLink = links.find(link => link.rel === 'self');
     const rootLink = links.find(link => link.rel === 'root');

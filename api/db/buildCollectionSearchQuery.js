@@ -9,7 +9,7 @@
  * The SELECT part focuses on the core STAC collection metadata, as described in the bid
  * and the database schema:
  * - id, stac_version, type, title, description, license
- * - spatial_extend, temporal_extend_start, temporal_extend_end
+ * - spatial_extent, temporal_extent_start, temporal_extent_end
  * - created_at, updated_at, is_api, is_active
  * - full_json (complete STAC Collection document as JSONB)
  *
@@ -36,7 +36,7 @@
  * @param {number[]|undefined} params.bbox
  *        Spatial filter as [minX, minY, maxX, maxY] in EPSG:4326.
  *        When present, the query adds:
- *        ST_Intersects(spatial_extend, ST_MakeEnvelope($x, $y, $z, $w, 4326))
+ *        ST_Intersects(spatial_extent, ST_MakeEnvelope($x, $y, $z, $w, 4326))
  *
  * @param {string|undefined} params.datetime
  *        Temporal filter in ISO8601:
@@ -44,7 +44,7 @@
  *        - closed interval: "2019-01-01/2021-12-31"
  *        - open start/end: "../2021-12-31" or "2019-01-01/.."
  *
- *        The collection is matched if its temporal_extend_start/temporal_extend_end
+ *        The collection is matched if its temporal_extent_start/temporal_extent_end
  *        overlap the requested interval.
  *
  * @param {{field: string, direction: 'ASC'|'DESC'}|undefined} params.sortby
@@ -66,6 +66,21 @@
  *
  * @param {string|undefined} params.license
  *        License identifier to filter collections by `collection.license`.
+ * 
+ * @param {boolean|undefined} params.active
+ *        Filter collections by active status (is_active column).
+ *        When true, only active collections are returned.
+ *        When false, only inactive collections are returned.
+ * 
+ * @param {boolean|undefined} params.api
+ *        Filter collections by API status (is_api column).
+ *        When true, only collections from APIs are returned.
+ *        When false, only collections from static catalogs are returned.
+ * 
+ * @param {{sql: string, values: any[]}|undefined} params.cqlFilter
+ *        Pre-parsed CQL2 filter SQL fragment and values.
+ *        The SQL fragment uses 1-based placeholders ($1, $2...) relative to its own values.
+ *        This function will re-index them to match the main query's parameter sequence.
  *
  * @returns {{ sql: string, values: any[] }}
  *          sql    – complete parameterized SQL string
@@ -80,9 +95,12 @@ function buildCollectionSearchQuery(params) {
     datetime,
     provider,
     license,
+    active,
+    api,
     sortby,
     limit,
-    token
+    token,
+    cqlFilter
   } = params;
 
   // Base SELECT columns. We may append a relevance `rank` column below when `q` is present.
@@ -97,15 +115,19 @@ function buildCollectionSearchQuery(params) {
   // distinguish collection columns from aggregated relation data (keywords, providers, etc.).
   let selectPart = `
     SELECT
-      c.id,
       c.stac_version,
-      c.type,
+      c.stac_id,
+      c.source_url,
       c.title,
       c.description,
       c.license,
-      c.spatial_extend,
-      c.temporal_extend_start,
-      c.temporal_extend_end,
+      c.spatial_extent,
+      ST_XMin(c.spatial_extent) AS minx,
+      ST_YMin(c.spatial_extent) AS miny,
+      ST_XMax(c.spatial_extent) AS maxx,
+      ST_YMax(c.spatial_extent) AS maxy,
+      c.temporal_extent_start,
+      c.temporal_extent_end,
       c.created_at,
       c.updated_at,
       c.is_api,
@@ -115,8 +137,7 @@ function buildCollectionSearchQuery(params) {
       ext.stac_extensions,
       prov.providers,
       a.assets,
-      s.summaries,
-      cl.last_crawled
+      s.summaries
   `;
 
   const where = [];
@@ -124,7 +145,7 @@ function buildCollectionSearchQuery(params) {
   let i = 1;
 
   if (id !== undefined && id !== null) {
-    where.push(`id = $${i}`);
+    where.push(`c.stac_id = $${i}`);
     values.push(id);
     i++;
   }
@@ -148,7 +169,7 @@ function buildCollectionSearchQuery(params) {
     const queryIndex = i; // remember index to reuse for rank and condition
 
     // Weighted combined tsvector expression (using alias 'c' for collection table)
-    const vectorExpr = `to_tsvector('simple', coalesce(c.title,'') || ' ' || coalesce(c.description,''))`;
+    const vectorExpr = `c.search_vector`;
 
     // Add rank to selected columns (ts_rank_cd => constant-duration ranking function)
     // The computed `rank` is available in the result rows and used for ordering
@@ -168,7 +189,7 @@ function buildCollectionSearchQuery(params) {
 
     where.push(`
       ST_Intersects(
-        c.spatial_extend, 
+        c.spatial_extent, 
         ST_MakeEnvelope($${i}, $${i + 1}, $${i + 2}, $${i + 3}, 4326)
       )
     `);
@@ -185,22 +206,22 @@ function buildCollectionSearchQuery(params) {
 
       if (start !== '..') {
         // Collection should run after start
-        where.push(`c.temporal_extend_end >= $${i}`);
+        where.push(`c.temporal_extent_end >= $${i}`);
         values.push(start);
         i++;
       }
 
       if (end !== '..') {
         // Collection should run before end
-        where.push(`c.temporal_extend_start <= $${i}`);
+        where.push(`c.temporal_extent_start <= $${i}`);
         values.push(end);
         i++;
       }
     } else {
       // single datetime: collections active at that time
       where.push(`
-        c.temporal_extend_start <= $${i}
-        AND c.temporal_extend_end >= $${i}
+        c.temporal_extent_start <= $${i}
+        AND c.temporal_extent_end >= $${i}
       `);
       values.push(datetime);
       i++;
@@ -224,6 +245,36 @@ function buildCollectionSearchQuery(params) {
     where.push(`c.license = $${i}`);
     values.push(license);
     i++;
+  }
+
+  // Active filter: filter by is_active status
+  if (active !== undefined && active !== null) {
+    where.push(`c.is_active = $${i}`);
+    values.push(active);
+    i++;
+  }
+
+  // API filter: filter by is_api status
+  if (api !== undefined && api !== null) {
+    where.push(`c.is_api = $${i}`);
+    values.push(api);
+    i++;
+  }
+
+  // CQL2 Filter
+  if (cqlFilter && cqlFilter.sql) {
+    // Re-index placeholders in cqlFilter.sql
+    // Current index is i.
+    // cqlFilter.sql has $1, $2...
+    // We need to replace $1 with $i, $2 with $(i+1)...
+    
+    const reindexedSql = cqlFilter.sql.replace(/\$(\d+)/g, (match, num) => {
+      return '$' + (parseInt(num) + i - 1);
+    });
+    
+    where.push(`(${reindexedSql})`);
+    values.push(...cqlFilter.values);
+    i += cqlFilter.values.length;
   }
 
   // Build final SQL from selectPart and add FROM clause with LATERAL JOINs.
@@ -284,11 +335,6 @@ function buildCollectionSearchQuery(params) {
         WHERE cs.collection_id = c.id
       ) s
     ) s ON TRUE
-    LEFT JOIN LATERAL (
-      SELECT MAX(clc.last_crawled) AS last_crawled
-      FROM crawllog_collection clc
-      WHERE clc.collection_id = c.id
-    ) cl ON TRUE
   `;
 
   if (where.length > 0) {
@@ -300,17 +346,17 @@ function buildCollectionSearchQuery(params) {
   //
   // Behaviour summary:
   // - `sortby` provided → use that (with 'c.' prefix for collection columns)
-  // - no `sortby` & `q` present → order by `rank DESC, c.id ASC` so higher relevance comes first
-  // - no `sortby` & no `q` → order by `c.id ASC` (legacy default)
+  // - no `sortby` & `q` present → order by `rank DESC, c.stac_id ASC` so higher relevance comes first
+  // - no `sortby` & no `q` → order by `c.stac_id ASC` (legacy default)
   //
   // Note: sortby.field is validated against a whitelist in the calling code; only collection
   // table columns are allowed for sorting (not aggregated fields like keywords/providers).
   if (sortby) {
     sql += ` ORDER BY c.${sortby.field} ${sortby.direction}`;
   } else if (q) {
-    sql += ` ORDER BY rank DESC, c.id ASC`;
+    sql += ` ORDER BY rank DESC, c.stac_id ASC`;
   } else {
-    sql += ` ORDER BY c.id ASC`;
+    sql += ` ORDER BY c.stac_id ASC`;
   }
 
   // Pagination (only add if limit is provided)

@@ -99,16 +99,16 @@ let map: maplibregl.Map | null = null
 let isDrawing = false
 let startPoint: { lng: number; lat: number } | null = null
 
-const minLon = ref<number | null>(null)
-const minLat = ref<number | null>(null)
-const maxLon = ref<number | null>(null)
-const maxLat = ref<number | null>(null)
+const minLon = ref<number | undefined>(undefined)
+const minLat = ref<number | undefined>(undefined)
+const maxLon = ref<number | undefined>(undefined)
+const maxLat = ref<number | undefined>(undefined)
 
 const isValidBbox = computed(() => {
-  return minLon.value !== null && 
-         minLat.value !== null && 
-         maxLon.value !== null && 
-         maxLat.value !== null &&
+  return minLon.value !== undefined && 
+         minLat.value !== undefined && 
+         maxLon.value !== undefined && 
+         maxLat.value !== undefined &&
          minLon.value >= -180 && minLon.value <= 180 &&
          maxLon.value >= -180 && maxLon.value <= 180 &&
          minLat.value >= -90 && minLat.value <= 90 &&
@@ -326,10 +326,10 @@ function destroyMap() {
 }
 
 function clearBbox() {
-  minLon.value = null
-  minLat.value = null
-  maxLon.value = null
-  maxLat.value = null
+  minLon.value = undefined
+  minLat.value = undefined
+  maxLon.value = undefined
+  maxLat.value = undefined
   updateBboxLayer()
 }
 

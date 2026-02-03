@@ -98,12 +98,16 @@
               </div>
               
               <div class="contact-wrapper">
-                <button @click="toggleContactModal">
-                  <User :size="16" />
-                  Contact
+                <button 
+                  @click="toggleContactModal"
+                  :disabled="providerInfo.length === 0"
+                  :class="{ 'button--disabled': providerInfo.length === 0 }"
+                >
+                  <Building2 :size="16" />
+                  Providers
                 </button>
                 
-                <!-- Contact Popover -->
+                <!-- Providers Popover -->
                 <div v-if="showContactModal" class="contact-popover">
                   <h3 class="popover-title">Provider Information</h3>
                   
@@ -146,6 +150,11 @@
             <div v-if="showCopyToast" class="copy-toast">
               {{ copyToastMessage }}
             </div>
+            
+            <!-- Copy Feedback Toast -->
+            <div v-if="showCopyToast" class="copy-toast">
+              {{ copyToastMessage }}
+            </div>
           </section>
         </div>
 
@@ -180,17 +189,52 @@
       <!-- Right Section: Items -->
       <div class="collection-detail__right-section">
         <section class="items-section">
-          <h2 class="section-title">Items ({{ items.length }})</h2>
-          <div class="items-section__list">
+          <h2 class="section-title">Items ({{ items.length }}{{ totalItemCount > items.length ? ` of ${totalItemCount}` : '' }})</h2>
+          <div v-if="itemsLoading" class="items-section__loading">
+            <p>Loading items from source...</p>
+          </div>
+          <div v-else-if="items.length === 0" class="items-section__empty">
+            <p>No items available</p>
+          </div>
+          <!-- Scrollable list for 12 or fewer items -->
+          <div v-else-if="!usePagination" class="items-section__list items-section__list--scrollable">
             <ItemCard
               v-for="item in items"
               :key="item.id"
+              :title="item.title"
               :id="item.id"
               :date="item.date"
-              :coverage="item.coverage"
-              :thumbnail="item.thumbnail"
             />
           </div>
+          <!-- Paginated list for 13+ items -->
+          <template v-else>
+            <div class="items-section__list items-section__list--paginated">
+              <ItemCard
+                v-for="item in paginatedItems"
+                :key="item.id"
+                :title="item.title"
+                :id="item.id"
+                :date="item.date"
+              />
+            </div>
+            <div class="items-section__pagination">
+              <button 
+                class="pagination-btn" 
+                @click="prevPage" 
+                :disabled="currentPage === 1"
+              >
+                ‹
+              </button>
+              <span class="pagination-info">{{ currentPage }} / {{ totalPages }}</span>
+              <button 
+                class="pagination-btn" 
+                @click="nextPage" 
+                :disabled="currentPage === totalPages"
+              >
+                ›
+              </button>
+            </div>
+          </template>
         </section>
       </div>
     </div>
@@ -200,7 +244,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import { Globe, ExternalLink, User } from 'lucide-vue-next'
+import { Globe, ExternalLink, Building2 } from 'lucide-vue-next'
 import InfoCard from '@/components/InfoCard.vue'
 import ItemCard from '@/components/ItemCard.vue'
 import { api } from '@/services/api'
@@ -232,7 +276,26 @@ const copyToClipboard = async (text: string) => {
 
 const copyToClipboardWithFeedback = async (text: string, event: Event) => {
   event.stopPropagation()
+  const button = (event.currentTarget as HTMLElement)
   const success = await copyToClipboard(text)
+  
+  if (success) {
+    // Change icon to checkmark
+    button.classList.add('copied')
+    button.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="20 6 9 17 4 12"></polyline>
+    </svg>`
+    
+    // Revert after 2 seconds
+    setTimeout(() => {
+      button.classList.remove('copied')
+      button.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+      </svg>`
+    }, 2000)
+  }
+  
   showToast(success ? 'Copied to clipboard!' : 'Failed to copy')
 }
 
@@ -267,35 +330,39 @@ const truncateUrl = (url: string, maxLength: number = 40) => {
   return url.substring(0, maxLength - 3) + '...'
 }
 
-// Computed properties from collection data
+// Computed properties from STAC-conformant collection data (no more full_json wrapper)
 const collectionTitle = computed(() => 
-  collection.value?.title || collection.value?.full_json?.title || 'Untitled Collection'
+  collection.value?.title || 'Untitled Collection'
 )
 
 const provider = computed(() => {
-  const providers = collection.value?.full_json?.providers
-  return providers && providers.length > 0 ? providers[0].name : 'Unknown Provider'
+  const providers = collection.value?.providers
+  return providers && providers.length > 0 && providers[0] ? providers[0].name : 'Unknown Provider'
 })
 
 const platform = computed(() => {
-  const keywords = collection.value?.full_json?.keywords
+  const keywords = collection.value?.keywords
   return keywords && keywords.length > 0 ? keywords[0] : 'N/A'
 })
 
 const license = computed(() => 
-  collection.value?.license || collection.value?.full_json?.license || 'Unknown'
+  collection.value?.license || 'Unknown'
 )
 
 const description = computed(() => 
-  collection.value?.description || collection.value?.full_json?.description || 'No description available'
+  collection.value?.description || 'No description available'
 )
 
 const coordinateSystem = computed(() => 'EPSG:4326')
 
 const bbox = computed(() => {
-  const extent = collection.value?.full_json?.extent?.spatial?.bbox
-  if (extent && extent.length > 0 && extent[0].length === 4) {
-    const [west, south, east, north] = extent[0]
+  const extent = collection.value?.extent?.spatial?.bbox
+  if (extent && extent.length > 0 && extent[0] && extent[0].length === 4) {
+    const bboxArray = extent[0]
+    const west = bboxArray[0] ?? 0
+    const south = bboxArray[1] ?? 0
+    const east = bboxArray[2] ?? 0
+    const north = bboxArray[3] ?? 0
     return {
       west: west.toFixed(2),
       south: south.toFixed(2),
@@ -307,11 +374,13 @@ const bbox = computed(() => {
 })
 
 const infoCards = computed(() => {
-  const cards = []
+  const cards: { icon: string; label: string; value: string }[] = []
   
-  const temporalExtent = collection.value?.full_json?.extent?.temporal?.interval
-  if (temporalExtent && temporalExtent.length > 0) {
-    const [start, end] = temporalExtent[0]
+  const temporalExtent = collection.value?.extent?.temporal?.interval
+  if (temporalExtent && temporalExtent.length > 0 && temporalExtent[0]) {
+    const interval = temporalExtent[0]
+    const start = interval[0]
+    const end = interval[1]
     if (start) {
       cards.push({
         icon: 'calendar',
@@ -328,96 +397,187 @@ const infoCards = computed(() => {
     }
   }
   
-  if (collection.value?.created_at) {
-    cards.push({
-      icon: 'clock',
-      label: 'Created',
-      value: new Date(collection.value.created_at).toLocaleDateString()
-    })
-  }
-  
-  if (collection.value?.updated_at) {
-    cards.push({
-      icon: 'clock',
-      label: 'Updated',
-      value: new Date(collection.value.updated_at).toLocaleDateString()
-    })
-  }
+  // Note: created_at/updated_at are not part of STAC spec, removed
   
   return cards
 })
 
 const metadata = computed(() => {
-  const meta = []
+  const meta: { label: string; value: string }[] = []
   
-  if (collection.value?.full_json?.id) {
-    meta.push({ label: 'Collection ID', value: collection.value.full_json.id })
+  if (collection.value?.id) {
+    meta.push({ label: 'Collection ID', value: collection.value.id })
   }
   
-  if (collection.value?.full_json?.stac_version) {
-    meta.push({ label: 'STAC Version', value: collection.value.full_json.stac_version })
+  if (collection.value?.stac_version) {
+    meta.push({ label: 'STAC Version', value: collection.value.stac_version })
   }
   
-  const keywords = collection.value?.full_json?.keywords
+  const keywords = collection.value?.keywords
   if (keywords && keywords.length > 0) {
     meta.push({ label: 'Keywords', value: keywords.join(', ') })
   }
   
-  const providers = collection.value?.full_json?.providers
+  const providers = collection.value?.providers
   if (providers && providers.length > 0) {
     meta.push({ 
       label: 'Providers', 
       value: providers.map(p => p.name).join(', ') 
     })
   }
+
+  if (collection.value?.license) {
+    meta.push({ label: 'License', value: collection.value.license })
+  }
   
   return meta
 })
 
-const items = ref<Array<{ id: string; date: string; coverage: string; thumbnail: string }>>([])
+const items = ref<Array<{ id: string; title: string; date: string }>>([])  
+const itemsLoading = ref(false)
+const currentPage = ref(1)
+const itemsPerPage = 6
+
+// Pagination logic - use pagination if 13+ items, otherwise scroll
+const usePagination = computed(() => items.value.length >= 13)
+const totalPages = computed(() => Math.ceil(items.value.length / itemsPerPage))
+const paginatedItems = computed(() => {
+  if (!usePagination.value) return items.value
+  const start = (currentPage.value - 1) * itemsPerPage
+  return items.value.slice(start, start + itemsPerPage)
+})
+
+const goToPage = (page: number) => {
+  if (page >= 1 && page <= totalPages.value) {
+    currentPage.value = page
+  }
+}
+
+const nextPage = () => goToPage(currentPage.value + 1)
+const prevPage = () => goToPage(currentPage.value - 1)
+
+// Compute total item count from source_links or links
+const totalItemCount = computed(() => {
+  const sourceLinks = collection.value?.source_links || []
+  const regularLinks = collection.value?.links || []
+  
+  const sourceItemCount = sourceLinks.filter(link => link.rel === 'item' || link.rel === 'items').length
+  if (sourceItemCount > 0) return sourceItemCount
+  
+  return regularLinks.filter(link => link.rel === 'item' || link.rel === 'items').length
+})
+
+// Helper function to resolve relative URLs against a base URL
+const resolveUrl = (baseUrl: string, relativePath: string): string => {
+  // Remove the filename from the base URL to get the directory
+  const baseDir = baseUrl.substring(0, baseUrl.lastIndexOf('/') + 1)
+  
+  // Handle relative paths starting with ./
+  if (relativePath.startsWith('./')) {
+    relativePath = relativePath.substring(2)
+  }
+  
+  // Handle parent directory references (..)
+  let resolvedBase = baseDir
+  while (relativePath.startsWith('../')) {
+    relativePath = relativePath.substring(3)
+    resolvedBase = resolvedBase.substring(0, resolvedBase.slice(0, -1).lastIndexOf('/') + 1)
+  }
+  
+  return resolvedBase + relativePath
+}
 
 const fetchItems = async () => {
-  const links = collection.value?.full_json?.links || []
-  const itemLinks = links.filter(link => link.rel === 'item')
+  // Use source_links if available, otherwise fallback to links
+  const sourceUrl = collection.value?.source_url
+  const sourceLinks = collection.value?.source_links || []
+  const regularLinks = collection.value?.links || []
   
-  // Fetch first 10 items to avoid too many requests
-  const itemsToFetch = itemLinks.slice(0, 10)
+  // Get item links from source_links (for AWS-hosted items) or regular links
+  let itemLinks = sourceLinks.filter(link => link.rel === 'item' || link.rel === 'items')
+  
+  // If no source_links items, fallback to regular links
+  if (itemLinks.length === 0) {
+    itemLinks = regularLinks.filter(link => link.rel === 'item' || link.rel === 'items')
+  }
+  
+  if (itemLinks.length === 0) {
+    items.value = []
+    return
+  }
+  
+  itemsLoading.value = true
+  
+  // Fetch first 20 items to avoid too many requests
+  const itemsToFetch = itemLinks.slice(0, 20)
   
   const fetchedItems = await Promise.all(
     itemsToFetch.map(async (link) => {
       try {
-        const response = await fetch(link.href)
+        // Resolve the URL - if it's relative and we have a source_url, resolve against it
+        let itemUrl = link.href
+        if (sourceUrl && !link.href.startsWith('http')) {
+          itemUrl = resolveUrl(sourceUrl, link.href)
+        }
+        
+        const response = await fetch(itemUrl)
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`)
+        }
         const itemData = await response.json()
+        
+        const props = itemData.properties || {}
+        
+        // Get title
+        const title = props.title || itemData.id || 'Unknown'
+        
+        // Helper to format date nicely
+        const formatDate = (isoString: string): string => {
+          const date = new Date(isoString)
+          return date.toLocaleDateString('en-US', { 
+            year: 'numeric', 
+            month: 'short', 
+            day: 'numeric' 
+          })
+        }
+        
+        // Get date - try datetime first, then start_datetime/end_datetime
+        let dateStr = 'N/A'
+        if (props.datetime) {
+          dateStr = formatDate(props.datetime)
+        } else if (props.start_datetime) {
+          if (props.end_datetime) {
+            dateStr = `${formatDate(props.start_datetime)} – ${formatDate(props.end_datetime)}`
+          } else {
+            dateStr = formatDate(props.start_datetime)
+          }
+        }
         
         return {
           id: itemData.id || 'Unknown',
-          date: itemData.properties?.datetime 
-            ? new Date(itemData.properties.datetime).toLocaleDateString()
-            : 'N/A',
-          coverage: itemData.properties?.gsd 
-            ? `${itemData.properties.gsd}m`
-            : 'N/A',
-          thumbnail: ''
+          title,
+          date: dateStr
         }
       } catch (error) {
         console.error(`Failed to fetch item from ${link.href}:`, error)
+        // Extract item name from the href for display
         const filename = link.href.split('/').pop()?.replace('.json', '') || 'Unknown'
         return {
           id: filename,
-          date: 'N/A',
-          coverage: 'N/A',
-          thumbnail: ''
+          title: filename,
+          date: 'N/A'
         }
       }
     })
   )
   
   items.value = fetchedItems
+  itemsLoading.value = false
 }
 
-// Provider information computed from full_json
+// Provider information computed from collection
 const providerInfo = computed(() => {
-  const providers = collection.value?.full_json?.providers || []
+  const providers = collection.value?.providers || []
   return providers.map(p => ({
     name: p.name || 'Unknown',
     roles: Array.isArray(p.roles) ? p.roles.join(', ') : (p.roles || ''),
@@ -426,9 +586,9 @@ const providerInfo = computed(() => {
   }))
 })
 
-// Source links computed from full_json
+// Source links computed from collection links
 const sourceLinks = computed(() => {
-  const links = collection.value?.full_json?.links || []
+  const links = collection.value?.links || []
   // Filter to show only relevant links (self, root, parent, license)
   const relevantRels = new Set(['self', 'root', 'parent', 'license'])
   return links.filter(link => relevantRels.has(link.rel))
@@ -437,10 +597,14 @@ const sourceLinks = computed(() => {
 const initializeMap = () => {
   if (!mapContainer.value || map.value) return
   
-  const extent = collection.value?.full_json?.extent?.spatial?.bbox
-  if (!extent || extent.length === 0 || extent[0].length !== 4) return
+  const extent = collection.value?.extent?.spatial?.bbox
+  if (!extent || extent.length === 0 || !extent[0] || extent[0].length !== 4) return
   
-  const [west, south, east, north] = extent[0]
+  const bboxArray = extent[0]
+  const west = bboxArray[0] ?? 0
+  const south = bboxArray[1] ?? 0
+  const east = bboxArray[2] ?? 0
+  const north = bboxArray[3] ?? 0
   
   // Create map
   map.value = new maplibregl.Map({
@@ -463,11 +627,12 @@ const initializeMap = () => {
         }
       ]
     },
-    center: [(west + east) / 2, (south + north) / 2],
+    center: [(west + east) / 2, (south + north) / 2] as [number, number],
     zoom: 5
   })
   
   // Wait for map to load before adding bbox
+  // @ts-expect-error - maplibre-gl types cause deep recursion
   map.value.on('load', () => {
     if (!map.value) return
     
@@ -475,10 +640,10 @@ const initializeMap = () => {
     map.value.addSource('bbox', {
       type: 'geojson',
       data: {
-        type: 'Feature',
+        type: 'Feature' as const,
         properties: {},
         geometry: {
-          type: 'Polygon',
+          type: 'Polygon' as const,
           coordinates: [[
             [west, north],
             [east, north],

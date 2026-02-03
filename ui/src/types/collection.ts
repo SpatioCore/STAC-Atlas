@@ -1,87 +1,82 @@
-// Full STAC Collection structure (from full_json)
-export interface STACCollection {
-  id: string
-  type: string
-  stac_version: string
-  stac_extensions?: string[]
+/**
+ * STAC-conformant Collection structure
+ * The API now returns fully STAC-conformant collections without full_json wrapper
+ * See: https://github.com/radiantearth/stac-spec/blob/master/collection-spec/collection-spec.md
+ */
+
+export interface STACLink {
+  rel: string
+  href: string
+  type?: string
   title?: string
-  description?: string
-  keywords?: string[]
-  license?: string
-  extent?: {
-    spatial?: {
-      bbox: number[][]
-    }
-    temporal?: {
-      interval: (string | null)[][]
-    }
-  }
-  links?: Array<{
-    rel: string
-    href: string
-    type?: string
-    title?: string
-  }>
-  providers?: Array<{
-    name: string
-    description?: string
-    roles?: string[]
-    url?: string
-  }>
-  summaries?: Record<string, unknown>
-  assets?: Record<string, unknown>
 }
 
-// API Collection response structure (database model)
-// Matches the SELECT columns from buildCollectionSearchQuery.js
-export interface Collection {
-  id: number
-  stac_version: string
-  type: string
-  title?: string
+export interface STACProvider {
+  name: string
   description?: string
-  license?: string
-  spatial_extend?: string // WKT format from PostGIS
-  temporal_extend_start?: string
-  temporal_extend_end?: string
-  created_at: string
-  updated_at: string
-  is_api: boolean
-  is_active: boolean
-  full_json: STACCollection
-  // Aggregated fields from relation tables
-  keywords?: string[]
+  roles?: string[]
+  url?: string
+}
+
+export interface STACExtent {
+  spatial: {
+    bbox: number[][]
+  }
+  temporal: {
+    interval: (string | null)[][]
+  }
+}
+
+// STAC-conformant Collection structure returned by the API
+export interface Collection {
+  // Required STAC fields
+  type: 'Collection'
+  id: string
+  stac_version: string
+  description: string
+  license: string
+  extent: STACExtent
+  links: STACLink[]
+
+  // Optional STAC fields
+  title?: string
   stac_extensions?: string[]
-  providers?: Array<{
-    name: string
-    description?: string
-    roles?: string[]
-    url?: string
-  }>
-  assets?: Record<string, unknown>
+  keywords?: string[]
+  providers?: STACProvider[]
   summaries?: Record<string, unknown>
-  last_crawled?: string
+  assets?: Record<string, unknown>
+
+  // Source links from original STAC catalog (items stored on AWS)
+  source_links?: STACLink[]
+  source_url?: string
+  source_id?: string
+
   // Full-text search rank (only present when q parameter is used)
   rank?: number
-  // Links added by the API
-  links?: Array<{
-    rel: string
-    href: string
-    type?: string
-  }>
 }
 
 export interface CollectionsResponse {
   type?: string // "FeatureCollection"
   collections: Collection[]
-  links: Array<{
-    rel: string
-    href: string
-    type?: string
-  }>
+  links: STACLink[]
   context?: {
     returned: number
     matched: number
     limit: number
   }
+}
+
+/**
+ * RFC 7807 Problem Details error response
+ * See: https://datatracker.ietf.org/doc/html/rfc7807
+ */
+export interface APIError {
+  type: string
+  title: string
+  status: number
+  detail: string
+  instance?: string
+  requestId?: string
+  code?: string // backwards compatibility
+  description?: string // alias for detail
 }

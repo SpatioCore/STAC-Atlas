@@ -1,7 +1,7 @@
 const { Pool } = require('pg');
 require('dotenv').config();
 
-// PostgreSQL/PostGIS database connection
+// PostgreSQL/PostGIS database connection:
 // Support both DATABASE_URL and individual environment variables
 let pool;
 
@@ -126,6 +126,21 @@ async function testConnection(retries = 3, delay = 2000) {
   return false;
 }
 
+// simple ping to check connicivity (used in health check)
+async function ping() {
+  let client;
+  try {
+    client = await pool.connect();
+    await client.query('BEGIN');
+    await client.query('ROLLBACK');
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, code: err.code, message: err.message };
+  } finally {
+    if (client) client.release(); // release client back to pool --> no leaks
+  }
+}
+
 // Get current pool statistics
 function getPoolStats() {
   return {
@@ -138,9 +153,9 @@ function getPoolStats() {
 // PostGIS: Bounding Box Query
 // @param {string} table - table name
 // @param {Array} bbox - [west, south, east, north]
-// @param {string} geomColumn - name of the geometry column (default: spatial_extend)
+// @param {string} geomColumn - name of the geometry column (default: spatial_extent)
 // @returns {Promise} query result
-async function queryByBBox(table, bbox, geomColumn = 'spatial_extend') {
+async function queryByBBox(table, bbox, geomColumn = 'spatial_extent') {
   const [west, south, east, north] = bbox;
   
   // validate bbox ranges
@@ -175,9 +190,9 @@ async function queryByBBox(table, bbox, geomColumn = 'spatial_extend') {
 // @param {string} table - table name
 // @param {Object} geojson - GeoJSON Geometry
 // @param {string} predicate - Spatial Predicate (intersects, contains, within)
-// @param {string} geomColumn - name of the geometry column (default: spatial_extend)
+// @param {string} geomColumn - name of the geometry column (default: spatial_extent)
 // @returns {Promise} query result
-async function queryByGeometry(table, geojson, predicate = 'intersects', geomColumn = 'spatial_extend') {
+async function queryByGeometry(table, geojson, predicate = 'intersects', geomColumn = 'spatial_extent') {
   // validate inputs
   if (!table || typeof table !== 'string') {
     throw new Error('Table name must be a non-empty string');
@@ -219,9 +234,9 @@ async function queryByGeometry(table, geojson, predicate = 'intersects', geomCol
 // @param {string} table - table name
 // @param {Array} point - [lon, lat]
 // @param {number} distance - distance in meters
-// @param {string} geomColumn - name of the geometry column (default: spatial_extend)
+// @param {string} geomColumn - name of the geometry column (default: spatial_extent)
 // @returns {Promise} query result
-async function queryByDistance(table, point, distance, geomColumn = 'spatial_extend') {
+async function queryByDistance(table, point, distance, geomColumn = 'spatial_extent') {
   const [lon, lat] = point;
   
   // Use geometry type with ST_Centroid to avoid antipodal edge errors
@@ -260,6 +275,7 @@ module.exports = {
   testConnection,
   closePool,
   getPoolStats,
+  ping,
 
   // PostGIS functions
   queryByBBox,

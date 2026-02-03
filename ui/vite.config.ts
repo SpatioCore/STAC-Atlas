@@ -9,5 +9,11 @@ export default defineConfig({
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url))
     }
+  },
+  server: {
+    watch: {
+      usePolling: true, // Required for Docker on Windows/OneDrive
+      interval: 1000
+    }
   }
 })

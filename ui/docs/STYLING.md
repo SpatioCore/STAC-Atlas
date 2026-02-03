@@ -6,7 +6,7 @@ The project uses a structured CSS system with custom properties for consistency.
 
 ### File Structure
 
-```
+```text
 src/assets/styles/
 ├── base/
 │   ├── reset.css       # CSS reset
@@ -131,7 +131,7 @@ Use kebab-case for CSS filenames matching the component name.
 }
 ```
 
-2. **Import in `main.css`:**
+1. **Import in `main.css`:**
 
 ```css
 /* src/assets/styles/main.css */
@@ -145,7 +145,7 @@ Use kebab-case for CSS filenames matching the component name.
 @import './components/card.css';
 ```
 
-3. **Use classes in component:**
+1. **Use classes in component:**
 
 ```vue
 <!-- src/components/Button.vue -->
@@ -236,11 +236,13 @@ Global utilities in `base/base.css`:
 ```
 
 Add more utilities as needed in `base.css`.
+
 ## Examples
 
 ### Card Component
 
 **Component:** `src/components/Card.vue`
+
 ```vue
 <template>
   <div class="card">
@@ -258,6 +260,7 @@ defineProps<{
 ```
 
 **Styles:** `src/assets/styles/components/card.css`
+
 ```css
 .card {
   background: var(--card);
@@ -287,6 +290,7 @@ defineProps<{
 ```
 
 **Import:** Add to `src/assets/styles/main.css`
+
 ```css
 @import './components/card.css';
 ```
@@ -294,6 +298,7 @@ defineProps<{
 ### Button with Variants
 
 **Component:** `src/components/Button.vue`
+
 ```vue
 <template>
   <button 
@@ -312,6 +317,7 @@ defineProps<{
 ```
 
 **Styles:** `src/assets/styles/components/button.css`
+
 ```css
 .btn {
   padding: var(--spacing-sm) var(--spacing-lg);
@@ -342,6 +348,7 @@ defineProps<{
 ```
 
 **Import:** Add to `src/assets/styles/main.css`
+
 ```css
 @import './components/button.css';
 ```
@@ -349,6 +356,7 @@ defineProps<{
 ### SearchBar Component
 
 **Component:** `src/components/SearchBar.vue`
+
 ```vue
 <template>
   <div class="search-bar">
@@ -377,6 +385,7 @@ defineEmits<{
 ```
 
 **Styles:** `src/assets/styles/components/search-bar.css`
+
 ```css
 .search-bar {
   display: flex;
@@ -418,6 +427,7 @@ defineEmits<{
 ```
 
 **Import:** Add to `src/assets/styles/main.css`
+
 ```css
 @import './components/search-bar.css';
 ```

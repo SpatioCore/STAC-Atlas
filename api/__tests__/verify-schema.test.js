@@ -43,7 +43,7 @@ describe('Database Schema Verification', () => {
       ['title', 'text'],
       ['description', 'text'],
       ['license', 'text'],
-      ['spatial_extend', 'USER-DEFINED'],
+      ['spatial_extent', 'USER-DEFINED'],
       ['full_json', 'jsonb'],
       ['is_active', 'boolean'],
       ['is_api', 'boolean']
@@ -59,16 +59,16 @@ describe('Database Schema Verification', () => {
       expect(parseInt(stat.total_rows)).toBeGreaterThanOrEqual(0);
       
       // If table has data, check that non-spatial columns have data
-      if (parseInt(stat.total_rows) > 0 && colName !== 'spatial_extend') {
+      if (parseInt(stat.total_rows) > 0 && colName !== 'spatial_extent') {
         expect(parseInt(stat.non_null_count)).toBeGreaterThan(0);
       }
     });
 
-    test('should have valid geometry type in spatial_extend if data exists', async () => {
+    test('should have valid geometry type in spatial_extent if data exists', async () => {
       const geomType = await query(`
-        SELECT ST_GeometryType(spatial_extend) as geom_type 
+        SELECT ST_GeometryType(spatial_extent) as geom_type 
         FROM collection 
-        WHERE spatial_extend IS NOT NULL 
+        WHERE spatial_extent IS NOT NULL 
         LIMIT 1
       `);
       
@@ -136,81 +136,6 @@ describe('Database Schema Verification', () => {
       expect(count).toBeGreaterThanOrEqual(0);
     });
   });
-
-  describe('Catalog Table Structure', () => {
-    let tableInfo;
-
-    beforeAll(async () => {
-      tableInfo = await query(`
-        SELECT 
-          column_name, 
-          data_type, 
-          is_nullable,
-          column_default
-        FROM information_schema.columns
-        WHERE table_name = 'catalog'
-        ORDER BY ordinal_position
-      `);
-    });
-
-    test('should have table structure', () => {
-      expect(tableInfo.rowCount).toBeGreaterThan(0);
-    });
-
-    test('should have at least 7 columns', () => {
-      expect(tableInfo.rowCount).toBeGreaterThanOrEqual(7);
-    });
-  });
-
-  describe('Catalog Table - Column Data Integrity', () => {
-    test.each([
-      ['id', 'integer'],
-      // ['stac_id', 'text'], // Column does not exist in database
-      ['stac_version', 'text'],
-      ['type', 'text'],
-      ['description', 'text']
-    ])('column %s should exist with type %s', async (colName, expectedType) => {
-      const stats = await query(`
-        SELECT 
-          COUNT(*) as total_rows,
-          COUNT(${colName}) as non_null_count
-        FROM catalog
-      `);
-      
-      const stat = stats.rows[0];
-      expect(parseInt(stat.total_rows)).toBeGreaterThanOrEqual(0);
-      
-      // If table has data, check that columns have data
-      if (parseInt(stat.total_rows) > 0) {
-        expect(parseInt(stat.non_null_count)).toBeGreaterThan(0);
-      }
-    });
-
-    test('should have valid timestamps if data exists', async () => {
-      const sample = await query(`
-        SELECT created_at, updated_at
-        FROM catalog 
-        LIMIT 1
-      `);
-      
-      // Only check timestamps if there is data
-      if (sample.rows.length > 0) {
-        expect(sample.rows[0].created_at).toBeInstanceOf(Date);
-        expect(sample.rows[0].updated_at).toBeInstanceOf(Date);
-      } else {
-        expect(sample.rows.length).toBe(0); // Pass if no data
-      }
-    });
-  });
-
-  describe('Catalog Table - Overall Statistics', () => {
-    test('should be queryable (may be empty)', async () => {
-      const countResult = await query(`SELECT COUNT(*) as count FROM catalog`);
-      const count = parseInt(countResult.rows[0].count);
-      
-      expect(count).toBeGreaterThanOrEqual(0);
-    });
-  });
 });
 
 // Legacy function for backwards compatibility (not used in tests)
@@ -265,7 +190,7 @@ async function verifyTableSchema(tableName, displayName) {
           console.log(`  └─ ${stat.non_null_count}/${stat.total_rows} rows (${percentNonNull}% filled)`);
           
           // Sample a value to verify data format
-          if (colName !== 'spatial_extend') { // Skip geometry for display
+          if (colName !== 'spatial_extent') { // Skip geometry for display
             const sample = await query(`
               SELECT ${colName} 
               FROM ${tableName}

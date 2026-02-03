@@ -75,6 +75,7 @@
   border-right: 1px solid var(--border);
   height: calc(100vh - var(--navbar-height));
   max-height: calc(100vh - var(--navbar-height));
+  overflow-y: scroll;
 }
 
 /* Top Row - Overview and BBox side by side */
@@ -94,7 +95,7 @@
 /* Bottom Row - Metadata and Info Cards side by side */
 .collection-detail__bottom-row {
   display: grid;
-  grid-template-columns: 1fr 450px;
+  grid-template-columns: 1fr 2fr;
   gap: var(--spacing-md);
   align-items: start;
 }
@@ -109,6 +110,7 @@
 .collection-detail__right-section {
   display: flex;
   flex-direction: column;
+  height: 100%;
   max-height: calc(100vh - var(--navbar-height));
 }
 
@@ -156,12 +158,14 @@
 /* Info Cards Section */
 .info-cards-section {
   background-color: transparent;
-
+  height: 100%;
 }
 
 .info-cards-section__grid {
   display: flex;
   flex-direction: column;
+  height: 100%;
+  justify-content: start;
   gap: var(--spacing-sm);
 }
 
@@ -178,7 +182,7 @@
 
 .metadata-item {
   display: flex;
-  justify-content: space-between;
+  justify-content: start;
   padding: var(--spacing-sm) 0;
   border-bottom: 1px solid var(--border);
 }
@@ -280,8 +284,71 @@
   flex-direction: column;
   padding: var(--spacing-md);
   gap: var(--spacing-md);
+}
+
+.items-section__list--scrollable {
   overflow-y: auto;
   flex: 1;
+}
+
+.items-section__list--paginated {
+  overflow: hidden;
+  flex: 1;
+}
+
+.items-section__loading,
+.items-section__empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  padding: var(--spacing-lg);
+  color: var(--muted-fg);
+  font-size: var(--font-size-sm);
+}
+
+.items-section__pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
+  border-top: 1px solid var(--border);
+}
+
+.pagination-btn {
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  border-radius: var(--radius-sm);
+  background-color: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.pagination-btn:hover:not(:disabled) {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.pagination-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.pagination-info {
+  font-size: var(--font-size-sm);
+  color: var(--muted-fg);
+  min-width: 60px;
+  text-align: center;
 }
 
 /* Contact Popover Styles */
@@ -357,6 +424,10 @@
 .copy-btn:hover {
   color: var(--text);
   box-shadow: none;
+}
+
+.copy-btn.copied {
+  color: var(--primary);
 }
 
 /* Source Wrapper and Popover */

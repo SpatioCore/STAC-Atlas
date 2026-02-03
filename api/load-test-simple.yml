@@ -1,0 +1,82 @@
+config:
+  target: "http://localhost:3000"
+  timeout: 60
+  phases:
+    # Warm-up phase
+    - duration: 10
+      arrivalRate: 1
+      name: "Warm-up"
+    # Ramp-up phase
+    - duration: 30
+      arrivalRate: 2
+      rampTo: 5
+      name: "Ramp-up load"
+    # Sustained load
+    - duration: 30
+      arrivalRate: 5
+      name: "Sustained load"
+    # Peak load
+    - duration: 10
+      arrivalRate: 10
+      name: "Peak load"
+    # Cool-down
+    - duration: 10
+      arrivalRate: 2
+      name: "Cool-down"
+  processor: "./load-test-processor.js"
+
+scenarios:
+  - name: "Simple API requests"
+    weight: 100
+    flow:
+      # Landing page
+      - get:
+          url: "/"
+          
+      # Conformance
+      - get:
+          url: "/conformance"
+          
+      # All collections without filters
+      - get:
+          url: "/collections"
+          
+      # Collections with limit
+      - get:
+          url: "/collections?limit={{ $randomNumber(5, 50) }}"
+          
+      # Simple text search
+      - get:
+          url: "/collections?q={{ $randomPick('sentinel', 'landsat', 'climate', 'vegetation') }}"
+          
+      # Filter by license
+      - get:
+          url: "/collections?license={{ $randomPick('CC-BY-4.0', 'MIT', 'CC0-1.0') }}"
+          
+      # Filter by active status
+      - get:
+          url: "/collections?active={{ $randomPick('true', 'false') }}"
+          
+      # Filter by API availability
+      - get:
+          url: "/collections?api={{ $randomPick('true', 'false') }}"
+          
+      # Sorting by different fields
+      - get:
+          url: "/collections?sortby={{ $randomPick('title', '-title', 'license', '-license', 'created', '-created') }}&limit=20"
+          
+      # Pagination
+      - get:
+          url: "/collections?limit=10&token={{ $randomNumber(0, 100) }}"
+          
+      # Combined simple filters
+      - get:
+          url: "/collections?q=data&active=true&limit=20"
+          
+      # Text search with sorting
+      - get:
+          url: "/collections?q={{ $randomPick('earth', 'satellite', 'weather') }}&sortby=-created&limit=15"
+          
+      # Queryables endpoint
+      - get:
+          url: "/collections-queryables"

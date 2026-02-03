@@ -1,0 +1,82 @@
+config:
+  target: "http://localhost:3000"
+  timeout: 180
+  phases:
+    # Warm-up phase
+    - duration: 10
+      arrivalRate: 1
+      name: "Warm-up"
+    # Ramp-up phase
+    - duration: 30
+      arrivalRate: 2
+      rampTo: 3
+      name: "Ramp-up load"
+    # Sustained load
+    - duration: 30
+      arrivalRate: 3
+      name: "Sustained load"
+    # Peak load
+    - duration: 10
+      arrivalRate: 5
+      name: "Peak load"
+    # Cool-down
+    - duration: 10
+      arrivalRate: 1
+      name: "Cool-down"
+  processor: "./load-test-processor.js"
+
+scenarios:
+  - name: "Complex API requests"
+    weight: 100
+    flow:
+      # Complex CQL2-Text: Multiple conditions with AND/OR
+      - get:
+          url: "/collections?filter=license='CC-BY-4.0' AND id>10&limit=20"
+          
+      # Complex CQL2-Text: IN operator with multiple values
+      - get:
+          url: "/collections?filter=title IN ('Sentinel-2 L2A','CHELSA Climatologies','Landsat')&limit=15"
+          
+      # Complex CQL2-Text: Combined license filter with OR
+      - get:
+          url: "/collections?filter=license='CC-BY-4.0' OR license='MIT' OR license='CC0-1.0'&limit=25"
+          
+      # Spatial filter: Bounding box (Münster region)
+      - get:
+          url: "/collections?bbox=7.5,51.8,7.8,52.0&limit=30"
+          
+      # Spatial filter: Large bounding box (Central Europe)
+      - get:
+          url: "/collections?bbox=5,47,15,55&limit=40"
+          
+      # CQL2-JSON: Spatial intersection with polygon
+      - get:
+          url: "/collections?filter-lang=cql2-json&filter=%7B%22op%22%3A%22s_intersects%22%2C%22args%22%3A%5B%7B%22property%22%3A%22spatial_extent%22%7D%2C%7B%22type%22%3A%22Polygon%22%2C%22coordinates%22%3A%5B%5B%5B7%2C51%5D%2C%5B8%2C51%5D%2C%5B8%2C52%5D%2C%5B7%2C52%5D%2C%5B7%2C51%5D%5D%5D%7D%5D%7D&limit=20"
+          
+      # CQL2-JSON: Temporal intersection
+      - get:
+          url: "/collections?filter-lang=cql2-json&filter=%7B%22op%22%3A%22t_intersects%22%2C%22args%22%3A%5B%7B%22property%22%3A%22datetime%22%7D%2C%7B%22interval%22%3A%5B%222020-01-01%22%2C%222025-12-31%22%5D%7D%5D%7D&limit=20"
+          
+      # CQL2-JSON: Combined spatial and temporal filter
+      - get:
+          url: "/collections?filter-lang=cql2-json&filter=%7B%22op%22%3A%22and%22%2C%22args%22%3A%5B%7B%22op%22%3A%22s_intersects%22%2C%22args%22%3A%5B%7B%22property%22%3A%22spatial_extent%22%7D%2C%7B%22type%22%3A%22Polygon%22%2C%22coordinates%22%3A%5B%5B%5B7%2C51%5D%2C%5B8%2C51%5D%2C%5B8%2C52%5D%2C%5B7%2C52%5D%2C%5B7%2C51%5D%5D%5D%7D%5D%7D%2C%7B%22op%22%3A%22t_intersects%22%2C%22args%22%3A%5B%7B%22property%22%3A%22datetime%22%7D%2C%7B%22interval%22%3A%5B%222020-01-01%22%2C%222025-12-31%22%5D%7D%5D%7D%5D%7D&limit=20"
+          
+      # Complex filter with bbox and multiple query parameters
+      - get:
+          url: "/collections?bbox=7.5,51.8,7.8,52.0&active=true&api=true&q=satellite&sortby=-created&limit=20"
+          
+      # CQL2-Text with complex nested conditions
+      - get:
+          url: "/collections?filter=(license='CC-BY-4.0' OR license='MIT') AND id>5 AND id<100&sortby=title&limit=25"
+          
+      # Full-text search with spatial filter
+      - get:
+          url: "/collections?q=climate&bbox=5,47,15,55&sortby=-created&limit=30"
+          
+      # Complex CQL2-JSON: Multiple spatial intersections with OR
+      - get:
+          url: "/collections?filter-lang=cql2-json&filter=%7B%22op%22%3A%22or%22%2C%22args%22%3A%5B%7B%22op%22%3A%22s_intersects%22%2C%22args%22%3A%5B%7B%22property%22%3A%22spatial_extent%22%7D%2C%7B%22type%22%3A%22Polygon%22%2C%22coordinates%22%3A%5B%5B%5B7%2C51%5D%2C%5B8%2C51%5D%2C%5B8%2C52%5D%2C%5B7%2C52%5D%2C%5B7%2C51%5D%5D%5D%7D%5D%7D%2C%7B%22op%22%3A%22s_intersects%22%2C%22args%22%3A%5B%7B%22property%22%3A%22spatial_extent%22%7D%2C%7B%22type%22%3A%22Polygon%22%2C%22coordinates%22%3A%5B%5B%5B9%2C50%5D%2C%5B10%2C50%5D%2C%5B10%2C51%5D%2C%5B9%2C51%5D%2C%5B9%2C50%5D%5D%5D%7D%5D%7D%5D%7D&limit=20"
+          
+      # Maximum complexity: Combined filters with all features
+      - get:
+          url: "/collections?q=earth observation&bbox=5,47,15,55&active=true&api=true&license=CC-BY-4.0&sortby=-created&limit=50&token=10"

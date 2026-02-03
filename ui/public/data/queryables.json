@@ -1,0 +1,26 @@
+{
+  "providers": [
+    "Agroscope",
+    "Deltares",
+    "ESA",
+    "Federal Office for Civil Protection - FOCP",
+    "Federal Office for Civil Protection FOCP",
+    "Federal Office for Defence Procurement armasuisse",
+    "Federal Office for Spatial Development - ARE",
+    "Federal Office for the Environment - FOEN",
+    "Federal Roads Office - FEDRO",
+    "Microsoft",
+    "Planet Labs",
+    "Salo Sciences"
+  ],
+  "licenses": [
+    "CC-0",
+    "CC-BY",
+    "CC-BY-4.0",
+    "CC-BY-NC-4.0",
+    "CC-BY-SA-4.0",
+    "Other (Non-Commercial)",
+    "proprietary"
+  ],
+  "lastUpdated": "2026-01-21T09:14:32.022Z"
+}

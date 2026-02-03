@@ -73,7 +73,7 @@
 
 .pagination-info {
   min-width: 150px;
-  margin-left: var(--spacing-md);
+  margin-left: var(--spacing-sm);
   font-size: var(--font-size-sm, 13px);
   color: var(--muted-fg, #666);
 }

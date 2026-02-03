@@ -3,8 +3,11 @@ module.exports = {
   coverageDirectory: 'coverage',
   collectCoverageFrom: [
     'routes/**/*.js',
-    'controllers/**/*.js',
-    'services/**/*.js',
+    'middleware/**/*.js',
+    'utils/**/*.js',
+    'config/**/*.js',
+    'db/**/*.js',
+    'validators/**/*.js',
     '!node_modules/**'
   ],
   testMatch: ['**/__tests__/**/*.js', '**/?(*.)+(spec|test).js'],

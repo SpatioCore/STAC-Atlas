@@ -71,28 +71,28 @@ describe('STAC API Core Endpoints', () => {
   });
 
   describe('GET /collections', () => {
-    it('should return a FeatureCollection structure', async () => {
+      it('should return a STAC Collections response', async () => {
       const response = await request(app).get('/collections').expect(200);
 
-      expect(response.body).toHaveProperty('type', 'FeatureCollection');
       expect(response.body).toHaveProperty('collections');
       expect(response.body).toHaveProperty('links');
-      expect(response.body).toHaveProperty('context');
       expect(Array.isArray(response.body.collections)).toBe(true);
+      expect(Array.isArray(response.body.links)).toBe(true);
     });
 
-    it('should include pagination context', async () => {
+      it('should include required link relations', async () => {
       const response = await request(app).get('/collections').expect(200);
-
-      expect(response.body.context).toHaveProperty('returned');
-      expect(response.body.context).toHaveProperty('limit');
-      expect(response.body.context).toHaveProperty('matched');
+      const rels = response.body.links.map(l => l.rel);
+        
+      expect(rels).toContain('self');
+      expect(rels).toContain('root');
+      expect(rels).toContain('parent');
     });
-  });
+    });
 
-  describe('GET /queryables', () => {
+  describe('GET /collections-queryables', () => {
     it('should return queryables schema', async () => {
-      const response = await request(app).get('/queryables').expect(200);
+      const response = await request(app).get('/collections-queryables').expect(200);
 
       expect(response.body).toHaveProperty('$schema');
       expect(response.body).toHaveProperty('type', 'object');
@@ -100,7 +100,7 @@ describe('STAC API Core Endpoints', () => {
     });
 
     it('should include standard STAC queryable fields', async () => {
-      const response = await request(app).get('/queryables').expect(200);
+      const response = await request(app).get('/collections-queryables').expect(200);
 
       const properties = response.body.properties;
       expect(properties).toHaveProperty('id');

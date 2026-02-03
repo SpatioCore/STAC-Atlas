@@ -98,6 +98,52 @@
           />
         </div>
       </div>
+
+      <div class="filter-group">
+        <h3 class="filter-title">
+          <Settings class="filter-icon" :size="20" />
+          Collection Status
+        </h3>
+        <div class="filter-field">
+          <label class="filter-label" for="active-filter">Active Status</label>
+          <CustomSelect
+            id="active-filter"
+            v-model="activeFilter"
+            :options="activeOptions"
+            placeholder="Active"
+          />
+        </div>
+        <div class="filter-field">
+          <label class="filter-label" for="api-filter">API Status</label>
+          <CustomSelect
+            id="api-filter"
+            v-model="apiFilter"
+            :options="apiOptions"
+            placeholder="All"
+          />
+        </div>
+      </div>
+
+    <div class="filter-bottom">
+      <div class="filter-group">
+        <h3 class="filter-title">
+          <Code class="filter-icon" :size="20" />
+          CQL2 Filter
+        </h3>
+        <div class="filter-field">
+          <textarea
+            id="cql2-filter"
+            v-model="cql2Filter"
+            class="filter-textarea"
+            placeholder="Text: title LIKE '%Sentinel%'&#10;JSON: {&quot;op&quot;:&quot;=&quot;,&quot;args&quot;:[{&quot;property&quot;:&quot;license&quot;},&quot;CC-BY-4.0&quot;]}"
+            rows="4"
+          ></textarea>
+          <p class="filter-hint" :class="{ 'formatting': isFormattingJson }">
+            <template v-if="isFormattingJson">Formatting JSON...</template>
+            <template v-else>CQL2-Text or CQL2-JSON</template>
+          </p>
+        </div>
+      </div>
     </div>
 
     <div class="filter-actions">
@@ -115,12 +161,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch, onUnmounted, onMounted } from 'vue'
 import { storeToRefs } from 'pinia'
-import { MapPin, Calendar, Box, X } from 'lucide-vue-next'
+import { MapPin, Calendar, Box, X, Code, Settings } from 'lucide-vue-next'
 import CustomSelect from '@/components/CustomSelect.vue'
 import BoundingBoxModal from '@/components/BoundingBoxModal.vue'
 import { useFilterStore } from '@/stores/filterStore'
+import { useQueryables } from '@/composables/useQueryables'
 
 const emit = defineEmits<{
   (e: 'apply'): void
@@ -131,11 +178,29 @@ const filterStore = useFilterStore()
 const { 
   selectedRegion, 
   selectedProvider, 
-  selectedLicense, 
+  selectedLicense,
+  activeFilter,
+  apiFilter,
   startDate, 
   endDate, 
-  drawnBbox
+  drawnBbox,
+  cql2Filter
 } = storeToRefs(filterStore)
+
+// Ensure activeFilter has the default value on mount
+onMounted(() => {
+  if (!activeFilter.value) {
+    activeFilter.value = 'true'
+  }
+})
+
+// Load providers and licenses from static file (auto-refreshes every 15 min)
+const { queryables, providerOptions, licenseOptions, updateOptions } = useQueryables()
+
+// Update options when queryables data changes
+watch(queryables, () => {
+  updateOptions()
+}, { deep: true })
 
 // Format bbox coordinates for display (4 decimal places)
 const formattedBbox = computed(() => {
@@ -179,34 +244,51 @@ function resetFilters() {
   emit('reset')
 }
 
-// Provider options from database
-const providerOptions = [
-  { value: '', label: 'All Providers' },
-  { value: 'Agroscope', label: 'Agroscope' },
-  { value: 'Deltares', label: 'Deltares' },
-  { value: 'ESA', label: 'ESA' },
-  { value: 'Federal Office for Civil Protection - FOCP', label: 'Federal Office for Civil Protection - FOCP' },
-  { value: 'Federal Office for Civil Protection FOCP', label: 'Federal Office for Civil Protection FOCP' },
-  { value: 'Federal Office for Defence Procurement armasuisse', label: 'Federal Office for Defence Procurement armasuisse' },
-  { value: 'Federal Office for Spatial Development - ARE', label: 'Federal Office for Spatial Development - ARE' },
-  { value: 'Federal Office for the Environment - FOEN', label: 'Federal Office for the Environment - FOEN' },
-  { value: 'Federal Roads Office - FEDRO', label: 'Federal Roads Office - FEDRO' },
-  { value: 'Microsoft', label: 'Microsoft' },
-  { value: 'Planet Labs', label: 'Planet Labs' },
-  { value: 'Salo Sciences', label: 'Salo Sciences' }
-]
+// JSON formatting state
+const isFormattingJson = ref(false)
+let formatDebounceTimer: ReturnType<typeof setTimeout> | null = null
 
-// License options from database
-const licenseOptions = [
-  { value: '', label: 'All Licenses' },
-  { value: 'CC-0', label: 'CC-0' },
-  { value: 'CC-BY', label: 'CC-BY' },
-  { value: 'CC-BY-4.0', label: 'CC-BY-4.0' },
-  { value: 'CC-BY-NC-4.0', label: 'CC-BY-NC-4.0' },
-  { value: 'CC-BY-SA-4.0', label: 'CC-BY-SA-4.0' },
-  { value: 'Other (Non-Commercial)', label: 'Other (Non-Commercial)' },
-  { value: 'proprietary', label: 'proprietary' }
-]
+// Watch CQL2 filter and auto-format JSON after user stops typing
+watch(cql2Filter, (newValue) => {
+  // Clear any pending format timer
+  if (formatDebounceTimer) {
+    clearTimeout(formatDebounceTimer)
+    formatDebounceTimer = null
+  }
+  
+  const trimmed = newValue.trim()
+  
+  // Only attempt formatting if it looks like JSON
+  if (!trimmed || !trimmed.startsWith('{')) {
+    isFormattingJson.value = false
+    return
+  }
+  
+  // Show formatting indicator
+  isFormattingJson.value = true
+  
+  // Debounce the formatting (800ms after user stops typing)
+  formatDebounceTimer = setTimeout(() => {
+    try {
+      const parsed = JSON.parse(trimmed)
+      const formatted = JSON.stringify(parsed, null, 2)
+      // Only update if it's actually different (avoid infinite loop)
+      if (formatted !== trimmed) {
+        cql2Filter.value = formatted
+      }
+    } catch {
+      // Not valid JSON yet, leave as-is
+    }
+    isFormattingJson.value = false
+  }, 800)
+})
+
+// Cleanup timer on unmount
+onUnmounted(() => {
+  if (formatDebounceTimer) {
+    clearTimeout(formatDebounceTimer)
+  }
+})
 
 // Region options with bounding boxes (minLon, minLat, maxLon, maxLat)
 const regionOptions = [
@@ -217,5 +299,17 @@ const regionOptions = [
   { value: '-170,-56,-30,84', label: 'Americas' },
   { value: '110,-50,180,-10', label: 'Oceania' },
   { value: '-180,-90,180,90', label: 'Global' }
+]
+
+// Active/API status filter options
+const activeOptions = [
+  { value: 'true', label: 'Active' },
+  { value: 'false', label: 'Inactive' }
+]
+
+const apiOptions = [
+  { value: '', label: 'All' },
+  { value: 'true', label: 'API Enabled' },
+  { value: 'false', label: 'API Disabled' }
 ]
 </script>

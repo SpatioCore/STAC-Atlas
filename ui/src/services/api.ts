@@ -1,4 +1,4 @@
-import type { CollectionsResponse, Collection } from '@/types/collection'
+import type { CollectionsResponse, Collection, APIError } from '@/types/collection'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'
 
@@ -7,7 +7,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000
  * See: api/docs/collection-search-parameters.md
  */
 export interface CollectionSearchParams {
-  /** Free-text search query (max 500 chars) */
+  /** Free-text search query (max 500 chars) - searches title, description, keywords */
   q?: string
   /** Bounding box filter: minX,minY,maxX,maxY */
   bbox?: string
@@ -23,27 +23,45 @@ export interface CollectionSearchParams {
   provider?: string
   /** Filter by license identifier */
   license?: string
+  /** Filter by active status (true/false) */
+  active?: boolean
+  /** Filter by API status (true/false) */
+  api?: boolean
+  /** CQL2 filter expression for advanced queries */
+  filter?: string
+  /** Filter language: 'cql2-text' or 'cql2-json' */
+  'filter-lang'?: 'cql2-text' | 'cql2-json'
 }
 
-export interface ProvidersResponse {
-  providers: string[]
-  total: number
-}
-
-export interface LicensesResponse {
-  licenses: string[]
-  total: number
+/**
+ * Parse RFC 7807 error response
+ */
+async function parseErrorResponse(response: Response): Promise<string> {
+  try {
+    const errorData: APIError = await response.json()
+    // RFC 7807 uses 'detail', with 'description' as backwards compatibility alias
+    return errorData.detail || errorData.description || errorData.title || `Request failed: ${response.statusText}`
+  } catch {
+    return `Request failed: ${response.statusText}`
+  }
 }
 
 export const api = {
   /**
    * Fetch collections with optional filtering and pagination
-   * Supports: q, bbox, datetime, limit, sortby, token, provider, license
+   * Supports: q, bbox, datetime, limit, sortby, token, provider, license, filter, filter-lang
+   * 
+   * Note: API has rate limit of 1000 requests per 15 minutes
    */
   async getCollections(params?: CollectionSearchParams): Promise<CollectionsResponse> {
     const queryParams = new URLSearchParams()
     
     if (params) {
+      // Auto-detect filter-lang if filter is provided but filter-lang is not
+      if (params.filter && !params['filter-lang']) {
+        params['filter-lang'] = params.filter.trim().startsWith('{') ? 'cql2-json' : 'cql2-text'
+      }
+      
       Object.entries(params).forEach(([key, value]) => {
         if (value !== undefined && value !== null && value !== '') {
           queryParams.append(key, value.toString())
@@ -56,8 +74,7 @@ export const api = {
     const response = await fetch(url)
     
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}))
-      throw new Error(errorData.description || `Failed to fetch collections: ${response.statusText}`)
+      throw new Error(await parseErrorResponse(response))
     }
     
     return response.json()
@@ -72,40 +89,7 @@ export const api = {
     const response = await fetch(url)
     
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}))
-      throw new Error(errorData.description || `Failed to fetch collection: ${response.statusText}`)
-    }
-    
-    return response.json()
-  },
-
-  /**
-   * Fetch all distinct providers from the database
-   */
-  async getProviders(): Promise<ProvidersResponse> {
-    const url = `${API_BASE_URL}/queryables/providers`
-    
-    const response = await fetch(url)
-    
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}))
-      throw new Error(errorData.description || `Failed to fetch providers: ${response.statusText}`)
-    }
-    
-    return response.json()
-  },
-
-  /**
-   * Fetch all distinct licenses from the database
-   */
-  async getLicenses(): Promise<LicensesResponse> {
-    const url = `${API_BASE_URL}/queryables/licenses`
-    
-    const response = await fetch(url)
-    
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}))
-      throw new Error(errorData.description || `Failed to fetch licenses: ${response.statusText}`)
+      throw new Error(await parseErrorResponse(response))
     }
     
     return response.json()

@@ -7,18 +7,22 @@ The UI follows a modular architecture with clear separation of concerns.
 ## Folders
 
 ### `src/assets/`
+
 Static assets like images, fonts, and global styles.
 
 **styles/** - Structured CSS architecture:
+
 - `base/reset.css` - CSS reset
 - `base/vars.css` - CSS custom properties
 - `base/base.css` - Global styles
 - `main.css` - Main entry point
 
 ### `src/components/`
+
 Reusable UI components used across multiple views.
 
 **Examples:**
+
 - `Button.vue`
 - `SearchBar.vue`
 - `MapViewer.vue`
@@ -26,9 +30,11 @@ Reusable UI components used across multiple views.
 **Convention:** PascalCase naming, single component per file.
 
 ### `src/composables/`
+
 Shared composition functions (Vue Composition API logic).
 
 **Examples:**
+
 - `useMap.ts` - Map interaction logic
 - `useFetch.ts` - Data fetching utilities
 - `useDebounce.ts` - Debounce helper
@@ -36,9 +42,11 @@ Shared composition functions (Vue Composition API logic).
 **Convention:** Prefix with `use`, export as default.
 
 ### `src/services/`
+
 External API calls and business logic.
 
 **Examples:**
+
 - `stacApi.ts` - STAC catalog API
 - `geocoding.ts` - Geocoding service
 - `api.ts` - Base API configuration
@@ -46,9 +54,11 @@ External API calls and business logic.
 **Convention:** Pure functions, no component logic.
 
 ### `src/stores/`
+
 Pinia state management stores.
 
 **Examples:**
+
 - `catalogStore.ts` - STAC catalog state
 - `mapStore.ts` - Map state and settings
 - `userStore.ts` - User preferences
@@ -56,9 +66,11 @@ Pinia state management stores.
 **Convention:** One store per domain, use `defineStore`.
 
 ### `src/types/`
+
 TypeScript type definitions and interfaces.
 
 **Examples:**
+
 - `stac.ts` - STAC specification types
 - `map.ts` - Map-related types
 - `api.ts` - API response types
@@ -66,9 +78,11 @@ TypeScript type definitions and interfaces.
 **Convention:** Group by domain, export interfaces.
 
 ### `src/views/`
+
 Page-level components (one per route).
 
 **Examples:**
+
 - `Home.vue`
 - `CatalogView.vue`
 - `MapView.vue`
