@@ -140,8 +140,13 @@ function toStacCollection(row, baseHost) {
 
 // helper to run the built query (from documentation)
 async function runQuery(sql, params = []) {
-  const result = await query(sql, params);
-  return result.rows;
+    try {
+    const result = await query(sql, params);
+    return result.rows;
+  } catch (error) {
+    console.error('Query error in /collections:', error);
+    throw error;
+  }
 }
 
 /**
