@@ -2,6 +2,36 @@
 
 A Node.js crawler for STAC Index API that fetches and processes catalog and collection data with configurable options. Includes an automated scheduler for periodic crawling.
 
+## Table of Contents
+
+- [Features](#features)
+- [Quick Start](#quick-start)
+- [Configuration](#configuration)
+  - [Configuration Options](#configuration-options)
+  - [Using Environment Variables](#using-environment-variables)
+  - [Using CLI Arguments](#using-cli-arguments)
+  - [Show Help](#show-help)
+- [Running Locally](#running-locally)
+- [Docker](#docker)
+- [Testing](#testing)
+- [Dependencies](#dependencies)
+  - [Core Dependencies](#core-dependencies)
+  - [Development Dependencies](#development-dependencies)
+  - [Why These Libraries?](#why-these-libraries)
+- [Technical Decisions](#technical-decisions)
+- [Architecture](#architecture)
+- [How It Works](#how-it-works)
+  - [Crawling Process Overview](#crawling-process-overview)
+  - [What Gets Stored](#what-gets-stored)
+  - [Pause and Resume Functionality](#pause-and-resume-functionality)
+  - [Auto-Recrawling](#auto-recrawling)
+  - [Data Validation](#data-validation)
+- [Troubleshooting](#troubleshooting)
+- [Performance Tuning](#performance-tuning)
+- [npm Scripts](#npm-scripts)
+- [License](#license)
+- [Examples](#examples)
+
 ## Features
 
 - **Single-run Mode**: Execute crawler once and exit
