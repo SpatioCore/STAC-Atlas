@@ -8,7 +8,11 @@
     "build": "vue-tsc -b && vite build",
     "preview": "vite preview",
     "update-queryables": "node scripts/update-queryables.js",
-    "update-queryables:watch": "node scripts/update-queryables.js --watch"
+    "update-queryables:watch": "node scripts/update-queryables.js --watch",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:report": "playwright show-report"
   },
   "dependencies": {
     "@vueuse/core": "^14.1.0",
@@ -19,6 +23,7 @@
     "vue-router": "^4.6.3"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.1",
     "@types/node": "^24.10.1",
     "@vitejs/plugin-vue": "^6.0.1",
     "@vue/tsconfig": "^0.8.1",

@@ -10,6 +10,7 @@ Vue 3 + TypeScript frontend for the STAC-Atlas project. This is a modern single-
   - [Local Development](#local-development)
   - [Docker Deployment](#docker-deployment)
 - [Environment Variables](#environment-variables)
+- [Testing](#testing)
 - [How It Works](#how-it-works)
 - [Design Decisions](#design-decisions)
 - [Libraries & Dependencies](#libraries--dependencies)
@@ -116,7 +117,13 @@ The UI uses Vite's environment variable system. Variables must be prefixed with 
 
 ### Configuration
 
-Create a `.env` file in the `ui/` directory:
+Copy `example.env` to `.env` and adjust values as needed:
+
+```bash
+cp example.env .env
+```
+
+Example `.env` file:
 
 ```env
 # API Configuration
@@ -127,6 +134,45 @@ VITE_API_BASE_URL=http://localhost:3000
 ```
 
 **Note**: Environment variables are embedded at build time. For Docker deployments, you need to rebuild the image after changing `.env` values, or use runtime configuration injection.
+
+---
+
+## Testing
+
+The UI includes end-to-end (E2E) tests using [Playwright](https://playwright.dev/) to verify core functionality as specified in the project requirements (bid.md).
+
+### Running E2E Tests
+
+```bash
+# Run all tests (starts dev server automatically)
+npm run test:e2e
+
+# Run tests with interactive UI
+npm run test:e2e:ui
+
+# Run tests with visible browser
+npm run test:e2e:headed
+
+# View HTML test report
+npm run test:e2e:report
+```
+
+### Test Coverage
+
+The E2E tests cover the following areas (referencing bid.md requirements):
+
+| Test File | Coverage | bid.md Reference |
+|-----------|----------|------------------|
+| `search.spec.ts` | Search interface, filter availability | 6.1.3.1, 6.1.3.4 |
+| `map.spec.ts` | Map display, bounding box selection | 6.1.3.3, 6.1.3.5 |
+| `collection-detail.spec.ts` | Collection details, source links, items | 6.1.3.6, 6.1.3.7, 6.1.3.8 |
+| `accessibility.spec.ts` | Responsive design, i18n, accessibility | 6.2.2.1 - 6.2.2.4 |
+
+### Prerequisites for Testing
+
+- Chromium browser is installed automatically via Playwright
+- Dev server runs on `http://localhost:5173` (started automatically)
+- No external API required for basic UI tests
 
 ---
 
