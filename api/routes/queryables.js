@@ -4,13 +4,13 @@ const router = express.Router();
 const { buildCollectionsQueryablesSchema } = require('../config/queryablesSchema');
 
 /**
- * GET /collections-queryables
+ * GET /collection-queryables
  * Returns the queryables schema for STAC Collections
  * Conforms to OGC API Features Part 3 (Filtering) and STAC API Filter Extension
  */
 router.get('/', (req, res) => {
   const baseUrl = `${req.protocol}://${req.get('host')}`;
-  const selfUrl = `${baseUrl}/collections-queryables`;
+  const selfUrl = `${baseUrl}/collection-queryables`;
   const schema = buildCollectionsQueryablesSchema(baseUrl);
 
   // Add required links for STAC/OGC conformance

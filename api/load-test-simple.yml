@@ -79,4 +79,4 @@ scenarios:
           
       # Queryables endpoint
       - get:
-          url: "/collections-queryables"
+          url: "/collection-queryables"
