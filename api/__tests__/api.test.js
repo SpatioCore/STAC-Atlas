@@ -90,9 +90,9 @@ describe('STAC API Core Endpoints', () => {
     });
     });
 
-  describe('GET /collections-queryables', () => {
+  describe('GET /collection-queryables', () => {
     it('should return queryables schema', async () => {
-      const response = await request(app).get('/collections-queryables').expect(200);
+      const response = await request(app).get('/collection-queryables').expect(200);
 
       expect(response.body).toHaveProperty('$schema');
       expect(response.body).toHaveProperty('type', 'object');
@@ -100,7 +100,7 @@ describe('STAC API Core Endpoints', () => {
     });
 
     it('should include standard STAC queryable fields', async () => {
-      const response = await request(app).get('/collections-queryables').expect(200);
+      const response = await request(app).get('/collection-queryables').expect(200);
 
       const properties = response.body.properties;
       expect(properties).toHaveProperty('id');

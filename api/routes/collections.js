@@ -256,7 +256,8 @@ router.get('/', validateCollectionSearchParams, async (req, res, next) => {
     const links = [
       { rel: 'self', href: selfHref, type: 'application/json' },
       { rel: 'root', href: baseHost, type: 'application/json' },
-      { rel: 'parent', href: baseHost, type: 'application/json' }
+      { rel: 'parent', href: baseHost, type: 'application/json' },
+      { rel: 'http://www.opengis.net/def/rel/ogc/1.0/queryables', href: `${baseHost}/collection-queryables`, type: 'application/schema+json', title: 'Queryables for collection search' }
     ];
 
     // "next": only if returned === limit AND token + limit < matched
