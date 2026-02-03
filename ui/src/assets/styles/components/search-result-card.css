@@ -9,7 +9,6 @@
   border-radius: var(--radius);
   padding: var(--spacing-sm) var(--spacing-md);
   transition: box-shadow var(--transition-fast);
-  max-width: 500px;
   min-height: 200px;
   gap: var(--spacing-xs);
 }
