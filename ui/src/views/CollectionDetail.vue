@@ -242,7 +242,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed, watch } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { Globe, ExternalLink, Building2 } from 'lucide-vue-next'
 import InfoCard from '@/components/InfoCard.vue'

@@ -123,6 +123,7 @@
           />
         </div>
       </div>
+    </div>
 
     <div class="filter-bottom">
       <div class="filter-group">
