@@ -121,6 +121,7 @@ export default {
     overview: 'Übersicht',
     metadata: 'Metadaten',
     items: 'Elemente',
+    additionalProperties: 'Zusätzliche Eigenschaften',
     
     // Source
     viewSource: 'Quelle anzeigen',
@@ -131,6 +132,12 @@ export default {
     providers: 'Anbieter',
     providerInfo: 'Anbieterinformationen',
     noProviderInfo: 'Keine Anbieterinformationen verfügbar',
+    providerRoles: {
+      producer: 'Produzent',
+      licensor: 'Lizenzgeber',
+      processor: 'Verarbeiter',
+      host: 'Host'
+    },
     
     // Items
     loadingItems: 'Elemente werden von der Quelle geladen...',

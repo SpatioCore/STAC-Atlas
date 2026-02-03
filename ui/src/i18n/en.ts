@@ -121,6 +121,7 @@ export default {
     overview: 'Overview',
     metadata: 'Metadata',
     items: 'Items',
+    additionalProperties: 'Additional Properties',
     
     // Source
     viewSource: 'View Source',
@@ -131,6 +132,12 @@ export default {
     providers: 'Providers',
     providerInfo: 'Provider Information',
     noProviderInfo: 'No provider information available',
+    providerRoles: {
+      producer: 'Producer',
+      licensor: 'Licensor',
+      processor: 'Processor',
+      host: 'Host'
+    },
     
     // Items
     loadingItems: 'Loading items from source...',

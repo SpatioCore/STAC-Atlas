@@ -308,6 +308,29 @@
   font-size: var(--font-size-sm);
 }
 
+/* Loading indicator for items count */
+.items-count-loading {
+  font-weight: normal;
+  color: var(--muted-fg);
+}
+
+.loading-dots {
+  display: inline-block;
+  animation: loading-dots 1.4s infinite;
+}
+
+@keyframes loading-dots {
+  0%, 20% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  80%, 100% {
+    opacity: 0;
+  }
+}
+
 .items-section__pagination {
   display: flex;
   flex-direction: row;
@@ -324,7 +347,6 @@
   align-items: center;
   justify-content: center;
   min-width: 25px;
-  width: 50%;
   height: 28px;
   padding: 0 var(--spacing-sm);
   border: 1px solid var(--muted-fg);
@@ -701,4 +723,69 @@
     opacity: 1;
     transform: translateX(-50%) translateY(0);
   }
+}
+
+/* Additional Properties Section (STAC-Browser style) */
+.additional-properties-section {
+  background-color: transparent;
+  margin-top: var(--spacing-md);
+}
+
+.additional-properties-grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.additional-property-item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-sm);
+  background-color: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.additional-property-key {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--primary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-family: var(--font-mono, monospace);
+}
+
+.additional-property-value {
+  color: var(--text);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-relaxed);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+}
+
+.property-tag {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  background-color: var(--muted-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  color: var(--text);
+}
+
+.property-object {
+  width: 100%;
+  margin: 0;
+  padding: var(--spacing-sm);
+  background-color: var(--muted-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  font-family: var(--font-mono, monospace);
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--text);
 }
