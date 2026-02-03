@@ -252,6 +252,7 @@
               :title="item.title"
               :id="item.id"
               :date="item.date"
+              :selfUrl="item.selfUrl"
             />
           </div>
           <!-- Paginated list for 13+ items -->
@@ -263,6 +264,7 @@
                 :title="item.title"
                 :id="item.id"
                 :date="item.date"
+                :selfUrl="item.selfUrl"
               />
             </div>
             <div class="items-section__pagination">
@@ -603,7 +605,7 @@ const formatPropertyValue = (value: unknown): string => {
   return String(value)
 }
 
-const items = ref<Array<{ id: string; title: string; date: string }>>([])  
+const items = ref<Array<{ id: string; title: string; date: string; selfUrl: string }>>([])  
 const itemsLoading = ref(false)
 const itemsInitialLoading = ref(true) // For skeleton/initial state
 const currentPage = ref(1)
@@ -619,13 +621,13 @@ const apiItemsBaseUrl = ref<string | null>(null)
 // Total items count from first page features.length (used as page size indicator)
 const apiPageSize = ref<number>(10)
 // Cache for fetched API pages (page -> items)
-const apiPagesCache = ref<Map<number, Array<{ id: string; title: string; date: string }>>>(new Map())
+const apiPagesCache = ref<Map<number, Array<{ id: string; title: string; date: string; selfUrl: string }>>>(new Map())
 // Track loaded items count for display (from features.length on current page)
 const loadedItemsCount = ref(0)
 // Total matched items from API (numberMatched or context.matched)
 const apiTotalMatched = ref<number | null>(null)
 // Cache for fetched static items (page -> items)
-const staticItemsCache = ref<Map<number, Array<{ id: string; title: string; date: string }>>>(new Map())
+const staticItemsCache = ref<Map<number, Array<{ id: string; title: string; date: string; selfUrl: string }>>>(new Map())
 
 // Pagination logic - use pagination if more pages exist or enough items
 const usePagination = computed(() => {
@@ -748,7 +750,7 @@ const fetchItems = async (page: number = 1) => {
   }
   
   // Helper to extract item data from a STAC item object
-  const parseItemData = (itemData: Record<string, unknown>): { id: string; title: string; date: string } => {
+  const parseItemData = (itemData: Record<string, unknown>): { id: string; title: string; date: string; selfUrl: string } => {
     const props = (itemData.properties || {}) as Record<string, unknown>
     const title = (props.title as string) || (itemData.id as string) || 'Unknown'
     
@@ -763,10 +765,16 @@ const fetchItems = async (page: number = 1) => {
       }
     }
     
+    // Extract self link from item links
+    const links = (itemData.links || []) as Array<{ rel: string; href: string }>
+    const selfLink = links.find(l => l.rel === 'self')
+    const selfUrl = selfLink?.href || ''
+    
     return {
       id: (itemData.id as string) || 'Unknown',
       title,
-      date: dateStr
+      date: dateStr,
+      selfUrl
     }
   }
   
@@ -799,7 +807,7 @@ const fetchItems = async (page: number = 1) => {
       // Store base URL for pagination
       apiItemsBaseUrl.value = itemsUrl
       
-      // Fetch ONLY the first page for fast display
+      // Fetch the first page for display
       const response = await fetch(itemsUrl)
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`)
@@ -822,7 +830,7 @@ const fetchItems = async (page: number = 1) => {
       const features = data.features || []
       console.log('[Items] First page features.length:', features.length, 'hasNext:', !!(data.links || []).find((l: { rel: string }) => l.rel === 'next'))
       
-      const firstPageItems: Array<{ id: string; title: string; date: string }> = []
+      const firstPageItems: Array<{ id: string; title: string; date: string; selfUrl: string }> = []
       for (const feature of features) {
         firstPageItems.push(parseItemData(feature))
       }
@@ -919,7 +927,7 @@ const formatDate = (isoString: string): string => {
 }
 
 // Helper to extract item data from a STAC item object (shared)
-const parseItemDataShared = (itemData: Record<string, unknown>): { id: string; title: string; date: string } => {
+const parseItemDataShared = (itemData: Record<string, unknown>): { id: string; title: string; date: string; selfUrl: string } => {
   const props = (itemData.properties || {}) as Record<string, unknown>
   const title = (props.title as string) || (itemData.id as string) || 'Unknown'
   
@@ -934,15 +942,21 @@ const parseItemDataShared = (itemData: Record<string, unknown>): { id: string; t
     }
   }
   
+  // Extract self link from item links
+  const links = (itemData.links || []) as Array<{ rel: string; href: string }>
+  const selfLink = links.find(l => l.rel === 'self')
+  const selfUrl = selfLink?.href || ''
+  
   return {
     id: (itemData.id as string) || 'Unknown',
     title,
-    date: dateStr
+    date: dateStr,
+    selfUrl
   }
 }
 
 // Fetch a specific page from API items endpoint (on-demand)
-const fetchApiPage = async (page: number): Promise<Array<{ id: string; title: string; date: string }>> => {
+const fetchApiPage = async (page: number): Promise<Array<{ id: string; title: string; date: string; selfUrl: string }>> => {
   if (!apiItemsBaseUrl.value) return []
   
   // Check cache first
@@ -995,7 +1009,7 @@ const fetchApiPage = async (page: number): Promise<Array<{ id: string; title: st
     
     // Parse items
     const features = data.features || []
-    const pageItems: Array<{ id: string; title: string; date: string }> = []
+    const pageItems: Array<{ id: string; title: string; date: string; selfUrl: string }> = []
     for (const feature of features) {
       pageItems.push(parseItemDataShared(feature))
     }
@@ -1081,7 +1095,8 @@ const fetchItemsForPage = async (page: number) => {
         return {
           id: filename,
           title: filename,
-          date: 'N/A'
+          date: 'N/A',
+          selfUrl: link.href
         }
       }
     })

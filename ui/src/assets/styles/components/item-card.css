@@ -2,18 +2,23 @@
 
 .item-card {
   display: flex;        
-  flex-direction: column;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
   gap: var(--spacing-xs);            
   padding: var(--spacing-md);
   background-color: var(--card);
   border: 1px solid var(--border); 
   border-radius: var(--radius);
-  cursor: pointer;      
   transition: background-color var(--transition-fast); 
   box-shadow: var(--shadow);
 }
 
-.item-card:hover {
+.item-card--clickable {
+  cursor: pointer;
+}
+
+.item-card--clickable:hover {
   transform: scale(1.01);
   transition: transform var(--transition-fast);
 }
@@ -22,7 +27,19 @@
   display: flex;
   flex-direction: column;
   gap: var(--spacing-xs);
-  overflow: hidden;        
+  overflow: hidden;
+  flex: 1;
+  min-width: 0;
+}
+
+.item-card__external-icon {
+  flex-shrink: 0;
+  color: var(--muted-fg);
+  transition: color var(--transition-fast);
+}
+
+.item-card--clickable:hover .item-card__external-icon {
+  color: var(--primary);
 }
 
 .item-card__title {
