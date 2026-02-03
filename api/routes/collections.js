@@ -170,7 +170,6 @@ async function runQuery(sql, params = []) {
  */
 
 router.get('/', validateCollectionSearchParams, async (req, res, next) => {
-  // TODO: Think about the parameters `provider` and `license` - They are mentioned in the bid, but not in the STAC spec
   try {
     // validated parameters from middleware
     const { q, bbox, datetime, limit, sortby, token, provider, license, active, api, filter } = req.validatedParams;
@@ -179,11 +178,19 @@ router.get('/', validateCollectionSearchParams, async (req, res, next) => {
     let cqlFilter = undefined;
     if (filter) {
         try {
+            // Clean up TIMESTAMP(...) wrappers that some clients (like STAC Browser) add
+            // Example: "created_at < TIMESTAMP('2026-02-03T15:39:18.588Z')" -> "created_at < '2026-02-03T15:39:18.588Z'"
+            // This is necessary because cql2-wasm parser doesn't recognize TIMESTAMP() as a valid function
+            let cleanedFilter = filter;
+            if (filterLang === 'cql2-text') {
+                cleanedFilter = filter.replace(/TIMESTAMP\(([^)]+)\)/g, '$1');
+            }
+            
             let cqlJson;
             if (filterLang === 'cql2-text') {
-                cqlJson = await parseCql2Text(filter);
+                cqlJson = await parseCql2Text(cleanedFilter);
             } else if (filterLang === 'cql2-json') {
-                cqlJson = await parseCql2Json(filter);
+                cqlJson = await parseCql2Json(cleanedFilter);
             }
             
             if (cqlJson) {
