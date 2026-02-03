@@ -519,6 +519,9 @@
   text-decoration: none;
   word-break: break-all;
   transition: color var(--transition-fast);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .source-link-url:hover {
@@ -585,6 +588,9 @@
   font-size: var(--font-size-xs);
   text-decoration: none;
   transition: color var(--transition-fast);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .provider-url:hover {
