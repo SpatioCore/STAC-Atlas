@@ -1,0 +1,78 @@
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: var(--z-index-sticky);
+  height: var(--navbar-height);
+}
+
+.navbar-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.navbar-logo {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.logo-icon {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.navbar-title h1 {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--text);
+  margin: 0;
+  line-height: 1.2;
+}
+
+.navbar-subtitle {
+  font-size: var(--font-size-sm);
+  color: var(--muted-fg);
+  margin: 0;
+  line-height: 1.2;
+}
+
+.navbar-actions {
+  display: flex;
+  gap: var(--spacing-sm);
+  align-items: center;
+}
+
+.navbar-btn {
+  padding: var(--spacing-xs) var(--spacing-md);
+  background: transparent;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-size: var(--font-size-base);
+  cursor: pointer;
+  transition: background-color var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  min-height: 35px;
+  box-shadow: var(--shadow);
+}
+
+.navbar-btn:hover {
+  border-color: var(--primary);
+  box-shadow: var(--shadow-sm);
+}
+
+.navbar-btn:active {
+  transform: scale(0.98);
+}
