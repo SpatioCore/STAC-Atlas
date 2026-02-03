@@ -483,10 +483,40 @@ export async function handleCollections({ request, json, crawler, log, indent, r
                 return null;
             }
         }).filter(Boolean);
+    } else if (typeof stacObj?.isCatalog === 'function' && stacObj.isCatalog()) {
+        log.warning(`${indent}Collections endpoint returned a Catalog at ${request.url}; skipping`);
+        results.stats.nonCompliant++;
+        return;
     }
     
     if (collectionsData.length > 0) {
-        log.info(`${indent}Found ${collectionsData.length} collections for catalog ${catalogId}`);
+        const filteredCollections = [];
+        let nonCollectionCount = 0;
+
+        for (const colObj of collectionsData) {
+            const raw = typeof colObj?.toJSON === 'function' ? colObj.toJSON() : colObj;
+            const isCollection = (typeof colObj?.isCollection === 'function' && colObj.isCollection())
+                || raw?.type === 'Collection';
+
+            if (!isCollection) {
+                nonCollectionCount++;
+                continue;
+            }
+
+            filteredCollections.push(colObj);
+        }
+
+        if (nonCollectionCount > 0) {
+            log.warning(`${indent}Skipped ${nonCollectionCount} non-Collection object(s) at ${request.url}`);
+        }
+
+        if (filteredCollections.length === 0) {
+            log.warning(`${indent}No valid Collection objects found at ${request.url}`);
+            results.stats.nonCompliant++;
+            return;
+        }
+
+        log.info(`${indent}Found ${filteredCollections.length} collections for catalog ${catalogId}`);
         
         // Get base URL for constructing absolute collection URLs
         // Remove trailing /collections from the request URL to get the API base
@@ -497,8 +527,8 @@ export async function handleCollections({ request, json, crawler, log, indent, r
         // Normalize and store collections, skipping already-crawled ones
         let skippedCount = 0;
         const collections = [];
-        for (let index = 0; index < collectionsData.length; index++) {
-            const colObj = collectionsData[index];
+        for (let index = 0; index < filteredCollections.length; index++) {
+            const colObj = filteredCollections[index];
             const collection = normalizeCollection(colObj, index);
             // Add the catalog slug to the collection for unique stac_id generation
             collection.sourceSlug = catalogSlug;
