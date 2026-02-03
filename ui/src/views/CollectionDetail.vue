@@ -194,8 +194,18 @@
               :key="prop.key" 
               class="additional-property-item"
             >
-              <span class="additional-property-key">{{ prop.key }}</span>
-              <div class="additional-property-value">
+              <div 
+                class="additional-property-header"
+                @click="toggleProperty(prop.key)"
+              >
+                <span class="collapse-icon" :class="{ 'collapse-icon--expanded': expandedProperties.has(prop.key) }">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="9 18 15 12 9 6"></polyline>
+                  </svg>
+                </span>
+                <span class="additional-property-key">{{ prop.key }}</span>
+              </div>
+              <div v-show="expandedProperties.has(prop.key)" class="additional-property-value">
                 <!-- Array values -->
                 <template v-if="Array.isArray(prop.value)">
                   <span 
@@ -352,6 +362,7 @@ const mapContainer = ref<HTMLElement | null>(null)
 const map = ref<maplibregl.Map | null>(null)
 const showContactModal = ref(false)
 const showSourceModal = ref(false)
+const expandedProperties = ref<Set<string>>(new Set())
 const showCopyToast = ref(false)
 const copyToastMessage = ref('')
 const loading = ref(false)
@@ -417,6 +428,16 @@ const toggleSourceModal = () => {
   if (showSourceModal.value) {
     showContactModal.value = false
   }
+}
+
+const toggleProperty = (key: string) => {
+  if (expandedProperties.value.has(key)) {
+    expandedProperties.value.delete(key)
+  } else {
+    expandedProperties.value.add(key)
+  }
+  // Trigger reactivity by creating a new Set
+  expandedProperties.value = new Set(expandedProperties.value)
 }
 
 const truncateUrl = (url: string, maxLength: number = 40) => {
