@@ -44,7 +44,7 @@
 import { ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { useDark } from '@vueuse/core'
-import { Globe, Sun, Moon, Info } from 'lucide-vue-next'
+import { Sun, Moon, Info } from 'lucide-vue-next'
 
 const isDark = useDark({
   selector: 'html',

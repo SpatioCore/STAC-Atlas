@@ -237,7 +237,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed, watch } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { Globe, ExternalLink, Building2 } from 'lucide-vue-next'
 import InfoCard from '@/components/InfoCard.vue'
@@ -332,7 +332,7 @@ const collectionTitle = computed(() =>
 
 const provider = computed(() => {
   const providers = collection.value?.providers
-  return providers && providers.length > 0 ? providers[0].name : 'Unknown Provider'
+  return providers && providers.length > 0 && providers[0] ? providers[0].name : 'Unknown Provider'
 })
 
 const platform = computed(() => {
@@ -352,8 +352,12 @@ const coordinateSystem = computed(() => 'EPSG:4326')
 
 const bbox = computed(() => {
   const extent = collection.value?.extent?.spatial?.bbox
-  if (extent && extent.length > 0 && extent[0].length === 4) {
-    const [west, south, east, north] = extent[0]
+  if (extent && extent.length > 0 && extent[0] && extent[0].length === 4) {
+    const bboxArray = extent[0]
+    const west = bboxArray[0] ?? 0
+    const south = bboxArray[1] ?? 0
+    const east = bboxArray[2] ?? 0
+    const north = bboxArray[3] ?? 0
     return {
       west: west.toFixed(2),
       south: south.toFixed(2),
@@ -365,11 +369,13 @@ const bbox = computed(() => {
 })
 
 const infoCards = computed(() => {
-  const cards = []
+  const cards: { icon: string; label: string; value: string }[] = []
   
   const temporalExtent = collection.value?.extent?.temporal?.interval
-  if (temporalExtent && temporalExtent.length > 0) {
-    const [start, end] = temporalExtent[0]
+  if (temporalExtent && temporalExtent.length > 0 && temporalExtent[0]) {
+    const interval = temporalExtent[0]
+    const start = interval[0]
+    const end = interval[1]
     if (start) {
       cards.push({
         icon: 'calendar',
@@ -392,7 +398,7 @@ const infoCards = computed(() => {
 })
 
 const metadata = computed(() => {
-  const meta = []
+  const meta: { label: string; value: string }[] = []
   
   if (collection.value?.id) {
     meta.push({ label: 'Collection ID', value: collection.value.id })
@@ -587,9 +593,13 @@ const initializeMap = () => {
   if (!mapContainer.value || map.value) return
   
   const extent = collection.value?.extent?.spatial?.bbox
-  if (!extent || extent.length === 0 || extent[0].length !== 4) return
+  if (!extent || extent.length === 0 || !extent[0] || extent[0].length !== 4) return
   
-  const [west, south, east, north] = extent[0]
+  const bboxArray = extent[0]
+  const west = bboxArray[0] ?? 0
+  const south = bboxArray[1] ?? 0
+  const east = bboxArray[2] ?? 0
+  const north = bboxArray[3] ?? 0
   
   // Create map
   map.value = new maplibregl.Map({
@@ -612,11 +622,12 @@ const initializeMap = () => {
         }
       ]
     },
-    center: [(west + east) / 2, (south + north) / 2],
+    center: [(west + east) / 2, (south + north) / 2] as [number, number],
     zoom: 5
   })
   
   // Wait for map to load before adding bbox
+  // @ts-expect-error - maplibre-gl types cause deep recursion
   map.value.on('load', () => {
     if (!map.value) return
     
@@ -624,10 +635,10 @@ const initializeMap = () => {
     map.value.addSource('bbox', {
       type: 'geojson',
       data: {
-        type: 'Feature',
+        type: 'Feature' as const,
         properties: {},
         geometry: {
-          type: 'Polygon',
+          type: 'Polygon' as const,
           coordinates: [[
             [west, north],
             [east, north],

@@ -56,7 +56,7 @@ const description = computed(() => props.collection.description || 'No descripti
 // Get provider from providers array
 const provider = computed(() => {
   const providers = props.collection.providers;
-  if (providers && providers.length > 0) {
+  if (providers && providers.length > 0 && providers[0]) {
     return providers[0].name;
   }
   return 'Unknown Provider';
@@ -82,13 +82,14 @@ const MAX_CHAR_LENGTH = 100; // Total character budget for 2 rows
 const MORE_TAG_LENGTH = 10; // Reserve space for "+X more" tag
 
 const displayedTags = computed(() => {
-  if (tagList.value.length === 0) return [];
+  if (!tagList.value || tagList.value.length === 0) return [];
   
   let totalLength = 0;
   let visibleTags: string[] = [];
   
   for (let i = 0; i < tagList.value.length; i++) {
     const tag = tagList.value[i];
+    if (!tag) continue;
     const tagLength = tag.length;
     
     // Check if adding this tag would exceed the limit
