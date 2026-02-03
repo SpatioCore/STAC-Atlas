@@ -1,0 +1,15 @@
+services:
+  crawler:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: stac-crawler
+    # restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+    networks:
+      - stac-network
+
+networks:
+  stac-network:
+    external: true

@@ -1,0 +1,29 @@
+{
+  "name": "crawler",
+  "version": "1.0.0",
+  "description": "STAC Index crawler",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "docker:build": "docker build -t stac-crawler .",
+    "docker:run": "docker run --rm stac-crawler",
+    "docker:compose:up": "docker-compose up -d",
+    "docker:compose:down": "docker-compose down",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
+    "test:watch": "node --experimental-vm-modules node_modules/jest/bin/jest.js --watch"
+  },
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "@databases/pg": "^5.5.0",
+    "axios": "^1.13.2",
+    "crawlee": "^3.15.3",
+    "dotenv": "^17.2.3",
+    "stac-js": "^0.1.9",
+    "stac-node-validator": "^2.0.0-rc.1"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
+  }
+}

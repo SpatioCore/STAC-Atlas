@@ -1,18 +1,4 @@
--- creates every table needed for relations between tables for catalogs and collections
-
--- Junction table: Links catalogs to their associated keywords (many-to-many)
-CREATE TABLE catalog_keywords (
-    catalog_id INTEGER REFERENCES catalog(id) ON DELETE CASCADE,
-    keyword_id INTEGER REFERENCES keywords(id) ON DELETE CASCADE,
-    PRIMARY KEY (catalog_id, keyword_id)
-);
-
--- Junction table: Links catalogs to STAC extensions they implement (many-to-many)
-CREATE TABLE catalog_stac_extension (
-    catalog_id INTEGER REFERENCES catalog(id) ON DELETE CASCADE,
-    stac_extension_id INTEGER REFERENCES stac_extensions(id) ON DELETE CASCADE,
-    PRIMARY KEY (catalog_id, stac_extension_id)
-);
+-- creates every table needed for relations between tables for collections
 
 -- Junction table: Links collections to their associated keywords (many-to-many)
 CREATE TABLE collection_keywords (
