@@ -27,7 +27,13 @@ const CONFORMANCE_URIS = [
       'http://www.opengis.net/spec/cql2/1.0/conf/spatial-functions',        // s_within, s_contains, etc.
       
       // CQL2 Temporal conformance classes
-      'http://www.opengis.net/spec/cql2/1.0/conf/temporal-functions'        // t_intersects, t_before, t_after
+      'http://www.opengis.net/spec/cql2/1.0/conf/temporal-functions',       // t_intersects, t_before, t_after
+
+      'http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/collections',
+      'http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/core',
+      'https://api.stacspec.org/v1.1.0/collection-search#sortables',
+
+      
     ];
 
 module.exports = {

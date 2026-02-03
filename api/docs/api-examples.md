@@ -82,7 +82,7 @@ Lists all available fields (properties) that can be used for filtering and sorti
 The response includes each field’s name, data type, and—where applicable—possible values or value ranges. 
 Use this endpoint to discover which attributes you can use in your queries and how to reference them in filter expressions.
 
-"http://localhost:3000/collections-queryables"
+"http://localhost:3000/collection-queryables"
 
 ---
 
