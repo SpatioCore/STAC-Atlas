@@ -34,5 +34,4 @@ volumes:
 
 networks:
   stac-network:
-    name: stac-network
     driver: bridge
