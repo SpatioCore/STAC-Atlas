@@ -1,0 +1,14 @@
+/* Main CSS Entry Point */
+
+/* Import base styles in order */
+@import './base/reset.css';
+@import './base/vars.css';
+@import './base/base.css';
+
+/* Component styles */
+@import './components/app-layout.css';
+@import './components/navbar.css';
+@import './components/filter-section.css';
+@import './components/custom-select.css';
+@import './components/search-section.css';
+@import './components/search-results.css';

@@ -18,7 +18,7 @@
  * - Unknown properties fall back to full_json JSONB column
  */
 
-function buildCollectionsQueryablesSchema(baseUrl) {
+function buildCollectionsQueryablesSchema(baseUrl, enums = {}) {
   const cleanBase = String(baseUrl || '').replace(/\/+$/, '');
   const schemaId = `${cleanBase}/collection-queryables`;
 
@@ -68,7 +68,7 @@ function buildCollectionsQueryablesSchema(baseUrl) {
     type: 'object',
     title: 'STAC Atlas Collections Queryables',
     description:
-      'Queryable properties for STAC Collection Search via CQL2 filters. These properties can be referenced in filter expressions passed via the ?filter= parameter.',
+      'Queryable properties for STAC Collection Search via CQL2 filters. These properties can be referenced in filter expressions passed via the ?filter= parameter. Enum values are dynamically loaded from the database.',
     additionalProperties: true,
 
     properties: {
@@ -118,6 +118,7 @@ function buildCollectionsQueryablesSchema(baseUrl) {
         title: 'License',
         description: 'License identifier (e.g., "MIT", "CC-BY-4.0"). Maps to c.license.',
         type: 'string',
+        ...(enums.licenses && enums.licenses.length > 0 ? { enum: enums.licenses } : {}),
         'x-ogc-operators': OPS_STRING,
         'x-ogc-property': 'c.license'
       },
@@ -175,6 +176,7 @@ function buildCollectionsQueryablesSchema(baseUrl) {
         title: 'Is API',
         description: 'Whether collection is exposed via API. Maps to c.is_api.',
         type: 'boolean',
+        ...(enums.is_api && enums.is_api.length > 0 ? { enum: enums.is_api } : {}),
         'x-ogc-operators': OPS_BOOLEAN,
         'x-ogc-property': 'c.is_api'
       },
@@ -183,6 +185,7 @@ function buildCollectionsQueryablesSchema(baseUrl) {
         title: 'Is Active',
         description: 'Whether collection is currently active. Maps to c.is_active.',
         type: 'boolean',
+        ...(enums.is_active && enums.is_active.length > 0 ? { enum: enums.is_active } : {}),
         'x-ogc-operators': OPS_BOOLEAN,
         'x-ogc-property': 'c.is_active'
       },
@@ -191,6 +194,7 @@ function buildCollectionsQueryablesSchema(baseUrl) {
         title: 'Active (Alias)',
         description: 'Alias for is_active. Filter for active collections. Maps to c.is_active.',
         type: 'boolean',
+        ...(enums.is_active && enums.is_active.length > 0 ? { enum: enums.is_active } : {}),
         'x-ogc-operators': OPS_BOOLEAN,
         'x-ogc-property': 'c.is_active',
         'x-ogc-alias-of': 'is_active'
@@ -200,6 +204,7 @@ function buildCollectionsQueryablesSchema(baseUrl) {
         title: 'API (Alias)',
         description: 'Alias for is_api. Filter for API-based collections. Maps to c.is_api.',
         type: 'boolean',
+        ...(enums.is_api && enums.is_api.length > 0 ? { enum: enums.is_api } : {}),
         'x-ogc-operators': OPS_BOOLEAN,
         'x-ogc-property': 'c.is_api',
         'x-ogc-alias-of': 'is_api'
@@ -229,12 +234,15 @@ function buildCollectionsQueryablesSchema(baseUrl) {
 
       providers: {
         title: 'Providers',
-        description: 'Providers associated with the collection. Maps to prov.providers from LATERAL JOIN. Limited filtering support: only isNull is guaranteed.',
+        description: 'Providers associated with the collection. Maps to prov.providers from LATERAL JOIN. Limited filtering support: only isNull is guaranteed. Available provider names are dynamically loaded from database.',
         type: 'array',
         items: {
           type: 'object',
           properties: {
-            name: { type: 'string' },
+            name: { 
+              type: 'string',
+              ...(enums.providers && enums.providers.length > 0 ? { enum: enums.providers } : {})
+            },
             roles: { type: 'array', items: { type: 'string' } }
           },
           additionalProperties: true
