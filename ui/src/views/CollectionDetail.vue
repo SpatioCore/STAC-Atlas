@@ -241,7 +241,7 @@
           <div v-if="itemsInitialLoading" class="items-section__loading">
             <p>{{ t.collectionDetail.loadingItems }}</p>
           </div>
-          <div v-else-if="items.length === 0 && !itemsLoading" class="items-section__empty">
+          <div v-else-if="items.length === 0 && !itemsLoading && currentPage === 1" class="items-section__empty">
             <p>{{ t.collectionDetail.noItems }}</p>
           </div>
           <!-- Scrollable list for 12 or fewer items -->
@@ -258,7 +258,13 @@
           <!-- Paginated list for 13+ items -->
           <template v-else>
             <div class="items-section__list items-section__list--paginated">
+              <template v-if="items.length === 0 && !itemsLoading">
+                <div class="items-section__empty-page">
+                  <p>{{ t.collectionDetail.noItemsOnPage || 'No items on this page.' }}</p>
+                </div>
+              </template>
               <ItemCard
+                v-else
                 v-for="item in items"
                 :key="item.id"
                 :title="item.title"
@@ -622,18 +628,23 @@ const apiItemsBaseUrl = ref<string | null>(null)
 const apiPageSize = ref<number>(10)
 // Cache for fetched API pages (page -> items)
 const apiPagesCache = ref<Map<number, Array<{ id: string; title: string; date: string; selfUrl: string }>>>(new Map())
+// Cache for next URLs (page -> next URL for that page)
+const apiNextUrlCache = ref<Map<number, string>>(new Map())
 // Track loaded items count for display (from features.length on current page)
 const loadedItemsCount = ref(0)
 // Total matched items from API (numberMatched or context.matched)
 const apiTotalMatched = ref<number | null>(null)
 // Cache for fetched static items (page -> items)
 const staticItemsCache = ref<Map<number, Array<{ id: string; title: string; date: string; selfUrl: string }>>>(new Map())
+// Track the highest page number that we know has data (to prevent pagination from collapsing)
+const highestKnownPage = ref(1)
 
 // Pagination logic - use pagination if more pages exist or enough items
 const usePagination = computed(() => {
   if (isApiItems.value) {
     const count = apiTotalMatched.value ?? loadedItemsCount.value
-    return count >= 13 || hasMorePages.value
+    // Also consider if we've navigated beyond page 1 - keep pagination visible
+    return count >= 13 || hasMorePages.value || highestKnownPage.value > 1
   }
   return allItemLinks.value.length >= 13
 })
@@ -645,9 +656,10 @@ const totalPages = computed(() => {
     }
     // If we have more pages but don't know the total, show current + 1
     if (hasMorePages.value) {
-      return currentPage.value + 1
+      return Math.max(highestKnownPage.value, currentPage.value + 1)
     }
-    return currentPage.value
+    // When on the last page (no next link), use the highest known page
+    return Math.max(highestKnownPage.value, currentPage.value)
   }
   return Math.ceil(allItemLinks.value.length / itemsPerPage)
 })
@@ -814,16 +826,31 @@ const fetchItems = async (page: number = 1) => {
       }
       const data = await response.json()
       
-      // Extract total count from API response (STAC API uses numberMatched or context.matched)
+      // Extract total count from API response
+      // STAC APIs may use different fields depending on their implementation:
+      // - OGC API Features: numberMatched (top-level)
+      // - STAC Context Extension (deprecated): context.matched
+      // - Some APIs: total, totalResults, or context.total
       if (data.numberMatched !== undefined) {
         apiTotalMatched.value = data.numberMatched
         console.log('[Items] API numberMatched:', data.numberMatched)
       } else if (data.context?.matched !== undefined) {
         apiTotalMatched.value = data.context.matched
         console.log('[Items] API context.matched:', data.context.matched)
+      } else if (data.total !== undefined) {
+        apiTotalMatched.value = data.total
+        console.log('[Items] API total:', data.total)
+      } else if (data.totalResults !== undefined) {
+        apiTotalMatched.value = data.totalResults
+        console.log('[Items] API totalResults:', data.totalResults)
+      } else if (data.context?.total !== undefined) {
+        apiTotalMatched.value = data.context.total
+        console.log('[Items] API context.total:', data.context.total)
       } else {
+        // Many STAC APIs don't provide total count for performance reasons
+        // (counting can be expensive on large NoSQL databases)
         apiTotalMatched.value = null
-        console.log('[Items] No total count in API response')
+        console.log('[Items] No total count in API response - API may not support it')
       }
       
       // STAC API returns items in "features" array (GeoJSON FeatureCollection)
@@ -844,10 +871,19 @@ const fetchItems = async (page: number = 1) => {
       apiPagesCache.value.set(1, firstPageItems)
       items.value = firstPageItems
       
-      // Check if more pages exist via "next" link
+      // Track highest known page with data
+      if (firstPageItems.length > 0) {
+        highestKnownPage.value = 1
+      }
+      
+      // Check if more pages exist via "next" link and store the URL
       const links = data.links || []
       const nextLink = links.find((l: { rel: string; href: string }) => l.rel === 'next')
       hasMorePages.value = !!nextLink
+      if (nextLink) {
+        apiNextUrlCache.value.set(1, nextLink.href)
+        console.log('[Items] Stored next URL for page 1:', nextLink.href)
+      }
       console.log('[Items] hasMorePages:', hasMorePages.value)
       
       itemsLoading.value = false
@@ -971,47 +1007,66 @@ const fetchApiPage = async (page: number): Promise<Array<{ id: string; title: st
     return cached
   }
   
-  // Build URL with pagination - most STAC APIs support limit and offset or page parameter
-  // We'll use token-based pagination by following next links from page 1
-  // For direct page access, we need to iterate through pages
-  
-  // If requesting page 1, we already have it cached
+  // If requesting page 1, fetch from base URL
   if (page === 1) {
-    return apiPagesCache.value.get(1) || []
-  }
-  
-  // For other pages, we need to follow next links sequentially
-  // Start from the highest cached page and follow next links
-  let highestCachedPage = 1
-  for (const [p] of apiPagesCache.value) {
-    if (p > highestCachedPage && p < page) {
-      highestCachedPage = p
-    }
-  }
-  
-  // We need to fetch pages from highestCachedPage+1 to page
-  let currentFetchPage = highestCachedPage
-  let nextUrl: string | null = null
-  
-  // If we're at page 1, start from base URL
-  if (currentFetchPage === 1) {
-    // Fetch page 1 to get the next link
+    // Page 1 should already be cached from initial load, but handle edge case
     const response = await fetch(apiItemsBaseUrl.value)
     if (!response.ok) throw new Error(`HTTP ${response.status}`)
     const data = await response.json()
+    
+    const features = data.features || []
+    const pageItems: Array<{ id: string; title: string; date: string; selfUrl: string }> = []
+    for (const feature of features) {
+      pageItems.push(parseItemDataShared(feature))
+    }
+    
+    apiPagesCache.value.set(1, pageItems)
+    
+    // Store next URL if available
     const links = data.links || []
     const nextLink = links.find((l: { rel: string; href: string }) => l.rel === 'next')
-    nextUrl = nextLink ? nextLink.href : null
-    currentFetchPage = 1
+    if (nextLink) {
+      apiNextUrlCache.value.set(1, nextLink.href)
+    }
+    hasMorePages.value = !!nextLink
+    
+    if (pageItems.length > 0) {
+      highestKnownPage.value = Math.max(highestKnownPage.value, 1)
+    }
+    
+    return pageItems
   }
   
-  // Follow next links until we reach the desired page
-  while (currentFetchPage < page && nextUrl) {
-    currentFetchPage++
+  // For other pages, use the cached next URL from the previous page
+  // Find the highest page we have cached that is less than the target
+  let startPage = 1
+  for (const [p] of apiPagesCache.value) {
+    if (p < page && p > startPage) {
+      startPage = p
+    }
+  }
+  
+  // Follow next links from startPage to target page
+  let currentPage = startPage
+  
+  while (currentPage < page) {
+    // Get the next URL from the previous page
+    const nextUrl = apiNextUrlCache.value.get(currentPage)
+    
+    if (!nextUrl) {
+      console.log(`[Items] No next URL cached for page ${currentPage}, cannot navigate to page ${page}`)
+      // No more pages available
+      hasMorePages.value = false
+      return []
+    }
+    
+    console.log(`[Items] Fetching page ${currentPage + 1} using next URL from page ${currentPage}`)
     
     const response = await fetch(nextUrl)
     if (!response.ok) throw new Error(`HTTP ${response.status}`)
     const data = await response.json()
+    
+    currentPage++
     
     // Parse items
     const features = data.features || []
@@ -1021,16 +1076,25 @@ const fetchApiPage = async (page: number): Promise<Array<{ id: string; title: st
     }
     
     // Cache this page
-    apiPagesCache.value.set(currentFetchPage, pageItems)
+    apiPagesCache.value.set(currentPage, pageItems)
+    console.log(`[Items] Cached page ${currentPage} with ${pageItems.length} items`)
+    
+    // Update highest known page if this page has data
+    if (pageItems.length > 0) {
+      highestKnownPage.value = Math.max(highestKnownPage.value, currentPage)
+    }
     
     // Update loaded count
-    loadedItemsCount.value = Math.max(loadedItemsCount.value, currentFetchPage * apiPageSize.value)
+    loadedItemsCount.value = Math.max(loadedItemsCount.value, currentPage * apiPageSize.value)
     
-    // Get next link
+    // Store the next URL for this page
     const links = data.links || []
     const nextLink = links.find((l: { rel: string; href: string }) => l.rel === 'next')
-    nextUrl = nextLink ? nextLink.href : null
-    hasMorePages.value = !!nextUrl
+    if (nextLink) {
+      apiNextUrlCache.value.set(currentPage, nextLink.href)
+      console.log(`[Items] Stored next URL for page ${currentPage}`)
+    }
+    hasMorePages.value = !!nextLink
   }
   
   return apiPagesCache.value.get(page) || []
