@@ -21,6 +21,9 @@ The database is built on **PostgreSQL 16** with **PostGIS 3.4** for spatial quer
 | `crawllog_catalog` | Tracks crawler progress for catalogs. Enables resume after crash. |
 | `crawllog_collection` | Tracks crawl status of individual collections with reference to catalog. |
 
+The `crawllog_catalog` table also serves as a mirror of the STAC index and is used for generating STAC IDs.
+
+
 #### Collections
 
 | Table | Description |
