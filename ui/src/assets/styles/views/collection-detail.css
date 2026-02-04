@@ -293,7 +293,7 @@
 }
 
 .items-section__list--paginated {
-  overflow: hidden;
+  overflow-y: scroll;
   flex: 1;
 }
 
