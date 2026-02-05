@@ -3,8 +3,7 @@
 
 networks:
   stac-network:
-    name: stac-network
-    external: true
+    driver: bridge
 
 volumes:
   stac_data:

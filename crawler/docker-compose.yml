@@ -5,6 +5,8 @@ services:
       dockerfile: Dockerfile
     container_name: stac-crawler
     # restart: unless-stopped
+    env_file:
+      - .env
     environment:
       - NODE_ENV=production
     networks:
