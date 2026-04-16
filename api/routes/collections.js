@@ -7,6 +7,7 @@ const { buildCollectionSearchQuery } = require('../db/buildCollectionSearchQuery
 const { parseCql2Text, parseCql2Json } = require('../utils/cql2');
 const { cql2ToSql } = require('../utils/cql2ToSql');
 const { ErrorResponses } = require('../utils/errorResponse');
+const { getPublicBaseUrl } = require('../utils/publicBaseUrl');
 
 /**
  * Resolves a relative href against a base source URL.
@@ -222,7 +223,7 @@ router.get('/', validateCollectionSearchParams, async (req, res, next) => {
     });
 
     // execute Query against database
-    const baseHost = `${req.protocol}://${req.get('host')}`;
+    const baseHost = getPublicBaseUrl(req);
     const rows = await runQuery(sql, values);
     const returned = rows.length;
     const collections = rows.map(r => toStacCollection(r, baseHost));
@@ -343,7 +344,7 @@ const rows = await runQuery(sql, values);
 
         const row = rows[0];
 
-    const baseHost = `${req.protocol}://${req.get('host')}`;
+    const baseHost = getPublicBaseUrl(req);
 
     // Map to STAC Collection
     const collection_id = toStacCollection(row, baseHost);

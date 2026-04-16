@@ -22,6 +22,13 @@ const healthRouter = require('./routes/health');
 
 const app = express();
 
+const trustProxy = process.env.TRUST_PROXY;
+if (trustProxy === '1' || trustProxy === 'true' || trustProxy === 'yes') {
+  app.set('trust proxy', true);
+} else if (trustProxy && /^\d+$/.test(String(trustProxy).trim())) {
+  app.set('trust proxy', parseInt(String(trustProxy).trim(), 10));
+}
+
 // Request ID middleware (must be first)
 app.use(requestIdMiddleware);
 

@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { CONFORMANCE_URIS } = require('../config/conformanceURIS');
+const { getPublicBaseUrl } = require('../utils/publicBaseUrl');
 
 /**
  * GET /
@@ -9,7 +10,7 @@ const { CONFORMANCE_URIS } = require('../config/conformanceURIS');
  * Source: https://docs.ogc.org/cs/25-005/25-005.html
  */
 router.get('/', (req, res) => {
-  const baseUrl = `${req.protocol}://${req.get('host')}`;
+  const baseUrl = getPublicBaseUrl(req);
   
   res.json({
     type: 'Catalog',

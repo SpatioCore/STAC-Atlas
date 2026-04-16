@@ -3,6 +3,7 @@ const router = express.Router();
 
 const { buildCollectionsQueryablesSchema } = require('../config/queryablesSchema');
 const { query } = require('../db/db_APIconnection');
+const { getPublicBaseUrl } = require('../utils/publicBaseUrl');
 
 /**
  * GET /collection-queryables
@@ -15,7 +16,7 @@ const { query } = require('../db/db_APIconnection');
  */
 router.get('/', async (req, res) => {
   try {
-    const baseUrl = `${req.protocol}://${req.get('host')}`;
+    const baseUrl = getPublicBaseUrl(req);
     const selfUrl = `${baseUrl}/collection-queryables`;
 
     // Fetch distinct enum values from database

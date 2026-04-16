@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../db/db_APIconnection'); 
+const db = require('../db/db_APIconnection');
+const { getPublicBaseUrl } = require('../utils/publicBaseUrl'); 
 
 /**
  * Health check endpoint for the STAC Atlas API
@@ -38,7 +39,7 @@ const db = require('../db/db_APIconnection');
 router.get('/', async (req, res) => {
   const startedAt = Date.now();
   const timestamp = new Date().toISOString();
-  const baseUrl = `${req.protocol}://${req.get('host')}`;
+  const baseUrl = getPublicBaseUrl(req);
 
   const result = {
     type: 'Health',

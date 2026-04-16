@@ -86,6 +86,8 @@ The API is configured using environment variables. Copy `.env.example` to `.env`
 |----------|---------|-------------|
 | `PORT` | `3000` | Port the API server listens on |
 | `NODE_ENV` | `development` | Environment mode (`development`, `production`, `test`) |
+| `PUBLIC_BASE_URL` | _(unset)_ | Public origin for all STAC `href` links, no trailing slash (e.g. `https://atlas.stacindex.org:3000`). Set when the `Host` header seen by Node does not match what clients use. |
+| `TRUST_PROXY` | _(unset)_ | `1`, `true`, or hop count: enable Express `trust proxy` so `req.protocol` and host reflect `X-Forwarded-*` / `Forwarded` from your reverse proxy. |
 
 #### Database Connection
 
