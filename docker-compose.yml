@@ -3,7 +3,8 @@
 
 networks:
   stac-network:
-    driver: bridge
+    name: stac-network
+    external: true
 
 volumes:
   stac_data:
@@ -40,3 +41,17 @@ services:
     depends_on:
       api:
         condition: service_started
+
+  nginx:
+    image: nginx:latest
+    container_name: nginx
+    ports:
+      - "80:80"
+      - "443:443"
+      - "3000:3000"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+    networks: [stac-network]
+    depends_on:
+      - ui
