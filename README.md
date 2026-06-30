@@ -585,7 +585,6 @@ stac-atlas/
 │   ├── Dockerfile
 │   ├── docker-compose.yml
 │   └── README.md
-├── docs/                   # Additional documentation
 ├── docker-compose.yml      # Full system orchestration
 ├── bid.md                  # Project requirements (German)
 ├── LICENSE
