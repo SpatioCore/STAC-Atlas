@@ -293,7 +293,7 @@
 }
 
 .items-section__list--paginated {
-  overflow: hidden;
+  overflow-y: scroll;
   flex: 1;
 }
 
@@ -303,6 +303,17 @@
   align-items: center;
   justify-content: center;
   flex: 1;
+  padding: var(--spacing-lg);
+  color: var(--muted-fg);
+  font-size: var(--font-size-sm);
+}
+
+/* Empty page message within paginated list */
+.items-section__empty-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  grid-column: 1 / -1;
   padding: var(--spacing-lg);
   color: var(--muted-fg);
   font-size: var(--font-size-sm);
