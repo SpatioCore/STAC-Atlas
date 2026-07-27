@@ -102,7 +102,7 @@ export const useFilterStore = defineStore('filters', () => {
     endDate.value = ''
     selectedProvider.value = ''
     selectedLicense.value = ''
-    activeFilter.value = 'true' // Reset to active by default
+    activeFilter.value = '' // Reset to all (empty string = no filter)
     apiFilter.value = ''
     searchQuery.value = ''
     cql2Filter.value = ''
