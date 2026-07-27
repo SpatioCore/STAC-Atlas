@@ -1,10 +1,11 @@
-# This docker-compose file orchestrates the startup of the entire STAC-Atlas project.
-# It includes the docker-compose configurations from the individual components.
+# Orchestrates the full STAC-Atlas stack.
+# Single source for DB credentials: project-root .env (see example.env)
+#   cp example.env .env
+#   docker compose up --build -d
 
 networks:
   stac-network:
-    name: stac-network
-    external: true
+    driver: bridge
 
 volumes:
   stac_data:
@@ -14,6 +15,15 @@ services:
     extends:
       file: db/docker-compose.yml
       service: database
+    # Use root .env only — no need to duplicate credentials in db/.env
+    env_file:
+      - .env
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      STAC_API_PASSWORD: ${STAC_API_PASSWORD}
+      STAC_CRAWLER_PASSWORD: ${STAC_CRAWLER_PASSWORD}
     networks: [stac-network]
 
   crawler:
@@ -21,15 +31,34 @@ services:
       file: crawler/docker-compose.yml
       service: crawler
     networks: [stac-network]
+    # DB connection comes from root .env; crawler/.env is only crawl settings
+    environment:
+      NODE_ENV: production
+      PGHOST: stac_db
+      PGPORT: "5432"
+      PGUSER: stac_crawler
+      PGPASSWORD: ${STAC_CRAWLER_PASSWORD}
+      PGDATABASE: ${POSTGRES_DB}
     depends_on:
       db:
         condition: service_healthy
+
   api:
     extends:
       file: api/docker-compose.yml
       service: api
     networks: [stac-network]
+    # DB connection comes from root .env; api/.env is only API settings
+    environment:
+      DB_HOST: stac_db
+      DB_PORT: "5432"
+      DB_NAME: ${POSTGRES_DB}
+      DB_USER: stac_api
+      DB_PASSWORD: ${STAC_API_PASSWORD}
+      DATABASE_URL: postgresql://stac_api:${STAC_API_PASSWORD}@stac_db:5432/${POSTGRES_DB}
     depends_on:
+      db:
+        condition: service_healthy
       crawler:
         condition: service_started
 

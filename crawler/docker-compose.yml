@@ -5,6 +5,9 @@ services:
       dockerfile: Dockerfile
     container_name: stac-crawler
     # restart: unless-stopped
+    env_file:
+      - path: .env
+        required: false
     environment:
       - NODE_ENV=production
     networks:
@@ -12,4 +15,4 @@ services:
 
 networks:
   stac-network:
-    external: true
+    driver: bridge
