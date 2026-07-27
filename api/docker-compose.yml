@@ -8,6 +8,8 @@ services:
     volumes:
       - .:/app
       - /app/node_modules
-    env_file: .env
+    env_file:
+      - path: .env
+        required: false
     environment:
       - PORT=3000

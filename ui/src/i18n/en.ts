@@ -142,6 +142,7 @@ export default {
     // Items
     loadingItems: 'Loading items from source...',
     noItems: 'No items available',
+    noItemsOnPage: 'No items on this page.',
     
     // Coordinates
     coordinateLabels: {

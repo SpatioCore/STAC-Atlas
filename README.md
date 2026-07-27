@@ -150,14 +150,18 @@ The entire STAC Atlas system can be started with a single command:
 git clone https://github.com/your-org/stac-atlas.git
 cd stac-atlas
 
-# Create environment files (see Environment Configuration section)
-cp db/example.env db/.env
-cp api/.env.example api/.env
+# Create shared credentials once (injected into db, api, crawler)
+cp example.env .env
+# Edit .env — set passwords here only
+
+# Optional component settings (no DB passwords needed for full stack)
 cp crawler/.env.example crawler/.env
+cp api/.env.example api/.env
 
 # Start all services
-docker-compose up --build
+docker compose up --build -d
 ```
+
 
 This starts:
 - **Database** on port 5432
@@ -378,47 +382,28 @@ When running with Docker Compose, all services communicate over the `stac_net` i
 
 ## Environment Configuration
 
-Each component requires its own environment configuration. Template files are provided:
+### Full stack (recommended)
 
-### Database (.env)
+Create **one** root `.env` from `example.env`. Passwords and DB name/user are injected into `db`, `api` and `crawler` by the root `docker-compose.yml` — you do not repeat them elsewhere.
 
 ```env
-POSTGRES_DB=stac_db
-POSTGRES_USER=postgres
-POSTGRES_PASSWORD=your_secure_password
+POSTGRES_DB=example
+POSTGRES_USER=example
+POSTGRES_PASSWORD=example
 DB_PORT=5432
-STAC_API_PASSWORD=api_password
-STAC_CRAWLER_PASSWORD=crawler_password
+STAC_API_PASSWORD=example
+STAC_CRAWLER_PASSWORD=example
 ```
 
-### API (.env)
+Optional component files (no shared secrets):
 
-```env
-PORT=3000
-NODE_ENV=production
-DATABASE_URL=postgresql://stac_api:api_password@db:5432/stac_db
-# Or individual variables:
-# DB_HOST=localhost
-# DB_PORT=5432
-# DB_NAME=stac_db
-# DB_USER=stac_api
-# DB_PASSWORD=api_password
-```
+- `crawler/.env` — crawl settings only (`CRAWL_*`, `MAX_*`, …)
+- `api/.env` — API settings only (CORS, pool, logging, …)
+- `ui/.env` — `VITE_API_BASE_URL`
 
-### Crawler (.env)
+### Standalone components
 
-```env
-PGHOST=localhost
-PGPORT=5432
-PGUSER=stac_crawler
-PGPASSWORD=crawler_password
-PGDATABASE=stac_db
-
-CRAWL_MODE=both
-MAX_CATALOGS=0
-MAX_APIS=0
-CRAWL_DAYS_INTERVAL=7
-```
+When running a component alone, use that component’s example file (including DB connection settings). For the database alone: `db/example.env`.
 
 ### UI (.env)
 

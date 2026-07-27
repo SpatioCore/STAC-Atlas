@@ -142,6 +142,7 @@ export default {
     // Items
     loadingItems: 'Elemente werden von der Quelle geladen...',
     noItems: 'Keine Elemente verfügbar',
+    noItemsOnPage: 'Keine Elemente auf dieser Seite.',
     
     // Coordinates
     coordinateLabels: {
