@@ -240,7 +240,7 @@ const scheduleNextRun = (isRetry = false) => {
 /**
  * Start the scheduler
  */
-const startScheduler = async () => {
+export const startScheduler = async () => {
     console.log('\n╔═══════════════════════════════════════════════════════════╗');
     console.log('║           STAC Crawler Scheduler Started                 ║');
     console.log('╚═══════════════════════════════════════════════════════════╝\n');
@@ -302,5 +302,8 @@ const startScheduler = async () => {
     });
 };
 
-// Start the scheduler
-startScheduler();
+// Run scheduler if this file is executed directly
+const isMainModule = import.meta.url === `file://${process.argv[1]}`;
+if (isMainModule || import.meta.url === `file:///${process.argv[1].replace(/\\/g, '/')}`) {
+    startScheduler();
+}

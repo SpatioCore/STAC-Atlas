@@ -34,6 +34,7 @@ services:
     # DB connection comes from root .env; crawler/.env is only crawl settings
     environment:
       NODE_ENV: production
+      CRAWL_SCHEDULER_ENABLED: ${CRAWL_SCHEDULER_ENABLED:-true}
       PGHOST: stac_db
       PGPORT: "5432"
       PGUSER: stac_crawler

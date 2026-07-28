@@ -13,5 +13,5 @@ RUN npm install --omit=dev
 # Copy application files
 COPY . .
 
-# Run the crawler
-CMD ["node", "index.js"]
+# Run the crawler - CRAWL_SCHEDULER_ENABLED=true runs the periodic scheduler instead of a single pass
+CMD ["node", "entrypoint.js"]

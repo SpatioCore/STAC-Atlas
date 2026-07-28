@@ -290,13 +290,16 @@ docker run --rm \
 # Run with CLI arguments
 docker run --rm stac-crawler --mode catalogs --max-catalogs 20
 
-# Run scheduler in Docker (detached)
+# Run the periodic scheduler instead of a single pass (stays running, auto-restarts)
 docker run -d \
   --name stac-scheduler \
   -e PGHOST=host.docker.internal \
+  -e CRAWL_SCHEDULER_ENABLED=true \
   -e CRAWL_DAYS_INTERVAL=7 \
-  stac-crawler node scheduler.js
+  stac-crawler
 ```
+
+The image entrypoint (`entrypoint.js`) checks `CRAWL_SCHEDULER_ENABLED`: unset/`false` runs a single crawl-and-exit pass (`index.js`); `true` starts the periodic scheduler (`scheduler.js`) instead, using the [Scheduler Configuration](#scheduler-configuration) env vars above.
 
 Or use npm scripts:
 
@@ -307,10 +310,10 @@ npm run docker:run
 
 ### Using Docker Compose
 
-Create a `.env` file or modify `docker-compose.yml` to set environment variables:
+The shipped `docker-compose.yml` sets `CRAWL_SCHEDULER_ENABLED=true` and `restart: unless-stopped`, so the container runs the scheduler continuously by default:
 
 ```bash
-# Start the crawler (single run)
+# Start the crawler (runs the scheduler, restarts automatically)
 docker-compose up -d
 
 # View logs
@@ -320,15 +323,7 @@ docker-compose logs -f
 docker-compose down
 ```
 
-For scheduled crawling with Docker Compose, modify `docker-compose.yml`:
-```yaml
-services:
-  crawler:
-    build: .
-    command: node scheduler.js  # Use scheduler instead of single run
-    env_file: .env
-    restart: unless-stopped  # Auto-restart on failure
-```
+Create a `.env` file to override crawl/scheduler settings, or set `CRAWL_SCHEDULER_ENABLED=false` there to go back to a single run-and-exit container.
 
 Or use npm scripts:
 

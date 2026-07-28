@@ -4,12 +4,13 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: stac-crawler
-    # restart: unless-stopped
+    restart: unless-stopped
     env_file:
       - path: .env
         required: false
     environment:
       - NODE_ENV=production
+      - CRAWL_SCHEDULER_ENABLED=${CRAWL_SCHEDULER_ENABLED:-true}
     networks:
       - stac-network
 
